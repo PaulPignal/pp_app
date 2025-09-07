@@ -1,0 +1,118 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String
+
+  // Likes (ok)
+  likes Like[] @relation("UserLikes")
+
+  // 👇 Deux relations DISTINCTES vers Friendship
+  friendshipsInitiated Friendship[] @relation("user_friends_user") // l'utilisateur envoie la demande
+  friendshipsReceived  Friendship[] @relation("user_friends_friend") // l'utilisateur reçoit la demande
+  Account              Account[]
+  Session              Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Work {
+  id        String    @id @default(cuid())
+  title     String
+  category  String?
+  venue     String?
+  startDate DateTime?
+  endDate   DateTime?
+  priceMin  Float?
+  priceMax  Float?
+  imageUrl  String?
+  sourceUrl String    @unique
+
+  // Relation "likes" côté Work — préciser le nom de la relation
+  likes Like[] @relation("WorkLikes")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  workId String
+
+  user User @relation(name: "UserLikes", fields: [userId], references: [id])
+  work Work @relation(name: "WorkLikes", fields: [workId], references: [id])
+
+  @@unique([userId, workId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+
+model Friendship {
+  id String @id @default(cuid())
+
+  // Deux relations vers User avec des NOMS DE RELATION différents
+  user   User   @relation("user_friends_user", fields: [userId], references: [id])
+  userId String
+
+  friend   User   @relation("user_friends_friend", fields: [friendId], references: [id])
+  friendId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, friendId])
+}
+
+model ImportJob {
+  id        String   @id @default(cuid())
+  source    String
+  imported  Int
+  createdAt DateTime @default(now())
+}
