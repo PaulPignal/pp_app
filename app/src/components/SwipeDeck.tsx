@@ -14,19 +14,36 @@ function transformCss(x: number, rotDeg: number) {
   return `translateX(${x}px) rotate(${rotDeg}deg)`
 }
 
+/**
+ * Renvoie une fonction d'animation sûre, déjà bindée au bon élément, ou null si indispo.
+ * Évite le "TypeError: Illegal invocation" dû à l'extraction de el.animate sans le bon `this`.
+ */
+function safeAnimate(el: Element | null) {
+  if (!el) return null
+  const anyEl = el as any
+  if (typeof anyEl.animate === 'function') {
+    // bind pour conserver `this === el`
+    return anyEl.animate.bind(el) as typeof anyEl.animate
+  }
+  return null
+}
+
 export default function SwipeDeck({ items }: Props) {
   const [index, setIndex] = useState(0)
   const current = items[index]
+
   const [dragX, setDragX] = useState(0)
   const [dragStartTs, setDragStartTs] = useState<number | null>(null)
+  const [pending, setPending] = useState(false) // 🔒 anti double-clic / double-swipe
+  const [error, setError] = useState<string | null>(null)
+
   const dragging = useRef(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
-  const [pending, setPending] = useState(false) // 🔒 lock anti-double
-  const [error, setError] = useState<string | null>(null)
-
   const hasMore = index < items.length
-  const transform = useMemo(() => transformCss(dragX, dragX * 0.05), [dragX])
+
+  const rotation = useMemo(() => dragX * 0.05, [dragX])
+  const transform = useMemo(() => transformCss(dragX, rotation), [dragX, rotation])
 
   // --- API like (optimiste + lock)
   const like = useCallback(async (workId: string) => {
@@ -50,14 +67,16 @@ export default function SwipeDeck({ items }: Props) {
     }
   }, [])
 
-  // Helper local pour l'animation de retour (utilisé par onPointerUp)
+  // --- Animation de retour au centre
   const animateBackOnce = useCallback((): Promise<void> => {
     const el = cardRef.current
     if (!el) return Promise.resolve()
 
-    const animateFn = (el as any).animate as undefined | ((k: any, o?: any) => any)
-    if (typeof animateFn !== 'function') {
+    const animateFn = safeAnimate(el)
+    if (!animateFn) {
+      // Fallback sans WAAPI
       el.style.transform = transformCss(0, 0)
+      el.style.opacity = ''
       return Promise.resolve()
     }
 
@@ -69,7 +88,7 @@ export default function SwipeDeck({ items }: Props) {
     return (anim?.finished ?? Promise.resolve()).catch(() => {})
   }, [dragX])
 
-  // --- avancer d'une carte (optimiste)
+  // --- Avancer d'une carte (optimiste)
   const advance = useCallback(
     async (didLike: boolean) => {
       if (!current || pending) return
@@ -81,8 +100,8 @@ export default function SwipeDeck({ items }: Props) {
         const el = cardRef.current
         if (!el) return Promise.resolve()
 
-        const animateFn = (el as any).animate as undefined | ((k: any, o?: any) => any)
-        if (typeof animateFn !== 'function') {
+        const animateFn = safeAnimate(el)
+        if (!animateFn) {
           // Fallback sans WAAPI
           el.style.transform = transformCss(toX, rot)
           el.style.opacity = '0'
@@ -90,7 +109,10 @@ export default function SwipeDeck({ items }: Props) {
         }
 
         const anim = animateFn(
-          [{ transform: transformCss(dragX, rot / 2) }, { transform: transformCss(toX, rot), opacity: 0 }],
+          [
+            { transform: transformCss(dragX, rot / 2), opacity: 1 },
+            { transform: transformCss(toX, rot), opacity: 0 },
+          ],
           { duration: 180, easing: 'ease-out' },
         )
 
@@ -105,6 +127,7 @@ export default function SwipeDeck({ items }: Props) {
         } else {
           await animateOut(-800, -20)
         }
+
         // passe à la carte suivante
         setIndex((i) => i + 1)
         setDragX(0)
@@ -116,7 +139,7 @@ export default function SwipeDeck({ items }: Props) {
     [current, dragX, like, pending],
   )
 
-  // --- clavier
+  // --- clavier (Left/Right)
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!current || pending) return
@@ -218,6 +241,7 @@ export default function SwipeDeck({ items }: Props) {
           onClick={() => void advance(false)}
           className="rounded-2xl border px-4 py-2"
           disabled={pending}
+          aria-label="Passer"
         >
           Pass
         </button>
@@ -226,6 +250,7 @@ export default function SwipeDeck({ items }: Props) {
           onClick={() => void advance(true)}
           className="rounded-2xl border px-4 py-2"
           disabled={pending}
+          aria-label="Aimer"
         >
           {pending ? '...' : 'Like'}
         </button>
