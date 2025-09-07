@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.card { @apply bg-white rounded-xl border shadow-sm p-4; }
+.btn  { @apply inline-flex items-center justify-center rounded-lg px-4 py-2 border bg-white hover:bg-gray-50; }
+.btn-primary { @apply bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600; }
