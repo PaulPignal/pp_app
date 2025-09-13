@@ -1,15 +1,17 @@
 // src/app/api/common/route.ts
 import { NextResponse } from "next/server";
-import { prisma } from "@/server/db";
 import { auth } from "@/auth";
 
-export const runtime = "nodejs";         // Prisma + libs Node => pas d'Edge
-export const dynamic = "force-dynamic";  // empêche tout pré-rendu/collecte
-export const revalidate = 0;             // pas de cache SSG
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
 export async function GET(req: Request) {
   try {
+    // Import dynamique de Prisma pour éviter les problèmes de build
+    const { prisma } = await import("@/server/db");
+    
     const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "unauth" }, { status: 401 });
@@ -39,9 +41,7 @@ export async function GET(req: Request) {
     const works = await prisma.work.findMany({ where: { id: { in: intersectIds } } });
     return NextResponse.json({ works });
   } catch (err) {
-    // log optionnel
+    console.error("API Common error:", err);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 }
-
-// (ajoute un POST si besoin, mais pas d'export default)
