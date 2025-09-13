@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/server/db";
+import { getPrisma } from "@/lib/prisma";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,6 +16,9 @@ function withTimeout<T>(p: Promise<T>, ms = 6000) {
 export async function GET(req: Request) {
   const t0 = Date.now();
   try {
+    // Import dynamique de Prisma
+    const prisma = await getPrisma();
+    
     const url = new URL(req.url);
     const per = Math.min(Math.max(parseInt(url.searchParams.get("per") || "50", 10), 1), 100);
     const since = url.searchParams.get("since");
