@@ -1,7 +1,7 @@
 // src/app/api/register/route.ts
 import { NextResponse } from 'next/server'
-import prisma from '@/server/db'
 import { hash } from 'bcryptjs'
+import { getPrisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,6 +14,9 @@ function normalizeEmail(email?: string) {
 
 export async function POST(req: Request) {
   try {
+    // Import dynamique de Prisma
+    const prisma = await getPrisma()
+    
     const ct = req.headers.get('content-type') || ''
     if (!ct.includes('application/json')) {
       return NextResponse.json({ error: 'content_type' }, { status: 400 })
