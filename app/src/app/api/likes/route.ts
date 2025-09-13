@@ -1,4 +1,4 @@
-import { prisma } from '@/server/db'
+import { getPrisma } from '@/lib/prisma'
 import { jsonOk, jsonError, requireAuthUserId } from '@/lib/http'
 import { LikeCreateSchema, LikeDeleteQuerySchema } from '@/lib/validators'
 
@@ -9,6 +9,7 @@ export const fetchCache = "force-no-store";
 
 export async function GET() {
   try {
+    const prisma = await getPrisma()
     const userId = await requireAuthUserId()
     const likes = await prisma.like.findMany({
       where: { userId },
@@ -25,6 +26,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const prisma = await getPrisma()
     const userId = await requireAuthUserId()
     const body = await req.json().catch(() => ({}))
     const parsed = LikeCreateSchema.safeParse(body)
@@ -51,6 +53,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const prisma = await getPrisma()
     const userId = await requireAuthUserId()
     const url = new URL(req.url)
     const parsed = LikeDeleteQuerySchema.safeParse({ workId: url.searchParams.get('workId') })
