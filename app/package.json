@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && prisma migrate deploy && prisma db seed",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "db:seed": "tsx prisma/seed.ts",
@@ -63,5 +63,8 @@
   "overrides": {
     "cookie": "0.7.2",
     "esbuild": "0.25.9"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
