@@ -5,7 +5,6 @@ export const config = {
     "/",              // page d'accueil
     "/discover/:path*",
     "/likes/:path*",
-    "/new/:path*",
     "/friends/:path*",
   ],
 }
