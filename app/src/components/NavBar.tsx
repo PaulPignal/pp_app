@@ -27,7 +27,6 @@ export default function NavBar() {
   return (
     <nav className="container mx-auto flex gap-6 p-4 text-sm font-medium items-center">
       <NavLink href="/discover">Découverte</NavLink>
-      <NavLink href="/new">Nouveautés</NavLink>
       <NavLink href="/likes">Mes likes</NavLink>
       <NavLink href="/friends">Amis</NavLink>
 
