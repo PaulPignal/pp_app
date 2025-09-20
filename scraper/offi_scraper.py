@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Scraper Offi.fr optimisé - Liens directs (1 ou 2 segments) + fix dates + venue + --debug
+Scraper Offi.fr optimisé - Liens directs (2 segments stricts) + fix dates + venue + fragments nettoyés + --debug
 
 Usage :
   python offi_scraper.py --max-pages 10 --out spectacles.jsonl [--debug]
@@ -16,12 +16,13 @@ import random
 import re
 import time
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Tuple
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlunparse
 
 import requests
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 
 # -----------------------
 # Configuration
@@ -60,11 +61,10 @@ MONTHS = {
     "décembre": 12, "decembre": 12
 }
 
-# URL spectacle : 1 ou 2 segments après /theatre/
-#  - 1 segment : /theatre/nom-12345.html
-#  - 2 segments : /theatre/nom-de-lieu-3176/nom-de-piece-94724.html
-SHOW_PATH_RE_1 = re.compile(r"^/theatre/[^/]+-\d+\.html$")
+# URL spectacle : exactement 2 segments après /theatre/
+#  - /theatre/nom-de-lieu-3176/nom-de-piece-94724.html
 SHOW_PATH_RE_2 = re.compile(r"^/theatre/[^/]+-\d+/[^/]+-\d+\.html$")
+
 
 @dataclass
 class Show:
@@ -168,7 +168,7 @@ class OffiScraper:
         if m:
             d, mo, y = m.groups()
             s = self._to_iso(d, mo, y)
-            return s, s  # start=end (demande utilisateur)
+            return s, s  # start=end
 
         m = JUSQU_AU_RE.search(t) or AU_SEUL_RE.search(t)
         if m:
@@ -178,7 +178,7 @@ class OffiScraper:
 
         single = self._parse_date(t)
         if single:
-            return single, single  # start=end
+            return single, single
         return None, None
 
     def _parse_duration(self, text: str) -> Optional[int]:
@@ -206,34 +206,27 @@ class OffiScraper:
             return prices[0], prices[0]
         return min(prices), max(prices)
 
-    # ---------------- URL spectacle (1 ou 2 segments) ----------------
+    # ---------------- URL spectacle (2 segments stricts) ----------------
 
-    def _is_show_url(self, href: str) -> bool:
+    def _normalize_show_url(self, href: str) -> Optional[str]:
+        """
+        Absolutise l'URL vers BASE_URL et supprime fragment (#...) et query (?...).
+        Retourne None si le chemin ne correspond pas à un spectacle (2 segments).
+        """
         if not href:
-            return False
+            return None
         try:
             u = urlparse(urljoin(BASE_URL, href))
-            p = u.path
-            if not p.startswith("/theatre/"):
-                return False
-            if SHOW_PATH_RE_1.match(p) or SHOW_PATH_RE_2.match(p):
-                return True
-            # fallback : *.html et dernier segment se termine par -<id>
-            last = p.rsplit("/", 1)[-1]
-            if not last.endswith(".html"):
-                return False
-            stem = last[:-5].lower()
-            if stem in {
-                "programme", "index", "pieces-de-theatre", "humour-shows",
-                "spectacles-musicaux", "operas-ballets-danse", "cirques-et-autres-spectacles",
-                "spectacles-cabarets"
-            }:
-                return False
-            if not re.search(r"-\d+$", stem):
-                return False
-            return True
+            if not SHOW_PATH_RE_2.match(u.path or ""):
+                return None
+            cleaned = u._replace(query="", fragment="")
+            return urlunparse((cleaned.scheme, cleaned.netloc, cleaned.path, "", "", ""))
         except Exception:
-            return False
+            return None
+
+    def _is_show_url(self, href: str) -> bool:
+        """Strict : seulement les URLs à 2 segments sous /theatre/…-id/…-id.html"""
+        return self._normalize_show_url(href) is not None
 
     # ---------------- Venue helpers ----------------
 
@@ -248,7 +241,7 @@ class OffiScraper:
             return False
         if re.search(r"\d", t):
             return False
-        if any(sym in t for sym in ["€", "%", "-%"]):
+        if any(sym in t for sym in ["€", "%", "-%"]):  # bug 'sym' corrigé
             return False
         if len(t.split()) < 2:
             return False
@@ -268,9 +261,7 @@ class OffiScraper:
                 first = parts[1]  # ex: comedie-montorgueil-3176
                 base = re.sub(r"-\d+$", "", first)
                 if base:
-                    # Remettre espaces, capitalisation légère
                     name = base.replace("-", " ").strip()
-                    # Capitalise chaque mot mais garde accents (title() ok ici)
                     name = " ".join(w.capitalize() for w in name.split())
                     return name
         except Exception:
@@ -295,6 +286,7 @@ class OffiScraper:
             breadcrumbs = soup.select("nav.breadcrumb a, .breadcrumb a, ol.breadcrumb a")
             for bc in reversed(breadcrumbs or []):
                 href = bc.get("href", "")
+                # Lien de lieu (pas une fiche spectacle)
                 if "/theatre/" in href and not self._is_show_url(href):
                     vt = self._extract_text(bc)
                     if self._looks_like_venue(vt):
@@ -304,7 +296,7 @@ class OffiScraper:
                 h1 = soup.find("h1")
                 if h1:
                     for link in h1.find_all_next("a", href=True, limit=20):
-                        href = link["href"]
+                        href = link.get("href", "")
                         if "/theatre/" in href and not self._is_show_url(href):
                             vt = self._extract_text(link)
                             if self._looks_like_venue(vt):
@@ -423,39 +415,35 @@ class OffiScraper:
                     continue
                 pages_crawled += 1
 
-                # DEBUG: dump de quelques href
                 all_links = soup.find_all("a", href=True)
-                if self.debug:
-                    logging.debug(f"[DEBUG] {len(all_links)} liens <a> trouvés sur {url}")
-                    for l in all_links[:40]:
-                        logging.debug(f"[DEBUG] href: {l.get('href')} | txt: {(l.get_text(strip=True) or '')[:80]}")
 
-                # Candidats spectacles = tous les liens qui matchent le pattern
-                candidate_links = []
+                # Candidats spectacles = liens strictement au format 2 segments
+                candidate_links: list[tuple[str, Tag]] = []
                 for l in all_links:
-                    href = l["href"]
-                    if self._is_show_url(href):
-                        txt = (l.get_text(strip=True) or "").strip()
-                        if txt.isdigit():
-                            # pagination "1 2 3"
-                            if self.debug:
-                                logging.debug(f"[DEBUG] Lien ignoré (pagination): {href}")
-                            continue
-                        candidate_links.append(l)
+                    href = l.get("href")
+                    if not href:
+                        continue
+                    # ignorer pagination "1 2 3"
+                    link_txt = (l.get_text(strip=True) or "").strip()
+                    if link_txt.isdigit():
+                        continue
+                    # normaliser + filtrer (supprime #... et ?...)
+                    norm = self._normalize_show_url(href)
+                    if norm:
+                        candidate_links.append((norm, l))
 
                 if self.debug:
-                    logging.debug(f"[DEBUG] Candidats spectacle: {len(candidate_links)}")
-                    for l in candidate_links[:20]:
-                        logging.debug(f"[DEBUG] candidat: {urljoin(BASE_URL, l['href'])} | txt: {(l.get_text(strip=True) or '')[:80]}")
+                    logging.debug(f"[DEBUG] Candidats spectacle (normalisés): {len(candidate_links)}")
+                    for u, l in candidate_links[:20]:
+                        logging.debug(f"[DEBUG] candidat: {u} | txt: {(l.get_text(strip=True) or '')[:80]}")
 
-                # Dédupliquer par URL absolue et limiter par page pour rester polis
-                abs_urls = []
+                # Dédupliquer par URL normalisée
+                abs_urls: list[tuple[str, Tag]] = []
                 seen = set()
-                for l in candidate_links:
-                    u = urljoin(BASE_URL, l["href"])
-                    if u not in seen:
-                        abs_urls.append((u, l))
-                        seen.add(u)
+                for norm_url, link_el in candidate_links:
+                    if norm_url not in seen:
+                        abs_urls.append((norm_url, link_el))
+                        seen.add(norm_url)
 
                 page_shows = 0
                 for abs_url, link_el in abs_urls:
@@ -463,7 +451,7 @@ class OffiScraper:
                         continue
                     self._seen_urls.add(abs_url)
 
-                    show = Show(url=abs_url, crawled_at=datetime.utcnow().isoformat() + "Z")
+                    show = Show(url=abs_url, crawled_at=datetime.now(timezone.utc).isoformat())
 
                     # Titre si dispo dans le lien
                     link_txt = (link_el.get_text(strip=True) or "").strip()
@@ -499,7 +487,7 @@ class OffiScraper:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Scraper Offi.fr - liens directs (fix dates/venue + --debug)")
+    parser = argparse.ArgumentParser(description="Scraper Offi.fr - liens directs (2 segments stricts, fix dates/venue + --debug)")
     parser.add_argument("--out", default="spectacles.jsonl", help="Fichier de sortie")
     parser.add_argument("--max-pages", type=int, default=150, help="Nombre max de pages de programme")
     parser.add_argument("--min-delay", type=float, default=0.7, help="Délai min entre requêtes")
