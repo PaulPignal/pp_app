@@ -1,3 +1,4 @@
+// src/app/likes/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -5,7 +6,12 @@ import Image from 'next/image'
 
 type LikeItem = {
   workId: string
-  work?: { id: string; title: string; imageUrl?: string | null; sourceUrl?: string | null }
+  work?: {
+    id: string
+    title: string
+    imageUrl?: string | null
+    sourceUrl?: string | null
+  }
 }
 
 async function fetchJsonSafe(url: string, init?: RequestInit) {
@@ -27,6 +33,7 @@ export default function LikesPage() {
   const [likes, setLikes] = useState<LikeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pendingId, setPendingId] = useState<string | null>(null)
 
   const reload = async () => {
     setLoading(true)
@@ -47,28 +54,38 @@ export default function LikesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // "Vu" => passe la réaction en SEEN
   const markSeen = async (workId: string) => {
+    setPendingId(workId)
     try {
-      await fetchJsonSafe('/api/likes', {
+      await fetchJsonSafe('/api/reactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workId, action: 'seen' }),
+        body: JSON.stringify({ workId, status: 'SEEN' }),
       })
     } catch {
       // no-op en dev
+    } finally {
+      setPendingId(null)
+      reload()
     }
-    reload()
   }
 
+  // "Retirer" => passe la réaction en DISLIKE
   const unlike = async (workId: string) => {
+    setPendingId(workId)
     try {
-      await fetchJsonSafe('/api/likes?workId=' + encodeURIComponent(workId), {
-        method: 'DELETE',
+      await fetchJsonSafe('/api/reactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workId, status: 'DISLIKE' }),
       })
     } catch {
       // no-op en dev
+    } finally {
+      setPendingId(null)
+      reload()
     }
-    reload()
   }
 
   if (loading) {
@@ -118,22 +135,35 @@ export default function LikesPage() {
                     </div>
                   )}
                 </div>
+
                 <h2 className="mt-2 line-clamp-2 text-sm font-medium">{l.work?.title ?? l.workId}</h2>
 
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {l.work?.sourceUrl && (
+                    <a
+                      href={l.work.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-xl border px-3 py-1 text-sm"
+                    >
+                      Voir la source
+                    </a>
+                  )}
                   <button
-                    className="rounded-xl border px-3 py-1 text-sm"
+                    className="rounded-xl border px-3 py-1 text-sm disabled:opacity-50"
                     onClick={() => markSeen(l.workId)}
                     title="Marquer comme vu"
+                    disabled={pendingId === l.workId}
                   >
-                    Vu
+                    {pendingId === l.workId ? '...' : 'Vu'}
                   </button>
                   <button
-                    className="rounded-xl border px-3 py-1 text-sm"
+                    className="rounded-xl border px-3 py-1 text-sm disabled:opacity-50"
                     onClick={() => unlike(l.workId)}
                     title="Retirer le like"
+                    disabled={pendingId === l.workId}
                   >
-                    Retirer
+                    {pendingId === l.workId ? '...' : 'Retirer'}
                   </button>
                 </div>
               </article>
