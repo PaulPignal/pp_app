@@ -1,47 +1,40 @@
 // src/app/api/common/route.ts
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { getPrisma } from '@/lib/prisma'
+import { jsonOk, jsonError, requireAuthUserId } from '@/lib/http'
+import { CommonQuerySchema } from '@/lib/validators'
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const fetchCache = "force-no-store";
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
+// GET /api/common?friendId=...
+// Renvoie les LIKE des deux utilisateurs (toi + friendId), avec la Work incluse.
+// (Union des likes des deux comptes ; si tu veux l'intersection, dis-le et je te file la variante.)
 export async function GET(req: Request) {
   try {
-    // Import dynamique de Prisma pour éviter les problèmes de build
-    const { prisma } = await import("@/server/db");
-    
-    const session = await auth();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "unauth" }, { status: 401 });
-    }
+    const prisma = await getPrisma()
+    const meId = await requireAuthUserId()
 
-    const me = await prisma.user.findUnique({ where: { email: session.user.email } });
-    if (!me) {
-      return NextResponse.json({ error: "no user" }, { status: 400 });
-    }
+    const url = new URL(req.url)
+    const parsed = CommonQuerySchema.safeParse({ friendId: url.searchParams.get('friendId') })
+    if (!parsed.success) return jsonError('invalid_query', 400, parsed.error.flatten())
 
-    const { searchParams } = new URL(req.url);
-    const friendId = searchParams.get("friendId");
-    if (!friendId) {
-      return NextResponse.json({ error: "friendId required" }, { status: 400 });
-    }
+    const friendId = parsed.data.friendId
 
-    // Likes en commun
-    const common = await prisma.like.findMany({
-      where: { userId: { in: [me.id, friendId] } },
+    const common = await prisma.reaction.findMany({
+      where: {
+        status: 'LIKE',
+        userId: { in: [meId, friendId] },
+      },
+      orderBy: { createdAt: 'desc' },
       include: { work: true },
-    });
+    })
 
-    const mySet = new Set(common.filter(l => l.userId === me.id).map(l => l.workId));
-    const friendSet = new Set(common.filter(l => l.userId === friendId).map(l => l.workId));
-    const intersectIds = [...mySet].filter(x => friendSet.has(x));
-
-    const works = await prisma.work.findMany({ where: { id: { in: intersectIds } } });
-    return NextResponse.json({ works });
-  } catch (err) {
-    console.error("API Common error:", err);
-    return NextResponse.json({ error: "internal_error" }, { status: 500 });
+    return jsonOk({ common })
+  } catch (e: any) {
+    if (e instanceof Response) return e
+    console.error('[GET /api/common] error:', e)
+    return jsonError('server_error', 500)
   }
 }
