@@ -1,71 +1,8 @@
 {
-  "name": "app",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "postinstall": "prisma generate && prisma migrate deploy && prisma db seed",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev --name init",
-    "db:seed": "tsx prisma/seed.ts",
-    "ingest:offi": "tsx scripts/ingest-offi.ts",
-    "test": "vitest run",
-    "test:ui": "vitest",
-    "test:watch": "vitest --watch"
+  "devDependencies": {
+    "prisma": "^6.16.2"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "2.10.0",
-    "@prisma/client": "^5.18.0",
-    "bcryptjs": "^3.0.2",
-    "lucide-react": "0.453.0",
-    "next": "14.2.32",
-    "next-auth": "4.24.11",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "zod": "3.23.8"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "6.6.3",
-    "@testing-library/react": "16.0.0",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^20.12.12",
-    "@types/react": "18",
-    "@types/react-dom": "18",
-    "@typescript-eslint/eslint-plugin": "7",
-    "@typescript-eslint/parser": "7",
-    "@vitejs/plugin-react": "^5.0.2",
-    "autoprefixer": "10.4.19",
-    "better-sqlite3": "^12.2.0",
-    "eslint": "8.57.0",
-    "eslint-config-next": "14.2.32",
-    "eslint-config-prettier": "9.1.0",
-    "jsdom": "24.1.0",
-    "postcss": "8.4.41",
-    "prisma": "^6.16.2",
-    "tailwindcss": "^3.4.10",
-    "tsx": "^4.20.5",
-    "typescript": "^5.5.4",
-    "vite": "^7.1.4",
-    "vite-node": "^3.2.4",
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4"
-  },
-  "type": "module",
-  "engines": {
-    "node": "20.x",
-    "pnpm": ">=8"
-  },
-  "overrides": {
-    "cookie": "0.7.2",
-    "esbuild": "0.25.9"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
-  "packageManager": "pnpm@10.0.0"
+    "@prisma/client": "^6.16.2"
+  }
 }
