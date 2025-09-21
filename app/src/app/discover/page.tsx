@@ -1,40 +1,34 @@
 // src/app/discover/page.tsx
 import SwipeDeck from '@/components/SwipeDeck'
 import { Metadata } from 'next'
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+import type { Work } from '@/types/Work'
 
 export const metadata: Metadata = {
   title: 'Découvertes',
   description: 'Parcours de découvertes à swiper façon Tinder',
 }
 
-async function getWorks() {
-  try {
-    // Import dynamique pour éviter les erreurs de build
-    const { prisma } = await import('@/server/db')
-    
-    return await prisma.work.findMany({
-      take: 20,
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        imageUrl: true,
-        category: true,
-        venue: true,
-        startDate: true,
-        endDate: true,
-        priceMin: true,
-        priceMax: true,
-        sourceUrl: true,
-      },
-    })
-  } catch (error) {
-    console.error('Error fetching works:', error)
-    return []
-  }
+// 🔄 important pour éviter tout cache et re-rendre selon la session
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
+async function getWorks(): Promise<Work[]> {
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const res = await fetch(`${base}/api/works?per=200`, { cache: 'no-store' })
+  if (!res.ok) return []
+  const j = await res.json().catch(() => ({ items: [] }))
+  return Array.isArray(j?.items) ? (j.items as Work[]) : []
 }
 
 export default async function DiscoverPage() {
+  // 1) Session -> protéger la page
+  const session = await auth()
+  if (!session?.user?.email) redirect('/signin')
+
+  // 2) Charger un lot généreux (200) depuis l’API user-aware
   const works = await getWorks()
 
   return (
@@ -45,7 +39,7 @@ export default async function DiscoverPage() {
           Balaye à droite pour « Like », à gauche pour « Pass ». Flèches ← / → au clavier.
         </p>
       </header>
-      <SwipeDeck items={works as any} />
+      <SwipeDeck items={works} />
     </main>
   )
 }

@@ -45,25 +45,25 @@ export default function SwipeDeck({ items }: Props) {
   const rotation = useMemo(() => dragX * 0.05, [dragX])
   const transform = useMemo(() => transformCss(dragX, rotation), [dragX, rotation])
 
-  // --- API like (optimiste + lock)
-  const like = useCallback(async (workId: string) => {
+  // --- API reaction (LIKE / DISLIKE) — optimiste + lock
+  const react = useCallback(async (workId: string, status: 'LIKE' | 'DISLIKE') => {
     setError(null)
     try {
-      const res = await fetch('/api/likes', {
+      const res = await fetch('/api/reactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workId }),
+        body: JSON.stringify({ workId, status }),
       })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
         // eslint-disable-next-line no-console
-        console.error('like failed', res.status, j)
-        setError("Impossible d'enregistrer le like")
+        console.error('reaction failed', res.status, j)
+        setError("Impossible d'enregistrer l'action")
       }
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(e)
-      setError("Impossible d'envoyer le like")
+      setError("Impossible d'envoyer l'action")
     }
   }, [])
 
@@ -123,9 +123,11 @@ export default function SwipeDeck({ items }: Props) {
         if (didLike) {
           await animateOut(800, 20)
           // optimiste: on envoie après l’animation
-          void like(curId)
+          void react(curId, 'LIKE')
         } else {
           await animateOut(-800, -20)
+          // mémorise le "pass" (DISLIKE)
+          void react(curId, 'DISLIKE')
         }
 
         // passe à la carte suivante
@@ -136,7 +138,7 @@ export default function SwipeDeck({ items }: Props) {
         setPending(false)
       }
     },
-    [current, dragX, like, pending],
+    [current, dragX, pending, react],
   )
 
   // --- clavier (Left/Right)

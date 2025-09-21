@@ -9,17 +9,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//////////////////////////////////////
+// Users & Auth
+//////////////////////////////////////
+
 model User {
   id           String  @id @default(cuid())
   email        String  @unique
   passwordHash String
 
-  // Likes (ok)
-  likes Like[] @relation("UserLikes")
+  // ✅ Réactions (remplace l'ancien User.likes)
+  reactions Reaction[] @relation("UserReactions")
 
   // 👇 Deux relations DISTINCTES vers Friendship
-  friendshipsInitiated Friendship[] @relation("user_friends_user") // l'utilisateur envoie la demande
+  friendshipsInitiated Friendship[] @relation("user_friends_user")   // l'utilisateur envoie la demande
   friendshipsReceived  Friendship[] @relation("user_friends_friend") // l'utilisateur reçoit la demande
+
   Account              Account[]
   Session              Session[]
 }
@@ -60,6 +65,10 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+//////////////////////////////////////
+// Domain
+//////////////////////////////////////
+
 model Work {
   id        String    @id @default(cuid())
   title     String
@@ -72,28 +81,40 @@ model Work {
   imageUrl  String?
   sourceUrl String    @unique
 
-  // Relation "likes" côté Work — préciser le nom de la relation
-  likes Like[] @relation("WorkLikes")
+  // ✅ Réactions (remplace l'ancien Work.likes)
+  reactions Reaction[] @relation("WorkReactions")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Like {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
-  userId String
-  workId String
-
-  user User @relation(name: "UserLikes", fields: [userId], references: [id])
-  work Work @relation(name: "WorkLikes", fields: [workId], references: [id])
-
-  @@unique([userId, workId])
-  @@index([userId])
-  @@index([createdAt])
+// ✅ Enum de statut : un seul état par (user, work)
+enum ReactionStatus {
+  LIKE
+  DISLIKE
+  SEEN
 }
 
+// ✅ Modèle unifié pour like / dislike / vu
+model Reaction {
+  id        String          @id @default(cuid())
+  userId    String
+  workId    String
+  status    ReactionStatus
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  user User @relation(name: "UserReactions", fields: [userId], references: [id])
+  work Work @relation(name: "WorkReactions", fields: [workId], references: [id])
+
+  // Unicité : 1 seule réaction (état) par (user, work)
+  @@unique([userId, workId], name: "userId_workId")
+
+  // Index utiles
+  @@index([userId, status])
+  @@index([workId, status])
+  @@index([createdAt])
+}
 
 model Friendship {
   id String @id @default(cuid())
