@@ -18,7 +18,7 @@ import re
 import sys
 import time
 from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, List
 from urllib.parse import urljoin, urlparse, urlunparse
 
@@ -154,6 +154,9 @@ class CrawlStats:
     requests: int = 0
     retries: int = 0
     request_failures: int = 0
+    cached_loaded: int = 0
+    cached_reused: int = 0
+    detail_fetches: int = 0
 
 
 class OffiScraper:
@@ -163,6 +166,8 @@ class OffiScraper:
         max_delay: float = 1.6,
         retries: int = 4,
         timeout: float = 20,
+        cache_file: Optional[str] = None,
+        refresh_after_hours: int = 72,
         debug: bool = False,
     ):
         self.session = requests.Session()
@@ -176,9 +181,12 @@ class OffiScraper:
         self.last_request = 0
         self.retries = retries
         self.timeout = timeout
+        self.cache_file = cache_file
+        self.refresh_after = timedelta(hours=max(refresh_after_hours, 0))
         self._seen_urls: set[str] = set()
         self.debug = debug
         self.stats = CrawlStats()
+        self._cache: dict[str, Show] = self._load_cache(cache_file)
 
     # ---------------- Utils réseau ----------------
 
@@ -267,6 +275,82 @@ class OffiScraper:
             reason,
         )
         time.sleep(delay)
+
+    def _load_cache(self, cache_file: Optional[str]) -> dict[str, Show]:
+        cache: dict[str, Show] = {}
+        if not cache_file or not os.path.exists(cache_file):
+            return cache
+
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    row = line.strip()
+                    if not row:
+                        continue
+                    try:
+                        payload = json.loads(row)
+                    except json.JSONDecodeError:
+                        continue
+                    show = self._show_from_payload(payload)
+                    if show:
+                        cache[show.url] = show
+            self.stats.cached_loaded = len(cache)
+            logging.info("Cache chargé depuis %s (%s fiches)", cache_file, len(cache))
+        except Exception as exc:
+            logging.warning("Impossible de charger le cache %s: %s", cache_file, exc)
+        return cache
+
+    def _show_from_payload(self, payload: dict) -> Optional[Show]:
+        url = payload.get("url")
+        if not isinstance(url, str) or not url:
+            return None
+        return Show(
+            url=url,
+            title=payload.get("title"),
+            category=payload.get("category"),
+            venue=payload.get("venue"),
+            address=payload.get("address"),
+            date_start=payload.get("date_start"),
+            date_end=payload.get("date_end"),
+            duration_min=payload.get("duration_min"),
+            price_min_eur=payload.get("price_min_eur"),
+            price_max_eur=payload.get("price_max_eur"),
+            image=payload.get("image"),
+            description=payload.get("description"),
+            crawled_at=payload.get("crawled_at"),
+        )
+
+    @staticmethod
+    def _parse_crawled_at(value: Optional[str]) -> Optional[datetime]:
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+
+    def _is_cache_complete(self, show: Show) -> bool:
+        return bool(show.title and show.category and show.venue and show.description)
+
+    def _should_refresh_detail(self, cached_show: Optional[Show]) -> bool:
+        if cached_show is None:
+            return True
+        if not self._is_cache_complete(cached_show):
+            return True
+        if self.refresh_after == timedelta(0):
+            return False
+        crawled_at = self._parse_crawled_at(cached_show.crawled_at)
+        if crawled_at is None:
+            return True
+        return datetime.now(timezone.utc) - crawled_at > self.refresh_after
+
+    @staticmethod
+    def _merge_seed_with_cache(seed: Show, cached_show: Show) -> Show:
+        merged = Show(**asdict(cached_show))
+        merged.url = seed.url
+        if seed.title and not merged.title:
+            merged.title = seed.title
+        return merged
 
     # ---------------- Helpers dates ----------------
 
@@ -757,14 +841,21 @@ class OffiScraper:
                     if link_txt and not link_txt.isdigit():
                         show.title = link_txt
 
-                    # Compléter depuis page détail
-                    before = asdict(show)
-                    show = self._complete_show_from_detail_page(show)
-                    self.stats.shows_completed += 1
-                    if self.debug:
-                        logging.debug(f"[DEBUG] Complété: {show.url}")
-                        logging.debug(f"[DEBUG]   avant: {json.dumps(before, ensure_ascii=False)}")
-                        logging.debug(f"[DEBUG]   après: {json.dumps(asdict(show), ensure_ascii=False)}")
+                    cached_show = self._cache.get(abs_url)
+                    if self._should_refresh_detail(cached_show):
+                        before = asdict(show)
+                        show = self._complete_show_from_detail_page(show)
+                        self.stats.shows_completed += 1
+                        self.stats.detail_fetches += 1
+                        if self.debug:
+                            logging.debug(f"[DEBUG] Complété: {show.url}")
+                            logging.debug(f"[DEBUG]   avant: {json.dumps(before, ensure_ascii=False)}")
+                            logging.debug(f"[DEBUG]   après: {json.dumps(asdict(show), ensure_ascii=False)}")
+                    else:
+                        show = self._merge_seed_with_cache(show, cached_show)
+                        self.stats.cached_reused += 1
+                        if self.debug:
+                            logging.debug(f"[DEBUG] Réutilisé depuis cache: {show.url}")
 
                     validated = self._validate_show(show)
                     if not validated:
@@ -782,7 +873,7 @@ class OffiScraper:
                     break
 
         logging.info(
-            "Terminé - Pages OK: %s, Pages KO: %s, Spectacles: %s, Complétions: %s, Invalides: %s, Requêtes: %s, Retries: %s, Erreurs réseau: %s",
+            "Terminé - Pages OK: %s, Pages KO: %s, Spectacles: %s, Complétions: %s, Invalides: %s, Requêtes: %s, Retries: %s, Erreurs réseau: %s, Cache chargé: %s, Cache réutilisé: %s, Détails fetchés: %s",
             self.stats.pages_crawled,
             self.stats.pages_failed,
             self.stats.shows_extracted,
@@ -791,6 +882,9 @@ class OffiScraper:
             self.stats.requests,
             self.stats.retries,
             self.stats.request_failures,
+            self.stats.cached_loaded,
+            self.stats.cached_reused,
+            self.stats.detail_fetches,
         )
         return self.stats
 
@@ -803,6 +897,8 @@ def main():
     parser.add_argument("--max-delay", type=float, default=1.6, help="Délai max entre requêtes")
     parser.add_argument("--retries", type=int, default=4, help="Nombre de retries HTTP")
     parser.add_argument("--timeout", type=float, default=20, help="Timeout HTTP par requête en secondes")
+    parser.add_argument("--cache-file", default=None, help="Fichier JSONL précédent à réutiliser comme cache")
+    parser.add_argument("--refresh-after-hours", type=int, default=72, help="Âge max du cache détail avant refresh")
     parser.add_argument("--debug", action="store_true", help="Logs détaillés de diagnostic")
     args = parser.parse_args()
 
@@ -816,6 +912,8 @@ def main():
         max_delay=args.max_delay,
         retries=args.retries,
         timeout=args.timeout,
+        cache_file=args.cache_file,
+        refresh_after_hours=args.refresh_after_hours,
         debug=args.debug,
     )
     stats = scraper.crawl_programme(args.out, args.max_pages)

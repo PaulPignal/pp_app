@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timedelta, timezone
 
 from bs4 import BeautifulSoup
 
@@ -55,6 +56,30 @@ class OffiScraperTests(unittest.TestCase):
     def test_time_of_day_is_not_parsed_as_duration_without_context(self):
         self.assertFalse(self.scraper._looks_like_duration_text("Représentation à 20h30"))
         self.assertTrue(self.scraper._looks_like_duration_text("Durée : 1h30"))
+
+    def test_complete_recent_cache_can_be_reused(self):
+        show = Show(
+            url="https://www.offi.fr/theatre/test-1/show-1.html",
+            title="Titre",
+            category="théâtre",
+            venue="Lieu",
+            description="Description",
+            crawled_at=(datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(),
+        )
+
+        self.assertFalse(self.scraper._should_refresh_detail(show))
+
+    def test_stale_cache_is_refreshed(self):
+        show = Show(
+            url="https://www.offi.fr/theatre/test-1/show-1.html",
+            title="Titre",
+            category="théâtre",
+            venue="Lieu",
+            description="Description",
+            crawled_at=(datetime.now(timezone.utc) - timedelta(hours=96)).isoformat(),
+        )
+
+        self.assertTrue(self.scraper._should_refresh_detail(show))
 
 
 if __name__ == "__main__":

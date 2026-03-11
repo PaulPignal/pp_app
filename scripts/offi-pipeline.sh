@@ -65,7 +65,12 @@ SCRAPER_CMD=(
   --max-delay "${OFFI_MAX_DELAY:-1.6}"
   --retries "${OFFI_RETRIES:-4}"
   --timeout "${OFFI_TIMEOUT:-20}"
+  --refresh-after-hours "${OFFI_REFRESH_AFTER_HOURS:-72}"
 )
+
+if [[ -f "$OUTPUT_FILE" ]]; then
+  SCRAPER_CMD+=(--cache-file "$OUTPUT_FILE")
+fi
 
 if [[ $# -gt 0 ]]; then
   SCRAPER_CMD+=("$@")
