@@ -1,8 +1,9 @@
-// src/app/api/likes/route.ts
-import { getPrisma } from '@/lib/prisma'
-import { jsonOk, jsonError, requireAuthUserId } from '@/lib/http'
-import { ReactionUpsertSchema } from '@/lib/validators'
 import { z } from 'zod'
+import { requireSessionUser, isUnauthorizedError } from '@/features/auth/server/session'
+import { legacyLikeSchema, reactionUpsertSchema } from '@/features/reactions/schemas'
+import { setReactionStatus } from '@/features/reactions/server/commands'
+import { listLikedWorks } from '@/features/reactions/server/queries'
+import { jsonError, jsonOk } from '@/shared/lib/http'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -13,16 +14,11 @@ export const fetchCache = 'force-no-store'
 // -> Liste des reactions LIKE de l'utilisateur, avec la Work incluse
 export async function GET() {
   try {
-    const prisma = await getPrisma()
-    const userId = await requireAuthUserId()
-    const likes = await prisma.reaction.findMany({
-      where: { userId, status: 'LIKE' },
-      orderBy: { createdAt: 'desc' },
-      include: { work: true },
-    })
+    const sessionUser = await requireSessionUser()
+    const likes = await listLikedWorks(sessionUser.id)
     return jsonOk({ likes })
-  } catch (e: any) {
-    if (e instanceof Response) return e
+  } catch (e: unknown) {
+    if (isUnauthorizedError(e)) return jsonError('unauthorized', 401)
     console.error('[GET /api/likes] error:', e)
     return jsonError('server_error', 500)
   }
@@ -32,43 +28,31 @@ export async function GET() {
 // Compat ascendante : accepte soit { workId } (ancien), soit { workId, status: 'LIKE' } (nouveau)
 export async function POST(req: Request) {
   try {
-    const prisma = await getPrisma()
-    const userId = await requireAuthUserId()
-    const body = await req.json().catch(() => ({} as any))
+    const sessionUser = await requireSessionUser()
+    const body = await req.json().catch(() => null)
 
-    // Essaye le nouveau schéma
-    const parsedNew = ReactionUpsertSchema.safeParse(body)
+    const parsedNew = reactionUpsertSchema.safeParse(body)
     let workId: string | null = null
 
     if (parsedNew.success) {
       workId = parsedNew.data.workId
-      // on force LIKE ici (même si body.status est fourni, ce endpoint ne gère que LIKE)
     } else {
-      // Legacy: body = { workId }
-      const LegacyLikeSchema = z.object({ workId: z.string().min(1) })
-      const parsedOld = LegacyLikeSchema.safeParse(body)
+      const parsedOld = legacyLikeSchema.safeParse(body)
       if (!parsedOld.success) {
         return jsonError('invalid_body', 400, parsedNew.error?.flatten?.() ?? parsedOld.error.flatten())
       }
       workId = parsedOld.data.workId
     }
 
-    // Savoir si une reaction existait déjà (pour "alreadyExisted")
-    const prev = await prisma.reaction.findUnique({
-      where: { userId_workId: { userId, workId } },
-      select: { status: true },
+    const result = await setReactionStatus({
+      userId: sessionUser.id,
+      workId,
+      status: 'LIKE',
     })
 
-    const like = await prisma.reaction.upsert({
-      where: { userId_workId: { userId, workId } },
-      update: { status: 'LIKE' },
-      create: { userId, workId, status: 'LIKE' },
-    })
-
-    const alreadyExisted = !!prev && prev.status === 'LIKE'
-    return jsonOk({ like, alreadyExisted }, 200)
-  } catch (e: any) {
-    if (e instanceof Response) return e
+    return jsonOk({ reaction: result.reaction, alreadyExisted: result.alreadyExisted }, 200)
+  } catch (e: unknown) {
+    if (isUnauthorizedError(e)) return jsonError('unauthorized', 401)
     console.error('[POST /api/likes] error:', e)
     return jsonError('server_error', 500)
   }
@@ -78,8 +62,7 @@ export async function POST(req: Request) {
 // Compat ascendante : "Retirer" => on marque la Reaction en DISLIKE (au lieu de delete)
 export async function DELETE(req: Request) {
   try {
-    const prisma = await getPrisma()
-    const userId = await requireAuthUserId()
+    const sessionUser = await requireSessionUser()
     const url = new URL(req.url)
 
     const DeleteQuerySchema = z.object({ workId: z.string().min(1) })
@@ -88,15 +71,15 @@ export async function DELETE(req: Request) {
 
     const { workId } = parsed.data
 
-    await prisma.reaction.upsert({
-      where: { userId_workId: { userId, workId } },
-      update: { status: 'DISLIKE' },
-      create: { userId, workId, status: 'DISLIKE' },
+    await setReactionStatus({
+      userId: sessionUser.id,
+      workId,
+      status: 'DISLIKE',
     })
 
     return jsonOk({ disliked: true })
-  } catch (e: any) {
-    if (e instanceof Response) return e
+  } catch (e: unknown) {
+    if (isUnauthorizedError(e)) return jsonError('unauthorized', 401)
     console.error('[DELETE /api/likes] error:', e)
     return jsonError('server_error', 500)
   }

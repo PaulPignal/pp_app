@@ -14,6 +14,7 @@ export default defineConfig({
     // redondant avec tsconfigPaths, mais utile si tu veux être explicite :
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'server-only': fileURLToPath(new URL('./tests/server-only.ts', import.meta.url)),
     },
   },
   test: {

@@ -3,11 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import LogoutButton from '@/components/LogoutButton'
+import LogoutButton from '@/features/auth/ui/LogoutButton'
+import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   const pathname = usePathname()
-  const active = pathname === href || pathname.startsWith(href + '/')
+  const active = pathname === href || pathname.startsWith(`${href}/`)
+
   return (
     <Link
       href={href}
@@ -21,11 +23,11 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 
 export default function NavBar() {
   const { data: session, status } = useSession()
-  const userEmail = session?.user?.email || ''
-  const userName = (session?.user as any)?.name || userEmail?.split('@')[0]
+  const userEmail = session?.user?.email ?? ''
+  const userName = userEmail.split('@')[0] || userEmail
 
   return (
-    <nav className="container mx-auto flex gap-6 p-4 text-sm font-medium items-center">
+    <nav className="container mx-auto flex items-center gap-6 p-4 text-sm font-medium">
       <NavLink href="/discover">Découverte</NavLink>
       <NavLink href="/likes">Mes likes</NavLink>
       <NavLink href="/friends">Amis</NavLink>
@@ -37,8 +39,7 @@ export default function NavBar() {
         </a>
       </span>
 
-      {/* séparateur */}
-      <div className="w-px h-5 bg-neutral-300 mx-2" />
+      <div className="mx-2 h-5 w-px bg-neutral-300" />
 
       {status === 'loading' ? (
         <span className="text-xs text-neutral-500">…</span>
@@ -48,10 +49,7 @@ export default function NavBar() {
           <LogoutButton />
         </div>
       ) : (
-        <Link
-          className="rounded bg-neutral-900 px-3 py-1.5 text-white hover:bg-neutral-800"
-          href={process.env.NEXT_PUBLIC_SIGNIN_PATH || '/signin'}
-        >
+        <Link className="rounded bg-neutral-900 px-3 py-1.5 text-white hover:bg-neutral-800" href={SIGN_IN_PATH}>
           Se connecter
         </Link>
       )}

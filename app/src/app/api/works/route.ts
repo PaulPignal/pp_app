@@ -1,8 +1,7 @@
-// src/app/api/works/route.ts
-import { NextResponse } from 'next/server'
-import type { Prisma } from '@/generated/prisma/client'
-import { getPrisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { getSessionUser } from '@/features/auth/server/session'
+import { listDiscoverWorksParamsSchema } from '@/features/works/schemas'
+import { listDiscoverWorks } from '@/features/works/server/queries'
+import { jsonError, jsonOk } from '@/shared/lib/http'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -11,55 +10,26 @@ export const fetchCache = 'force-no-store'
 
 export async function GET(req: Request) {
   try {
-    const prisma = await getPrisma()
     const url = new URL(req.url)
+    const parsed = listDiscoverWorksParamsSchema.safeParse({
+      per: url.searchParams.get('per') ?? undefined,
+      since: url.searchParams.get('since') ?? undefined,
+      category: url.searchParams.get('category') ?? undefined,
+    })
 
-    const per = Math.min(Math.max(parseInt(url.searchParams.get('per') || '100', 10), 1), 200)
-
-    const where: Prisma.WorkWhereInput = {}
-    const since = url.searchParams.get('since')
-    if (since) {
-      const d = new Date(since)
-      if (!isNaN(d.getTime())) where.createdAt = { gte: d }
+    if (!parsed.success) {
+      return jsonError('invalid_query', 400, parsed.error.flatten())
     }
 
-    // 🔐 Exclure toute Reaction (LIKE/DISLIKE/SEEN) du user courant
-    const session = await auth()
-    const email = session?.user?.email ?? null
-    if (email) {
-      const me = await prisma.user.findUnique({ where: { email }, select: { id: true } })
-      if (me) {
-        where.reactions = { none: { userId: me.id } }
-      }
-    }
+    const sessionUser = await getSessionUser()
+    const result = await listDiscoverWorks({
+      ...parsed.data,
+      userId: sessionUser?.id ?? null,
+    })
 
-    const [total, items] = await Promise.all([
-      prisma.work.count({ where }),
-      prisma.work.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        take: per,
-        select: {
-          id: true,
-          title: true,
-          imageUrl: true,
-          category: true,
-          venue: true,
-          address: true,
-          description: true,
-          startDate: true,
-          endDate: true,
-          durationMin: true,
-          priceMin: true,
-          priceMax: true,
-          sourceUrl: true,
-        },
-      }),
-    ])
-
-    return NextResponse.json({ total, items }, { status: 200 })
+    return jsonOk(result, 200)
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return jsonError(message, 500)
   }
 }

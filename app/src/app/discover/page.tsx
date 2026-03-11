@@ -1,10 +1,9 @@
-// src/app/discover/page.tsx
-import SwipeDeck from '@/components/SwipeDeck'
 import { Metadata } from 'next'
-import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { headers, cookies } from 'next/headers'
-import type { Work } from '@/types/Work'
+import { requireSessionUser } from '@/features/auth/server/session'
+import { listDiscoverWorks } from '@/features/works/server/queries'
+import SwipeDeck from '@/features/works/ui/SwipeDeck'
+import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
 export const metadata: Metadata = {
   title: 'Découvertes',
@@ -15,37 +14,15 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
 
-async function getBaseUrl() {
-  const pub = process.env.NEXT_PUBLIC_APP_URL
-  if (pub) return pub.replace(/\/+$/, '')
-  const authUrl = process.env.NEXTAUTH_URL
-  if (authUrl) return authUrl.replace(/\/+$/, '')
-  const vercel = process.env.VERCEL_URL
-  if (vercel) return `https://${vercel}`
-  const h = await headers()
-  const proto = h.get('x-forwarded-proto') ?? 'http'
-  const host = h.get('host') ?? 'localhost:3000'
-  return `${proto}://${host}`
-}
-
-async function getWorks(): Promise<Work[]> {
-  const base = await getBaseUrl()
-  const cookieStore = await cookies()
-  const cookieHeader = cookieStore.toString()
-  const res = await fetch(`${base}/api/works?per=200`, {
-    cache: 'no-store',
-    headers: { cookie: cookieHeader },
-  })
-  if (!res.ok) return []
-  const j = await res.json().catch(() => ({ items: [] }))
-  return Array.isArray(j?.items) ? (j.items as Work[]) : []
-}
-
 export default async function DiscoverPage() {
-  const session = await auth()
-  if (!session?.user?.email) redirect('/signin')
+  let sessionUser
+  try {
+    sessionUser = await requireSessionUser()
+  } catch {
+    redirect(SIGN_IN_PATH)
+  }
 
-  const works = await getWorks()
+  const works = await listDiscoverWorks({ userId: sessionUser.id, per: 200 })
 
   return (
     <main className="mx-auto max-w-2xl p-4">
@@ -55,7 +32,7 @@ export default async function DiscoverPage() {
           Balaye à droite pour « Like », à gauche pour « Pass ». Flèches ← / → au clavier.
         </p>
       </header>
-      <SwipeDeck items={works} />
+      <SwipeDeck items={works.items} />
     </main>
   )
 }

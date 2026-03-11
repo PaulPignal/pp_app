@@ -1,16 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { authMock, getPrismaMock } = vi.hoisted(() => ({
-  authMock: vi.fn(),
-  getPrismaMock: vi.fn(),
+const { requireSessionUserMock, listCommonLikedWorksMock, FriendshipForbiddenErrorMock } = vi.hoisted(() => {
+  class FriendshipForbiddenError extends Error {
+    constructor() {
+      super('forbidden')
+    }
+  }
+
+  return {
+    requireSessionUserMock: vi.fn(),
+    listCommonLikedWorksMock: vi.fn(),
+    FriendshipForbiddenErrorMock: FriendshipForbiddenError,
+  }
+})
+
+vi.mock('@/features/auth/server/session', () => ({
+  requireSessionUser: requireSessionUserMock,
+  isUnauthorizedError: (error: unknown) => error instanceof Error && error.message === 'unauthorized',
 }))
 
-vi.mock('@/auth', () => ({
-  auth: authMock,
-}))
-
-vi.mock('@/lib/prisma', () => ({
-  getPrisma: getPrismaMock,
+vi.mock('@/features/common/server/queries', () => ({
+  FriendshipForbiddenError: FriendshipForbiddenErrorMock,
+  listCommonLikedWorks: listCommonLikedWorksMock,
 }))
 
 import { GET } from '@/app/api/common/route'
@@ -21,8 +32,7 @@ describe('/api/common', () => {
   })
 
   it('returns 400 when friendId is missing', async () => {
-    authMock.mockResolvedValue({ user: { id: 'me' } })
-    getPrismaMock.mockResolvedValue({})
+    requireSessionUserMock.mockResolvedValue({ id: 'me', email: 'me@example.com' })
 
     const response = await GET(new Request('http://localhost/api/common'))
     const payload = await response.json()
@@ -32,12 +42,8 @@ describe('/api/common', () => {
   })
 
   it('returns 403 when the friendship does not exist', async () => {
-    authMock.mockResolvedValue({ user: { id: 'me' } })
-    getPrismaMock.mockResolvedValue({
-      friendship: {
-        findUnique: vi.fn().mockResolvedValue(null),
-      },
-    })
+    requireSessionUserMock.mockResolvedValue({ id: 'me', email: 'me@example.com' })
+    listCommonLikedWorksMock.mockRejectedValue(new FriendshipForbiddenErrorMock())
 
     const response = await GET(new Request('http://localhost/api/common?friendId=friend-1'))
     const payload = await response.json()
@@ -46,24 +52,11 @@ describe('/api/common', () => {
     expect(payload).toEqual({ ok: false, error: 'forbidden' })
   })
 
-  it('returns only works liked by both friends', async () => {
-    const friendshipFindUnique = vi.fn().mockResolvedValue({ id: 'fs-1' })
-    const reactionFindMany = vi.fn().mockResolvedValue([
-      { userId: 'me', workId: 'common-1' },
-      { userId: 'friend-1', workId: 'common-1' },
-      { userId: 'me', workId: 'solo-me' },
-      { userId: 'friend-1', workId: 'solo-friend' },
+  it('returns common works from the feature query', async () => {
+    requireSessionUserMock.mockResolvedValue({ id: 'me', email: 'me@example.com' })
+    listCommonLikedWorksMock.mockResolvedValue([
+      { id: 'common-1', title: 'Hamlet', imageUrl: null, venue: 'Odéon', address: null, category: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, sourceUrl: null },
     ])
-    const workFindMany = vi.fn().mockResolvedValue([
-      { id: 'common-1', title: 'Hamlet', venue: 'Odéon', imageUrl: null },
-    ])
-
-    authMock.mockResolvedValue({ user: { id: 'me' } })
-    getPrismaMock.mockResolvedValue({
-      friendship: { findUnique: friendshipFindUnique },
-      reaction: { findMany: reactionFindMany },
-      work: { findMany: workFindMany },
-    })
 
     const response = await GET(new Request('http://localhost/api/common?friendId=friend-1'))
     const payload = await response.json()
@@ -71,12 +64,24 @@ describe('/api/common', () => {
     expect(response.status).toBe(200)
     expect(payload).toEqual({
       ok: true,
-      works: [{ id: 'common-1', title: 'Hamlet', venue: 'Odéon', imageUrl: null }],
+      works: [
+        {
+          id: 'common-1',
+          title: 'Hamlet',
+          imageUrl: null,
+          venue: 'Odéon',
+          address: null,
+          category: null,
+          description: null,
+          startDate: null,
+          endDate: null,
+          durationMin: null,
+          priceMin: null,
+          priceMax: null,
+          sourceUrl: null,
+        },
+      ],
     })
-    expect(workFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: { in: ['common-1'] } },
-      }),
-    )
+    expect(listCommonLikedWorksMock).toHaveBeenCalledWith('me', 'friend-1')
   })
 })

@@ -1,112 +1,20 @@
 // src/app/likes/page.tsx
-'use client'
-
-import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import { redirect } from 'next/navigation'
+import { requireSessionUser } from '@/features/auth/server/session'
+import { listLikedWorks } from '@/features/reactions/server/queries'
+import LikeActions from '@/features/reactions/ui/LikeActions'
+import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
-type LikeItem = {
-  workId: string
-  work?: {
-    id: string
-    title: string
-    imageUrl?: string | null
-    sourceUrl?: string | null
-  }
-}
-
-async function fetchJsonSafe(url: string, init?: RequestInit) {
-  const res = await fetch(url, init)
-  const text = await res.text() // gère les réponses vides
-  let data: any = null
+export default async function LikesPage() {
+  let sessionUser
   try {
-    data = text ? JSON.parse(text) : null
+    sessionUser = await requireSessionUser()
   } catch {
-    data = null
-  }
-  if (!res.ok) {
-    throw new Error((data && (data.error || data.message)) || `HTTP ${res.status}`)
-  }
-  return data
-}
-
-export default function LikesPage() {
-  const [likes, setLikes] = useState<LikeItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [pendingId, setPendingId] = useState<string | null>(null)
-
-  const reload = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const d = await fetchJsonSafe('/api/likes', { cache: 'no-store' })
-      setLikes(Array.isArray(d?.likes) ? d.likes : [])
-    } catch (e: any) {
-      setError(e?.message || 'Impossible de charger les likes')
-      setLikes([])
-    } finally {
-      setLoading(false)
-    }
+    redirect(SIGN_IN_PATH)
   }
 
-  useEffect(() => {
-    void reload()
-  }, [])
-
-  // "Vu" => passe la réaction en SEEN
-  const markSeen = async (workId: string) => {
-    setPendingId(workId)
-    try {
-      await fetchJsonSafe('/api/reactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workId, status: 'SEEN' }),
-      })
-    } catch {
-      // no-op en dev
-    } finally {
-      setPendingId(null)
-      reload()
-    }
-  }
-
-  // "Retirer" => passe la réaction en DISLIKE
-  const unlike = async (workId: string) => {
-    setPendingId(workId)
-    try {
-      await fetchJsonSafe('/api/reactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workId, status: 'DISLIKE' }),
-      })
-    } catch {
-      // no-op en dev
-    } finally {
-      setPendingId(null)
-      reload()
-    }
-  }
-
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-2xl p-4">
-        <h1 className="mb-3 text-2xl font-semibold">Mes likes</h1>
-        <p className="text-sm text-muted-foreground">Chargement…</p>
-      </main>
-    )
-  }
-
-  if (error) {
-    return (
-      <main className="mx-auto max-w-2xl p-4">
-        <h1 className="mb-3 text-2xl font-semibold">Mes likes</h1>
-        <p className="text-sm text-red-600">{error}</p>
-        <button onClick={reload} className="mt-3 rounded-2xl border px-3 py-1">
-          Réessayer
-        </button>
-      </main>
-    )
-  }
+  const likes = await listLikedWorks(sessionUser.id)
 
   return (
     <main className="mx-auto max-w-2xl p-4">
@@ -116,14 +24,14 @@ export default function LikesPage() {
         <p className="text-sm text-muted-foreground">Aucun like pour l’instant.</p>
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {likes.map((l) => (
-            <li key={l.workId} className="rounded-2xl border p-2">
+          {likes.map((like) => (
+            <li key={like.workId} className="rounded-2xl border p-2">
               <article>
                 <div className="relative h-40 w-full overflow-hidden rounded-xl bg-muted">
-                  {l.work?.imageUrl ? (
+                  {like.work?.imageUrl ? (
                     <Image
-                      src={l.work.imageUrl}
-                      alt={l.work.title}
+                      src={like.work.imageUrl}
+                      alt={like.work.title}
                       fill
                       sizes="(max-width: 768px) 100vw, 300px"
                       className="object-cover"
@@ -135,36 +43,20 @@ export default function LikesPage() {
                   )}
                 </div>
 
-                <h2 className="mt-2 line-clamp-2 text-sm font-medium">{l.work?.title ?? l.workId}</h2>
+                <h2 className="mt-2 line-clamp-2 text-sm font-medium">{like.work?.title ?? like.workId}</h2>
 
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {l.work?.sourceUrl && (
-                    <a
-                      href={l.work.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-xl border px-3 py-1 text-sm"
-                    >
-                      Voir la source
-                    </a>
-                  )}
-                  <button
-                    className="rounded-xl border px-3 py-1 text-sm disabled:opacity-50"
-                    onClick={() => markSeen(l.workId)}
-                    title="Marquer comme vu"
-                    disabled={pendingId === l.workId}
+                {like.work?.sourceUrl ? (
+                  <a
+                    href={like.work.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-block rounded-xl border px-3 py-1 text-sm"
                   >
-                    {pendingId === l.workId ? '...' : 'Vu'}
-                  </button>
-                  <button
-                    className="rounded-xl border px-3 py-1 text-sm disabled:opacity-50"
-                    onClick={() => unlike(l.workId)}
-                    title="Retirer le like"
-                    disabled={pendingId === l.workId}
-                  >
-                    {pendingId === l.workId ? '...' : 'Retirer'}
-                  </button>
-                </div>
+                    Voir la source
+                  </a>
+                ) : null}
+
+                <LikeActions workId={like.workId} />
               </article>
             </li>
           ))}

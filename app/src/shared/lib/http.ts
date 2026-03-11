@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 
-export type JsonOk<T> = { ok: true } & T
+export type JsonOk<T extends object> = { ok: true } & T
 export type JsonErr = { ok: false; error: string; details?: unknown }
 
 export function jsonOk<T extends object>(data: T, init?: number | ResponseInit) {
@@ -12,14 +11,4 @@ export function jsonOk<T extends object>(data: T, init?: number | ResponseInit) 
 
 export function jsonError(error: string, status = 400, details?: unknown) {
   return NextResponse.json({ ok: false, error, details } as JsonErr, { status })
-}
-
-/** Récupère l'id utilisateur ou renvoie 401 (via une Response) */
-export async function requireAuthUserId() {
-  const session = await auth()
-  const uid = (session?.user as any)?.id as string | undefined
-  if (!uid) {
-    throw new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), { status: 401 })
-  }
-  return uid
 }

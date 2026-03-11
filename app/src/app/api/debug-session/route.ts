@@ -1,6 +1,7 @@
 // src/app/api/debug-session/route.ts
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { isProduction } from "@/server/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
 export async function GET() {
-  if (process.env.NODE_ENV === "production") {
+  if (isProduction) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 

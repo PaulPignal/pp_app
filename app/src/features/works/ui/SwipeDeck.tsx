@@ -1,11 +1,12 @@
-// src/components/SwipeDeck.tsx
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import CardWork from './CardWork'
-import type { Work } from '@/types/Work'
+import type { WorkCardDto } from '@/features/works/dto'
+import CardWork from '@/features/works/ui/CardWork'
 
-type Props = { items: Work[] }
+type Props = {
+  items: WorkCardDto[]
+}
 
 const SWIPE_VELOCITY_PX_MS = 0.5
 const SWIPE_THRESHOLD_PX = 80
@@ -14,99 +15,86 @@ function transformCss(x: number, rotDeg: number) {
   return `translateX(${x}px) rotate(${rotDeg}deg)`
 }
 
-/**
- * Renvoie une fonction d'animation sûre, déjà bindée au bon élément, ou null si indispo.
- * Évite le "TypeError: Illegal invocation" dû à l'extraction de el.animate sans le bon `this`.
- */
 function safeAnimate(el: Element | null) {
   if (!el) return null
-  const anyEl = el as any
-  if (typeof anyEl.animate === 'function') {
-    // bind pour conserver `this === el`
-    return anyEl.animate.bind(el) as typeof anyEl.animate
+  const element = el as Element & { animate?: typeof Element.prototype.animate }
+  if (typeof element.animate === 'function') {
+    return element.animate.bind(el)
   }
   return null
 }
 
 export default function SwipeDeck({ items }: Props) {
   const [index, setIndex] = useState(0)
-  const current = items[index]
-
   const [dragX, setDragX] = useState(0)
   const [dragStartTs, setDragStartTs] = useState<number | null>(null)
-  const [pending, setPending] = useState(false) // 🔒 anti double-clic / double-swipe
+  const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const dragging = useRef(false)
   const cardRef = useRef<HTMLDivElement>(null)
-
+  const current = items[index]
   const hasMore = index < items.length
 
   const rotation = useMemo(() => dragX * 0.05, [dragX])
   const transform = useMemo(() => transformCss(dragX, rotation), [dragX, rotation])
 
-  // --- API reaction (LIKE / DISLIKE) — optimiste + lock
   const react = useCallback(async (workId: string, status: 'LIKE' | 'DISLIKE') => {
     setError(null)
     try {
-      const res = await fetch('/api/reactions', {
+      const response = await fetch('/api/reactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workId, status }),
       })
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}))
-        console.error('reaction failed', res.status, j)
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        console.error('reaction failed', response.status, payload)
         setError("Impossible d'enregistrer l'action")
       }
-    } catch (e) {
-      console.error(e)
+    } catch (requestError) {
+      console.error(requestError)
       setError("Impossible d'envoyer l'action")
     }
   }, [])
 
-  // --- Animation de retour au centre
   const animateBackOnce = useCallback((): Promise<void> => {
-    const el = cardRef.current
-    if (!el) return Promise.resolve()
+    const element = cardRef.current
+    if (!element) return Promise.resolve()
 
-    const animateFn = safeAnimate(el)
-    if (!animateFn) {
-      // Fallback sans WAAPI
-      el.style.transform = transformCss(0, 0)
-      el.style.opacity = ''
+    const animate = safeAnimate(element)
+    if (!animate) {
+      element.style.transform = transformCss(0, 0)
+      element.style.opacity = ''
       return Promise.resolve()
     }
 
-    const anim = animateFn(
+    const animation = animate(
       [{ transform: transformCss(dragX, 0) }, { transform: transformCss(0, 0) }],
       { duration: 140, easing: 'ease-out' },
     )
 
-    return (anim?.finished ?? Promise.resolve()).catch(() => {})
+    return (animation?.finished ?? Promise.resolve()).then(() => undefined).catch(() => {})
   }, [dragX])
 
-  // --- Avancer d'une carte (optimiste)
   const advance = useCallback(
     async (didLike: boolean) => {
       if (!current || pending) return
       setPending(true)
-      const curId = current.id
+      const currentId = current.id
 
-      // animation de sortie (toujours renvoyer une Promise)
       const animateOut = (toX: number, rot: number): Promise<void> => {
-        const el = cardRef.current
-        if (!el) return Promise.resolve()
+        const element = cardRef.current
+        if (!element) return Promise.resolve()
 
-        const animateFn = safeAnimate(el)
-        if (!animateFn) {
-          // Fallback sans WAAPI
-          el.style.transform = transformCss(toX, rot)
-          el.style.opacity = '0'
+        const animate = safeAnimate(element)
+        if (!animate) {
+          element.style.transform = transformCss(toX, rot)
+          element.style.opacity = '0'
           return Promise.resolve()
         }
 
-        const anim = animateFn(
+        const animation = animate(
           [
             { transform: transformCss(dragX, rot / 2), opacity: 1 },
             { transform: transformCss(toX, rot), opacity: 0 },
@@ -114,22 +102,19 @@ export default function SwipeDeck({ items }: Props) {
           { duration: 180, easing: 'ease-out' },
         )
 
-        return (anim?.finished ?? Promise.resolve()).catch(() => {})
+        return (animation?.finished ?? Promise.resolve()).then(() => undefined).catch(() => {})
       }
 
       try {
         if (didLike) {
           await animateOut(800, 20)
-          // optimiste: on envoie après l’animation
-          void react(curId, 'LIKE')
+          void react(currentId, 'LIKE')
         } else {
           await animateOut(-800, -20)
-          // mémorise le "pass" (DISLIKE)
-          void react(curId, 'DISLIKE')
+          void react(currentId, 'DISLIKE')
         }
 
-        // passe à la carte suivante
-        setIndex((i) => i + 1)
+        setIndex((value) => value + 1)
         setDragX(0)
         setDragStartTs(null)
       } finally {
@@ -139,32 +124,31 @@ export default function SwipeDeck({ items }: Props) {
     [current, dragX, pending, react],
   )
 
-  // --- clavier (Left/Right)
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
+    function onKey(event: KeyboardEvent) {
       if (!current || pending) return
-      if (e.key === 'ArrowRight') void advance(true)
-      if (e.key === 'ArrowLeft') void advance(false)
+      if (event.key === 'ArrowRight') void advance(true)
+      if (event.key === 'ArrowLeft') void advance(false)
     }
+
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [advance, current, pending])
 
-  // --- pointeur
   const onPointerDown = useCallback(
-    (e: React.PointerEvent) => {
+    (event: React.PointerEvent) => {
       if (pending) return
       dragging.current = true
       setDragStartTs(performance.now())
-      ;(e.target as Element)?.setPointerCapture?.(e.pointerId)
+      ;(event.target as Element).setPointerCapture?.(event.pointerId)
     },
     [pending],
   )
 
   const onPointerMove = useCallback(
-    (e: React.PointerEvent) => {
+    (event: React.PointerEvent) => {
       if (!dragging.current || pending) return
-      setDragX((x) => x + e.movementX)
+      setDragX((value) => value + event.movementX)
     },
     [pending],
   )
@@ -172,23 +156,22 @@ export default function SwipeDeck({ items }: Props) {
   const onPointerUp = useCallback(() => {
     if (!dragging.current || pending) return
     dragging.current = false
-    const dt = dragStartTs ? performance.now() - dragStartTs : 1
-    const vx = dragX / dt
-    const goRight = dragX > SWIPE_THRESHOLD_PX || vx > SWIPE_VELOCITY_PX_MS
-    const goLeft = dragX < -SWIPE_THRESHOLD_PX || vx < -SWIPE_VELOCITY_PX_MS
+    const duration = dragStartTs ? performance.now() - dragStartTs : 1
+    const velocity = dragX / duration
+    const goRight = dragX > SWIPE_THRESHOLD_PX || velocity > SWIPE_VELOCITY_PX_MS
+    const goLeft = dragX < -SWIPE_THRESHOLD_PX || velocity < -SWIPE_VELOCITY_PX_MS
 
     if (goRight) {
       void advance(true)
     } else if (goLeft) {
       void advance(false)
     } else {
-      // Animation de retour safe (Promise), puis reset des états
       void animateBackOnce().then(() => {
         setDragX(0)
         setDragStartTs(null)
       })
     }
-  }, [advance, dragStartTs, dragX, pending, animateBackOnce])
+  }, [advance, animateBackOnce, dragStartTs, dragX, pending])
 
   if (!hasMore) {
     return (
@@ -208,12 +191,12 @@ export default function SwipeDeck({ items }: Props) {
         ref={cardRef}
         role="group"
         aria-roledescription="carte à balayer"
-        aria-label={current?.title}
+        aria-label={current.title}
         tabIndex={0}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        style={{ transform, pointerEvents: pending ? 'none' : 'auto' }} // 🔒 bloque pendant envoi
+        style={{ transform, pointerEvents: pending ? 'none' : 'auto' }}
         className="absolute inset-0 m-auto h-full w-full max-w-md cursor-grab touch-none rounded-2xl border bg-background p-2 shadow-xl will-change-transform"
       >
         <CardWork work={current} />
@@ -256,11 +239,11 @@ export default function SwipeDeck({ items }: Props) {
         </button>
       </div>
 
-      {error && (
+      {error ? (
         <p role="status" className="absolute bottom-[-1.5rem] text-center text-sm text-red-600">
           {error}
         </p>
-      )}
+      ) : null}
     </section>
   )
 }

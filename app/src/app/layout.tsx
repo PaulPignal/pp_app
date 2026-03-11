@@ -1,6 +1,6 @@
 import "./globals.css"
-import Providers from "@/components/Providers"
-import NavBar from "@/components/NavBar"
+import NavBar from "@/features/auth/ui/NavBar"
+import Providers from "@/shared/ui/Providers"
 
 export const metadata = { title: "Offi – Tinder culturel", description: "MVP local" }
 

@@ -1,16 +1,11 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@/generated/prisma/client'
+import { env, isProduction } from '@/server/env'
 
 type GlobalPrisma = typeof globalThis & { prisma?: PrismaClient }
 
 const globalForPrisma = globalThis as GlobalPrisma
-const connectionString = process.env.DATABASE_URL
-
-if (!connectionString) {
-  throw new Error('DATABASE_URL is required')
-}
-
-const adapter = new PrismaPg({ connectionString })
+const adapter = new PrismaPg({ connectionString: env.DATABASE_URL })
 
 export const prisma =
   globalForPrisma.prisma ??
@@ -19,7 +14,7 @@ export const prisma =
     log: ['warn', 'error'],
   })
 
-if (process.env.NODE_ENV !== 'production') {
+if (!isProduction) {
   globalForPrisma.prisma = prisma
 }
 
