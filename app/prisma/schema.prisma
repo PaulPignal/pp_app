@@ -74,8 +74,11 @@ model Work {
   title     String
   category  String?
   venue     String?
+  address   String?
+  description String?
   startDate DateTime?
   endDate   DateTime?
+  durationMin Int?
   priceMin  Float?
   priceMax  Float?
   imageUrl  String?

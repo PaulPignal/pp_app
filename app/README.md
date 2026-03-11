@@ -50,6 +50,27 @@ Copier `app/.env.example` vers `app/.env.local` puis renseigner :
 - `pnpm db:seed`: seed manuel de dev.
 - `pnpm ingest:offi`: ingestion des données Offi.
 
+## Pipeline Offi
+
+Commande recommandée depuis la racine du repo :
+
+```bash
+./scripts/offi-pipeline.sh
+```
+
+Cette commande :
+
+- lance le scraper Python vers `data/offi.jsonl`
+- journalise l'exécution dans `scraper/logs/`
+- applique les migrations Prisma avec `pnpm --dir app db:deploy`
+- enchaîne l'ingestion Prisma avec validation stricte et `upsert` par `sourceUrl`
+
+Pour un run plus léger en local :
+
+```bash
+OFFI_MAX_PAGES=20 ./scripts/offi-pipeline.sh --debug
+```
+
 ## Prisma généré
 
 Le dossier `src/generated/prisma` est un artefact généré. Il ne doit pas être versionné.
