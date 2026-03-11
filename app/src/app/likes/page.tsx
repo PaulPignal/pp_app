@@ -50,8 +50,7 @@ export default function LikesPage() {
   }
 
   useEffect(() => {
-    reload()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void reload()
   }, [])
 
   // "Vu" => passe la réaction en SEEN

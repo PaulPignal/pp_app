@@ -1,10 +1,6 @@
 import fs from "fs";
 import readline from "readline";
-// import compatible ESM/CJS
-import pkg from "@prisma/client";
-const { PrismaClient } = pkg;
-
-const prisma = new PrismaClient();
+import { prisma } from "@/server/db";
 
 async function ingest(file = "../data/offi.jsonl") {
   if (!fs.existsSync(file)) {

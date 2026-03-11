@@ -1,19 +1,88 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useState } from "react";
+
+type Friend = {
+  id: string;
+  email: string;
+};
+
+type CommonWork = {
+  id: string;
+  title: string;
+  imageUrl?: string | null;
+  venue?: string | null;
+};
+
 export default function FriendsPage() {
-  const [friends, setFriends] = useState<any[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [invite, setInvite] = useState<string>("");
-  const [commons, setCommons] = useState<any[]>([]);
-  const [tokenInput, setTokenInput] = useState("");
-  const reload = async ()=>{ const f=await fetch("/api/friends").then(r=>r.json()); setFriends(f.friends||[]); const i=await fetch("/api/friends?invite=1").then(r=>r.json()); setInvite(i.token||""); };
-  useEffect(()=>{ reload(); },[]);
-  const addFriend = async ()=>{ if(!tokenInput) return; await fetch("/api/friends",{method:"POST",body:JSON.stringify({token:tokenInput})}); setTokenInput(""); reload(); };
-  const loadCommon = async (friendId:string)=>{ const r=await fetch("/api/common?friendId="+encodeURIComponent(friendId)).then(r=>r.json()); setCommons(r.works||[]); };
+  const [commons, setCommons] = useState<CommonWork[]>([]);
+  const [tokenInput, setTokenInput] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("token") ?? "";
+  });
+  const [error, setError] = useState<string>("");
+
+  const reload = async ()=>{
+    const f=await fetch("/api/friends").then(r=>r.json());
+    const i=await fetch("/api/friends?invite=1").then(r=>r.json());
+    return {
+      friends: Array.isArray(f.friends) ? f.friends : [],
+      invite: typeof i.token === "string" ? i.token : "",
+    };
+  };
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setError("");
+      const data = await reload();
+      if (!cancelled) {
+        setFriends(data.friends);
+        setInvite(data.invite);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const addFriend = async ()=>{
+    if(!tokenInput) return;
+    setError("");
+    const response = await fetch("/api/friends",{
+      method:"POST",
+      headers: { "Content-Type": "application/json" },
+      body:JSON.stringify({token:tokenInput}),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setError(payload.error || "Impossible d'ajouter cet ami");
+      return;
+    }
+    setTokenInput("");
+    const data = await reload();
+    setFriends(data.friends);
+    setInvite(data.invite);
+  };
+  const loadCommon = async (friendId:string)=>{
+    setError("");
+    const response = await fetch("/api/common?friendId="+encodeURIComponent(friendId));
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setError(payload.error || "Impossible de charger les oeuvres en commun");
+      setCommons([]);
+      return;
+    }
+    setCommons(Array.isArray(payload.works) ? payload.works : []);
+  };
   const myInviteUrl = typeof window!=="undefined" ? `${location.origin}/friends?token=${invite}` : "";
-  useEffect(()=>{ const sp=new URLSearchParams(location.search); const t=sp.get("token"); if(t){ setTokenInput(t); } },[]);
   return (
     <div>
       <h1 className="text-xl font-semibold mb-4">Amis</h1>
+      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
       <div className="card mb-4">
         <div className="font-medium mb-1">Ton lien d’invitation</div>
         <input className="w-full border rounded p-2" readOnly value={myInviteUrl} />
@@ -28,9 +97,9 @@ export default function FriendsPage() {
       </div>
       <h2 className="font-semibold mb-2">Mes amis</h2>
       <ul className="grid gap-3 sm:grid-cols-2">
-        {friends.map((f:any)=>(
+        {friends.map((f)=>(
           <li key={f.id} className="card">
-            <div className="font-medium">{f.name || f.email}</div>
+            <div className="font-medium">{f.email}</div>
             <button className="btn mt-2" onClick={()=>loadCommon(f.id)}>Œuvres en commun</button>
           </li>
         ))}
@@ -39,9 +108,13 @@ export default function FriendsPage() {
         <div className="mt-6">
           <h3 className="font-semibold mb-2">Œuvres en commun</h3>
           <ul className="grid gap-3 sm:grid-cols-2">
-            {commons.map((w:any)=>(
+            {commons.map((w)=>(
               <li key={w.id} className="card">
-                {w.imageUrl && <img src={w.imageUrl} className="rounded mb-2 max-h-48 object-cover w-full" alt="" />}
+                {w.imageUrl && (
+                  <div className="relative mb-2 h-48 w-full overflow-hidden rounded">
+                    <Image src={w.imageUrl} className="object-cover" alt="" fill sizes="(max-width: 768px) 100vw, 50vw" />
+                  </div>
+                )}
                 <div className="font-medium">{w.title}</div>
                 <div className="text-sm text-gray-600">{w.venue}</div>
               </li>

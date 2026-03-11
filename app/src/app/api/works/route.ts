@@ -1,5 +1,6 @@
 // src/app/api/works/route.ts
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@/generated/prisma/client'
 import { getPrisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
 
     const per = Math.min(Math.max(parseInt(url.searchParams.get('per') || '100', 10), 1), 200)
 
-    const where: any = {}
+    const where: Prisma.WorkWhereInput = {}
     const since = url.searchParams.get('since')
     if (since) {
       const d = new Date(since)
@@ -28,12 +29,7 @@ export async function GET(req: Request) {
     if (email) {
       const me = await prisma.user.findUnique({ where: { email }, select: { id: true } })
       if (me) {
-        const reacted = await prisma.reaction.findMany({
-          where: { userId: me.id },
-          select: { workId: true },
-        })
-        const reactedIds = reacted.map((r) => r.workId)
-        if (reactedIds.length) where.id = { notIn: reactedIds }
+        where.reactions = { none: { userId: me.id } }
       }
     }
 
@@ -59,7 +55,8 @@ export async function GET(req: Request) {
     ])
 
     return NextResponse.json({ total, items }, { status: 200 })
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'server error' }, { status: 500 })
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'server error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

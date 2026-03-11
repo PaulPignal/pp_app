@@ -5,3 +5,6 @@ prisma/dev.db
 prisma/dev.db-shm
 prisma/dev.db-wal
 .vercel
+.DS_Store
+__pycache__/
+*.tsbuildinfo

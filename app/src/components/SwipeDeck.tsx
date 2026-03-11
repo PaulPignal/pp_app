@@ -56,12 +56,10 @@ export default function SwipeDeck({ items }: Props) {
       })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
-        // eslint-disable-next-line no-console
         console.error('reaction failed', res.status, j)
         setError("Impossible d'enregistrer l'action")
       }
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error(e)
       setError("Impossible d'envoyer l'action")
     }

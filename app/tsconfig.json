@@ -9,7 +9,7 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "noEmit": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "allowJs": true,
     "baseUrl": ".",
     "paths": {
@@ -32,8 +32,10 @@
     "src",
     "scripts",
     "prisma",
-    ".next/types/**/*.ts"
-, "middleware.ts"  ],
+    ".next/types/**/*.ts",
+    "proxy.ts",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]

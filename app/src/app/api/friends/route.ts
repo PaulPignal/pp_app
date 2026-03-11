@@ -1,5 +1,7 @@
 // src/app/api/friends/route.ts
 import { NextResponse } from "next/server";
+import { FriendInviteAcceptSchema } from "@/lib/validators";
+import { createInviteToken, verifyInviteToken } from "@/lib/invite";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,8 +25,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   if (searchParams.get("invite") === "1") {
-    // Le "token" d'invitation = mon userId
-    return NextResponse.json({ token: me.id });
+    return NextResponse.json({ token: createInviteToken(me.id) });
   }
 
   const friendships = await prisma.friendship.findMany({
@@ -50,28 +51,45 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "no user" }, { status: 400 });
   }
 
-  let body: any = null;
+  let body: unknown = null;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
-  const token = body?.token as string | undefined; // token = friend userId
-  if (!token) return NextResponse.json({ error: "token required" }, { status: 400 });
-  if (token === me.id) return NextResponse.json({ error: "cannot add self" }, { status: 400 });
+  const parsed = FriendInviteAcceptSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "invalid token" }, { status: 400 });
+  }
 
-  // Crée relation bidirectionnelle
-  await prisma.friendship.upsert({
-    where: { userId_friendId: { userId: me.id, friendId: token } },
-    update: {},
-    create: { userId: me.id, friendId: token },
-  });
-  await prisma.friendship.upsert({
-    where: { userId_friendId: { userId: token, friendId: me.id } },
-    update: {},
-    create: { userId: token, friendId: me.id },
-  });
+  let friendId: string;
+  try {
+    friendId = verifyInviteToken(parsed.data.token).userId;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "invalid_invite_token";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  if (friendId === me.id) return NextResponse.json({ error: "cannot add self" }, { status: 400 });
+
+  const friend = await prisma.user.findUnique({ where: { id: friendId }, select: { id: true } });
+  if (!friend) {
+    return NextResponse.json({ error: "friend_not_found" }, { status: 404 });
+  }
+
+  await prisma.$transaction([
+    prisma.friendship.upsert({
+      where: { userId_friendId: { userId: me.id, friendId } },
+      update: {},
+      create: { userId: me.id, friendId },
+    }),
+    prisma.friendship.upsert({
+      where: { userId_friendId: { userId: friendId, friendId: me.id } },
+      update: {},
+      create: { userId: friendId, friendId: me.id },
+    }),
+  ]);
 
   return NextResponse.json({ ok: true });
 }

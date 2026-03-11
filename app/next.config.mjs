@@ -1,3 +1,8 @@
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -9,6 +14,9 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_SIGNIN_PATH: "/signin",
+  },
+  turbopack: {
+    root: __dirname,
   },
   reactStrictMode: true, // optionnel mais recommandé
 }

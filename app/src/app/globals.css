@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 .card { @apply bg-white rounded-xl border shadow-sm p-4; }
 .btn  { @apply inline-flex items-center justify-center rounded-lg px-4 py-2 border bg-white hover:bg-gray-50; }
