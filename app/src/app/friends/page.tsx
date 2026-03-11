@@ -18,6 +18,7 @@ type CommonWork = {
 type FriendsPayload = {
   friends?: Friend[];
   token?: string;
+  friendId?: string;
   error?: string;
 };
 
@@ -46,9 +47,12 @@ function formatFriendsError(error: string) {
     case "invalid_invite_token":
     case "invalid token":
       return "Le token d'invitation est invalide.";
+    case "invalid_friend_input":
+      return "Entre un email valide ou un token d'invitation.";
     case "expired_invite_token":
       return "Le token d'invitation a expiré.";
     case "cannot add self":
+    case "cannot_add_self":
       return "Tu ne peux pas t'ajouter toi-même.";
     case "friend_not_found":
       return "Le compte invité n'existe plus.";
@@ -63,6 +67,7 @@ export default function FriendsPage() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [invite, setInvite] = useState("");
   const [commons, setCommons] = useState<CommonWork[]>([]);
+  const [emailInput, setEmailInput] = useState("");
   const [tokenInput, setTokenInput] = useState(() => {
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("token") ?? "";
@@ -150,6 +155,27 @@ export default function FriendsPage() {
     }
   }
 
+  async function addFriendByEmail() {
+    if (!emailInput) return;
+
+    setError("");
+    setNotice("");
+
+    try {
+      await fetchJson<FriendsPayload>("/api/friends", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailInput }),
+      });
+      await reload();
+      setEmailInput("");
+      setNotice("Ami ajoute.");
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "unknown_error";
+      setError(formatFriendsError(message));
+    }
+  }
+
   async function copyInviteUrl() {
     if (!inviteUrl || !navigator?.clipboard) return;
 
@@ -189,8 +215,27 @@ export default function FriendsPage() {
 
       <div className="card mb-4 space-y-3">
         <div>
+          <div className="font-medium">Ajouter par email</div>
+          <p className="mt-1 text-sm text-gray-500">Le plus simple si tu connais l&apos;email exact de la personne.</p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            className="flex-1 rounded border p-2"
+            placeholder="email@exemple.com"
+            type="email"
+            value={emailInput}
+            onChange={(event) => setEmailInput(event.target.value)}
+          />
+          <button className="btn btn-primary" onClick={() => void addFriendByEmail()} disabled={!emailInput}>
+            Ajouter
+          </button>
+        </div>
+      </div>
+
+      <div className="card mb-4 space-y-3">
+        <div>
           <div className="font-medium">Mon lien d&apos;invitation</div>
-          <p className="mt-1 text-sm text-gray-500">Partage ce lien. L&apos;autre utilisateur peut aussi coller le token manuellement.</p>
+          <p className="mt-1 text-sm text-gray-500">Fallback si tu ne veux pas partager ton email ou si l&apos;autre personne préfère un lien.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input className="flex-1 rounded border p-2" readOnly value={inviteUrl} />
@@ -201,7 +246,7 @@ export default function FriendsPage() {
       </div>
 
       <div className="card mb-6 space-y-3">
-        <div className="font-medium">Ajouter un ami</div>
+        <div className="font-medium">Ajouter avec un token</div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             className="flex-1 rounded border p-2"

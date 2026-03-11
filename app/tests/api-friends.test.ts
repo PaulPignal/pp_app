@@ -101,7 +101,7 @@ describe('/api/friends', () => {
     const payload = await response.json()
 
     expect(response.status).toBe(400)
-    expect(payload).toEqual({ error: 'cannot add self' })
+    expect(payload).toEqual({ error: 'cannot_add_self' })
   })
 
   it('returns invite verification errors as 400', async () => {
@@ -142,7 +142,7 @@ describe('/api/friends', () => {
     const payload = await response.json()
 
     expect(response.status).toBe(200)
-    expect(payload).toEqual({ ok: true })
+    expect(payload).toEqual({ ok: true, friendId: 'friend-1' })
     expect(prisma.friendship.upsert).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -155,5 +155,46 @@ describe('/api/friends', () => {
         where: { userId_friendId: { userId: 'friend-1', friendId: 'me' } },
       }),
     )
+  })
+
+  it('adds a friend by normalized email', async () => {
+    authMock.mockResolvedValue({ user: { email: 'me@example.com' } })
+    prisma.user.findUnique
+      .mockResolvedValueOnce({ id: 'me', email: 'me@example.com' })
+      .mockResolvedValueOnce({ id: 'friend-1' })
+    prisma.friendship.upsert.mockResolvedValue({})
+
+    const response = await POST(
+      new Request('http://localhost/api/friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: ' Friend@Example.com ' }),
+      }),
+    )
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload).toEqual({ ok: true, friendId: 'friend-1' })
+    expect(prisma.user.findUnique).toHaveBeenNthCalledWith(2, {
+      where: { email: 'friend@example.com' },
+      select: { id: true },
+    })
+  })
+
+  it('rejects adding yourself by email', async () => {
+    authMock.mockResolvedValue({ user: { email: 'me@example.com' } })
+    prisma.user.findUnique.mockResolvedValueOnce({ id: 'me', email: 'me@example.com' })
+
+    const response = await POST(
+      new Request('http://localhost/api/friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'ME@example.com' }),
+      }),
+    )
+    const payload = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(payload).toEqual({ error: 'cannot_add_self' })
   })
 })
