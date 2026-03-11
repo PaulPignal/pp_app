@@ -34,5 +34,5 @@ export const CommonQuerySchema = z.object({
 })
 
 export const FriendInviteAcceptSchema = z.object({
-  token: z.string().min(16),
+  token: z.string().min(32),
 })

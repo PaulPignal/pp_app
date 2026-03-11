@@ -8,6 +8,10 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
   try {
     const session = await auth();
     return NextResponse.json({

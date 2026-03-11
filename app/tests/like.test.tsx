@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SwipeDeck from '../src/components/SwipeDeck' // <- chemin relatif (pas d'alias)
 
-test("avance à la carte suivante et appelle POST /api/likes quand on clique Like", async () => {
+test("avance à la carte suivante et appelle POST /api/reactions quand on clique Like", async () => {
   // pas besoin d'importer le type Work ici
   const items = [
     { id: 'w1', title: 'Œuvre 1' },
@@ -16,7 +16,7 @@ test("avance à la carte suivante et appelle POST /api/likes quand on clique Lik
   const user = userEvent.setup()
 
   // Le bouton Like est présent
-  const likeBtn = screen.getByRole('button', { name: /like/i })
+  const likeBtn = screen.getByRole('button', { name: /aimer/i })
   expect(likeBtn).toBeInTheDocument()
 
   // Clique "Like" — userEvent encapsule déjà act()
@@ -31,8 +31,11 @@ test("avance à la carte suivante et appelle POST /api/likes quand on clique Lik
   // 3) Vérifier l’appel réseau (fetch doit être stubé dans tests/setup.tsx)
   await waitFor(() =>
     expect(fetch).toHaveBeenCalledWith(
-      '/api/likes',
-      expect.objectContaining({ method: 'POST' }),
+      '/api/reactions',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ workId: 'w1', status: 'LIKE' }),
+      }),
     ),
   )
 })

@@ -1,9 +1,10 @@
-import pkg from "@prisma/client";
-const { PrismaClient } = pkg;
-
-const prisma = new PrismaClient();
+import { prisma } from "@/server/db";
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Refusing to seed in production");
+  }
+
   const seeds = [
     { title: "Le Cid",          category: "théâtre", sourceUrl: "seed://le-cid" },
     { title: "Dom Juan",        category: "théâtre", sourceUrl: "seed://dom-juan" },
@@ -22,4 +23,9 @@ async function main() {
   console.log("Seed OK. Work count =", count);
 }
 
-main().finally(() => prisma.$disconnect());
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

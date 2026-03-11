@@ -3,17 +3,7 @@ import type { NextAuthOptions } from 'next-auth'
 import { getServerSession } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcryptjs'
-
-// Import conditionnel de Prisma
-let prisma: any = null;
-if (process.env.DATABASE_URL) {
-  try {
-    const { prisma: prismaClient } = require('@/server/db');
-    prisma = prismaClient;
-  } catch (error) {
-    console.warn('Prisma not available during build');
-  }
-}
+import type { PrismaClient } from '@/generated/prisma/client'
 
 function isDev() {
   return process.env.NODE_ENV !== 'production'
@@ -26,17 +16,12 @@ export const authOptions: NextAuthOptions = {
       name: 'Credentials',
       credentials: { email: {}, password: {} },
       async authorize(creds) {
-        // Vérifier si Prisma est disponible
-        if (!prisma) {
-          console.warn('Database not available');
-          return null;
-        }
-
         const email = (creds?.email ?? '').toString().toLowerCase().trim()
         const password = (creds?.password ?? '').toString()
         if (!email || !password) return null
 
         try {
+          const { prisma } = (await import('@/server/db')) as { prisma: PrismaClient }
           const user = await prisma.user.findUnique({ where: { email } })
           if (!user) {
             if (isDev()) console.warn('[auth] user not found for', email)

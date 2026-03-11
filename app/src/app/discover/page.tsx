@@ -15,22 +15,23 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
 
-function getBaseUrl() {
+async function getBaseUrl() {
   const pub = process.env.NEXT_PUBLIC_APP_URL
   if (pub) return pub.replace(/\/+$/, '')
   const authUrl = process.env.NEXTAUTH_URL
   if (authUrl) return authUrl.replace(/\/+$/, '')
   const vercel = process.env.VERCEL_URL
   if (vercel) return `https://${vercel}`
-  const h = headers()
+  const h = await headers()
   const proto = h.get('x-forwarded-proto') ?? 'http'
   const host = h.get('host') ?? 'localhost:3000'
   return `${proto}://${host}`
 }
 
 async function getWorks(): Promise<Work[]> {
-  const base = getBaseUrl()
-  const cookieHeader = cookies().toString() // <<< IMPORTANT : forward la session
+  const base = await getBaseUrl()
+  const cookieStore = await cookies()
+  const cookieHeader = cookieStore.toString()
   const res = await fetch(`${base}/api/works?per=200`, {
     cache: 'no-store',
     headers: { cookie: cookieHeader },
