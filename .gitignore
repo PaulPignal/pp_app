@@ -7,4 +7,9 @@ prisma/dev.db-wal
 .vercel
 .DS_Store
 __pycache__/
+.pytest_cache/
+.venv/
+scraper/.venv/
+scraper/__pycache__/
 *.tsbuildinfo
+*.py[cod]
