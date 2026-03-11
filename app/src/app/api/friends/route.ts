@@ -1,6 +1,6 @@
 // src/app/api/friends/route.ts
 import { NextResponse } from "next/server";
-import { FriendInviteAcceptSchema } from "@/lib/validators";
+import { FriendAddSchema } from "@/lib/validators";
 import { createInviteToken, verifyInviteToken } from "@/lib/invite";
 
 export const runtime = "nodejs";
@@ -50,8 +50,9 @@ export async function POST(req: Request) {
   if (!session?.user?.email) {
     return NextResponse.json({ error: "unauth" }, { status: 401 });
   }
+  const sessionEmail = session.user.email.toLowerCase().trim();
 
-  const me = await prisma.user.findUnique({ where: { email: session.user.email } });
+  const me = await prisma.user.findUnique({ where: { email: sessionEmail } });
   if (!me) {
     return NextResponse.json({ error: "no user" }, { status: 400 });
   }
@@ -63,25 +64,39 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
-  const parsed = FriendInviteAcceptSchema.safeParse(body);
+  const parsed = FriendAddSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid token" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_friend_input" }, { status: 400 });
   }
 
-  let friendId: string;
-  try {
-    friendId = verifyInviteToken(parsed.data.token).userId;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "invalid_invite_token";
-    return NextResponse.json({ error: message }, { status: 400 });
+  let friend: { id: string } | null = null;
+  if ("token" in parsed.data) {
+    let friendId: string;
+    try {
+      friendId = verifyInviteToken(parsed.data.token).userId;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "invalid_invite_token";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    if (friendId === me.id) return NextResponse.json({ error: "cannot_add_self" }, { status: 400 });
+    friend = await prisma.user.findUnique({ where: { id: friendId }, select: { id: true } });
+  } else {
+    if (parsed.data.email === sessionEmail) {
+      return NextResponse.json({ error: "cannot_add_self" }, { status: 400 });
+    }
+
+    friend = await prisma.user.findUnique({
+      where: { email: parsed.data.email },
+      select: { id: true },
+    });
   }
 
-  if (friendId === me.id) return NextResponse.json({ error: "cannot add self" }, { status: 400 });
-
-  const friend = await prisma.user.findUnique({ where: { id: friendId }, select: { id: true } });
   if (!friend) {
     return NextResponse.json({ error: "friend_not_found" }, { status: 404 });
   }
+
+  const friendId = friend.id;
 
   await prisma.$transaction([
     prisma.friendship.upsert({
@@ -96,5 +111,5 @@ export async function POST(req: Request) {
     }),
   ]);
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, friendId });
 }

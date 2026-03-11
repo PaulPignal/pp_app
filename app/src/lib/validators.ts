@@ -36,3 +36,9 @@ export const CommonQuerySchema = z.object({
 export const FriendInviteAcceptSchema = z.object({
   token: z.string().min(32),
 })
+
+export const FriendEmailAddSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+})
+
+export const FriendAddSchema = z.union([FriendInviteAcceptSchema, FriendEmailAddSchema])
