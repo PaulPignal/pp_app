@@ -15,6 +15,7 @@ import logging
 import os
 import random
 import re
+import sys
 import time
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
@@ -30,11 +31,29 @@ from bs4.element import Tag
 # -----------------------
 BASE_URL = "https://www.offi.fr"
 PROGRAMME_BASE = f"{BASE_URL}/theatre/programme.html"
+USER_AGENTS = [
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
+]
+RETRYABLE_STATUS_CODES = {403, 408, 425, 429, 500, 502, 503, 504}
+VENUE_BLOCKLIST = {
+    "pièces de théâtre",
+    "pieces de theatre",
+    "spectacles musicaux",
+    "humour & shows",
+    "théâtre",
+    "theatre",
+}
 
 # Regex prix / durée
 PRICE_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*€")
 PRICE_RANGE_RE = re.compile(r"(\d+)\s*[-–—]\s*(\d+)\s*€")
 DURATION_RE = re.compile(r"(\d+)h(?:(\d+))?|(\d+)\s*(?:mn|min)")
+DURATION_CONTEXT_RE = re.compile(r"\b(?:durée|duree|dur\.)\b", re.IGNORECASE)
+ADDRESS_RE = re.compile(
+    r"\b\d{1,4}\s+(?:bis\s+|ter\s+)?[A-Za-zÀ-ÖØ-öø-ÿ'’\-. ]+?\b\d{5}\s+[A-Za-zÀ-ÖØ-öø-ÿ'’\-. ]+"
+)
+RUBRIC_RE = re.compile(r"rubrique\s+([^\.]+)\.", re.IGNORECASE)
 
 # Mois FR (longs + abréviations, avec ou sans point)
 MONTHS = {
@@ -108,7 +127,9 @@ VENUE_PATH_RE = re.compile(r"^/theatre/[^/]+-\d+(?:\.html)?$")
 class Show:
     url: str
     title: Optional[str] = None
+    category: Optional[str] = None
     venue: Optional[str] = None
+    address: Optional[str] = None
     date_start: Optional[str] = None   # 'YYYY-MM-DD'
     date_end: Optional[str] = None     # 'YYYY-MM-DD'
     duration_min: Optional[int] = None
@@ -123,20 +144,41 @@ class Show:
         return sum(1 for f in fields if f is not None) <= 1
 
 
+@dataclass
+class CrawlStats:
+    pages_crawled: int = 0
+    pages_failed: int = 0
+    shows_extracted: int = 0
+    shows_completed: int = 0
+    invalid_shows: int = 0
+    requests: int = 0
+    retries: int = 0
+    request_failures: int = 0
+
+
 class OffiScraper:
-    def __init__(self, min_delay: float = 0.7, max_delay: float = 1.6, retries: int = 2, debug: bool = False):
+    def __init__(
+        self,
+        min_delay: float = 0.7,
+        max_delay: float = 1.6,
+        retries: int = 4,
+        timeout: float = 20,
+        debug: bool = False,
+    ):
         self.session = requests.Session()
         self.session.headers.update({
             "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+            "User-Agent": random.choice(USER_AGENTS),
         })
         self.min_delay = min_delay
         self.max_delay = max_delay
         self.last_request = 0
         self.retries = retries
+        self.timeout = timeout
         self._seen_urls: set[str] = set()
         self.debug = debug
+        self.stats = CrawlStats()
 
     # ---------------- Utils réseau ----------------
 
@@ -151,21 +193,32 @@ class OffiScraper:
     def _fetch_page(self, url: str) -> Optional[BeautifulSoup]:
         for attempt in range(self.retries + 1):
             self._throttle()
+            self.stats.requests += 1
+            self.session.headers["User-Agent"] = random.choice(USER_AGENTS)
             try:
-                resp = self.session.get(url, timeout=15)
+                resp = self.session.get(url, timeout=self.timeout)
                 if resp.status_code == 200 and "text/html" in resp.headers.get("content-type", ""):
                     resp.encoding = resp.encoding or "utf-8"
                     return BeautifulSoup(resp.text, "html.parser")
-                if 500 <= resp.status_code < 600 and attempt < self.retries:
-                    time.sleep(1 + attempt)
+
+                if resp.status_code in RETRYABLE_STATUS_CODES and attempt < self.retries:
+                    self._sleep_before_retry(url, attempt, f"HTTP {resp.status_code}", resp)
                     continue
+
                 if self.debug:
                     logging.debug(f"[DEBUG] Statut HTTP {resp.status_code} sur {url}")
+                self.stats.request_failures += 1
                 return None
-            except Exception as e:
+            except requests.RequestException as e:
                 logging.warning(f"Erreur sur {url} (tentative {attempt+1}/{self.retries+1}): {e}")
                 if attempt < self.retries:
-                    time.sleep(1 + attempt)
+                    self._sleep_before_retry(url, attempt, type(e).__name__)
+                    continue
+                self.stats.request_failures += 1
+            except Exception as e:
+                logging.exception(f"Erreur inattendue sur {url}: {e}")
+                self.stats.request_failures += 1
+                return None
         return None
 
     @staticmethod
@@ -173,6 +226,47 @@ class OffiScraper:
         if not el:
             return ""
         return re.sub(r"\s+", " ", el.get_text(" ", strip=True)).strip()
+
+    @staticmethod
+    def _clean_text(value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = re.sub(r"\s+", " ", value).strip()
+        return cleaned or None
+
+    @staticmethod
+    def _is_valid_iso_date(value: Optional[str]) -> bool:
+        if not value:
+            return False
+        try:
+            datetime.strptime(value, "%Y-%m-%d")
+            return True
+        except ValueError:
+            return False
+
+    def _retry_delay(self, attempt: int, response: Optional[requests.Response] = None) -> float:
+        if response is not None:
+            retry_after = response.headers.get("Retry-After")
+            if retry_after and retry_after.isdigit():
+                return min(float(retry_after), 30.0)
+
+        base = min(30.0, 1.5 * (2 ** attempt))
+        if response is not None and response.status_code in {403, 429}:
+            base = max(base, 5.0)
+        return base + random.uniform(0.1, 0.8)
+
+    def _sleep_before_retry(self, url: str, attempt: int, reason: str, response: Optional[requests.Response] = None):
+        delay = self._retry_delay(attempt, response)
+        self.stats.retries += 1
+        logging.warning(
+            "Retry %s/%s pour %s dans %.1fs (%s)",
+            attempt + 2,
+            self.retries + 1,
+            url,
+            delay,
+            reason,
+        )
+        time.sleep(delay)
 
     # ---------------- Helpers dates ----------------
 
@@ -296,6 +390,14 @@ class OffiScraper:
             return int(hours) * 60 + (int(minutes) if minutes else 0)
         return None
 
+    @staticmethod
+    def _looks_like_duration_text(text: str, allow_hour_only: bool = False) -> bool:
+        tl = (text or "").lower()
+        has_minutes = bool(re.search(r"\b\d+\s*(?:mn|min)\b", tl))
+        has_hour_token = bool(re.search(r"\b\d+h(?:(\d+))?\b", tl))
+        has_hour_duration = has_hour_token and (allow_hour_only or bool(DURATION_CONTEXT_RE.search(tl)))
+        return has_minutes or has_hour_duration
+
     def _parse_prices(self, text: str) -> tuple[Optional[float], Optional[float]]:
         range_match = PRICE_RANGE_RE.search(text or "")
         if range_match:
@@ -355,7 +457,112 @@ class OffiScraper:
             return False
         if not re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]", t):
             return False
+        if tl in VENUE_BLOCKLIST or tl.startswith("le spectacle "):
+            return False
         return True
+
+    def _extract_address(self, soup: BeautifulSoup) -> Optional[str]:
+        candidates: List[str] = []
+
+        for sel in [
+            "[itemprop='streetAddress']",
+            "[itemprop='address']",
+            "[class*=address]",
+            "[id*=address]",
+            "address",
+        ]:
+            for el in soup.select(sel):
+                txt = self._clean_text(self._extract_text(el))
+                if txt:
+                    candidates.append(txt)
+
+        for txt in candidates:
+            match = ADDRESS_RE.search(txt)
+            if match:
+                return self._clean_text(match.group(0))
+
+        full_text = self._extract_text(soup)
+        match = ADDRESS_RE.search(full_text)
+        if match:
+            return self._clean_text(match.group(0))
+
+        return None
+
+    def _extract_category(self, text: str) -> Optional[str]:
+        if not text:
+            return None
+
+        match = RUBRIC_RE.search(text)
+        if match:
+            rubric = self._clean_text(match.group(1))
+            if rubric:
+                rubric_lower = rubric.lower()
+                if "humour" in rubric_lower:
+                    return "humour"
+                if "musical" in rubric_lower:
+                    return "spectacle musical"
+                if "théâtre" in rubric_lower or "theatre" in rubric_lower:
+                    return "théâtre"
+                return rubric
+
+        return "théâtre"
+
+    def _validate_show(self, show: Show) -> Optional[Show]:
+        show.title = self._clean_text(show.title)
+        show.category = self._clean_text(show.category)
+        show.venue = self._clean_text(show.venue)
+        show.address = self._clean_text(show.address)
+        show.image = self._clean_text(show.image)
+        show.description = self._clean_text(show.description)
+
+        if not show.title:
+            logging.warning("Show ignoré sans titre: %s", show.url)
+            self.stats.invalid_shows += 1
+            return None
+
+        if not show.category:
+            show.category = "théâtre"
+
+        if show.image and not show.image.startswith(("http://", "https://")):
+            logging.warning("Image ignorée car URL invalide pour %s", show.url)
+            show.image = None
+
+        if show.date_start and not self._is_valid_iso_date(show.date_start):
+            logging.warning("Date de début invalide pour %s: %s", show.url, show.date_start)
+            show.date_start = None
+
+        if show.date_end and not self._is_valid_iso_date(show.date_end):
+            logging.warning("Date de fin invalide pour %s: %s", show.url, show.date_end)
+            show.date_end = None
+
+        if show.date_start and show.date_end and show.date_end < show.date_start:
+            logging.warning("Plage de dates inversée pour %s, permutation", show.url)
+            show.date_start, show.date_end = show.date_end, show.date_start
+
+        if show.duration_min is not None and (show.duration_min <= 0 or show.duration_min > 600):
+            logging.warning("Durée invalide pour %s: %s", show.url, show.duration_min)
+            show.duration_min = None
+
+        if show.price_min_eur is not None and show.price_min_eur < 0:
+            logging.warning("Prix min invalide pour %s: %s", show.url, show.price_min_eur)
+            show.price_min_eur = None
+        if show.price_max_eur is not None and show.price_max_eur < 0:
+            logging.warning("Prix max invalide pour %s: %s", show.url, show.price_max_eur)
+            show.price_max_eur = None
+        if (
+            show.price_min_eur is not None
+            and show.price_max_eur is not None
+            and show.price_min_eur > show.price_max_eur
+        ):
+            logging.warning("Plage de prix inversée pour %s, permutation", show.url)
+            show.price_min_eur, show.price_max_eur = show.price_max_eur, show.price_min_eur
+
+        if show.is_empty():
+            logging.warning("Show ignoré car insuffisamment renseigné: %s", show.url)
+            self.stats.invalid_shows += 1
+            return None
+
+        return show
 
     # ---------------- Extraction depuis page détail ----------------
 
@@ -385,6 +592,9 @@ class OffiScraper:
                 if self._looks_like_venue_text(vt):
                     show.venue = vt
                     break
+
+        if not show.address:
+            show.address = self._extract_address(soup)
 
         # Dates (1) : zones candidates → texte → parsing
         if not (show.date_start and show.date_end):
@@ -442,6 +652,9 @@ class OffiScraper:
                 if meta_desc and meta_desc.get("content"):
                     show.description = meta_desc["content"].strip()
 
+        if not show.category:
+            show.category = self._extract_category(show.description or "")
+
         # Prix
         if show.price_min_eur is None:
             for el in soup.find_all(string=re.compile(r"tarif|prix|billet", re.IGNORECASE)):
@@ -455,10 +668,18 @@ class OffiScraper:
         # Durée
         if not show.duration_min:
             dur_texts = []
-            for sel in [".informations", ".meta", "section", "article", "p", "[class*=durée]", "[class*=duree]"]:
+            for sel, allow_hour_only in [
+                (".informations", False),
+                (".meta", False),
+                ("section", False),
+                ("article", False),
+                ("p", False),
+                ("[class*=durée]", True),
+                ("[class*=duree]", True),
+            ]:
                 for el in soup.select(sel):
                     t = self._extract_text(el)
-                    if t and re.search(r"\b(\d+h)|(\d+\s*(?:mn|min))\b", t.lower()):
+                    if t and self._looks_like_duration_text(t, allow_hour_only=allow_hour_only):
                         dur_texts.append(t)
             if dur_texts:
                 show.duration_min = self._parse_duration(" • ".join(dur_texts[:8]))
@@ -475,25 +696,23 @@ class OffiScraper:
 
     # ---------------- Crawl principal ----------------
 
-    def crawl_programme(self, output_file: str, max_pages: int = 150):
+    def crawl_programme(self, output_file: str, max_pages: int = 150) -> CrawlStats:
         logging.info(f"Démarrage crawl programme - Max pages: {max_pages}")
         output_dir = os.path.dirname(output_file)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
 
         programme_urls = self._get_programme_pages(max_pages)
-        shows_extracted = 0
-        shows_completed = 0
-        pages_crawled = 0
 
         with open(output_file, "w", encoding="utf-8") as f:
             for url in programme_urls:
-                logging.info(f"Crawling page {pages_crawled + 1}: {url}")
+                logging.info(f"Crawling page {self.stats.pages_crawled + 1}: {url}")
                 soup = self._fetch_page(url)
                 if not soup:
                     logging.warning(f"Impossible de récupérer {url}")
+                    self.stats.pages_failed += 1
                     continue
-                pages_crawled += 1
+                self.stats.pages_crawled += 1
 
                 # Tous les liens
                 all_links = soup.find_all("a", href=True)
@@ -541,29 +760,39 @@ class OffiScraper:
                     # Compléter depuis page détail
                     before = asdict(show)
                     show = self._complete_show_from_detail_page(show)
-                    shows_completed += 1
+                    self.stats.shows_completed += 1
                     if self.debug:
                         logging.debug(f"[DEBUG] Complété: {show.url}")
                         logging.debug(f"[DEBUG]   avant: {json.dumps(before, ensure_ascii=False)}")
                         logging.debug(f"[DEBUG]   après: {json.dumps(asdict(show), ensure_ascii=False)}")
 
-                    if show.is_empty():
-                        if self.debug:
-                            logging.debug(f"[DEBUG] Show ignoré car vide après complétion: {show.url}")
+                    validated = self._validate_show(show)
+                    if not validated:
                         continue
 
-                    f.write(json.dumps(asdict(show), ensure_ascii=False) + "\n")
+                    f.write(json.dumps(asdict(validated), ensure_ascii=False) + "\n")
                     f.flush()
-                    shows_extracted += 1
+                    self.stats.shows_extracted += 1
                     page_shows += 1
 
-                logging.info(f"Page {pages_crawled}: {page_shows} spectacles extraits")
+                logging.info(f"Page {self.stats.pages_crawled}: {page_shows} spectacles extraits")
 
-                if page_shows == 0 and pages_crawled > 1:
+                if page_shows == 0 and self.stats.pages_crawled > 1:
                     logging.info("Aucun spectacle trouvé, fin de pagination probable")
                     break
 
-        logging.info(f"Terminé - Pages: {pages_crawled}, Spectacles: {shows_extracted}, Complétions: {shows_completed}")
+        logging.info(
+            "Terminé - Pages OK: %s, Pages KO: %s, Spectacles: %s, Complétions: %s, Invalides: %s, Requêtes: %s, Retries: %s, Erreurs réseau: %s",
+            self.stats.pages_crawled,
+            self.stats.pages_failed,
+            self.stats.shows_extracted,
+            self.stats.shows_completed,
+            self.stats.invalid_shows,
+            self.stats.requests,
+            self.stats.retries,
+            self.stats.request_failures,
+        )
+        return self.stats
 
 
 def main():
@@ -572,6 +801,8 @@ def main():
     parser.add_argument("--max-pages", type=int, default=150, help="Nombre max de pages de programme")
     parser.add_argument("--min-delay", type=float, default=0.7, help="Délai min entre requêtes")
     parser.add_argument("--max-delay", type=float, default=1.6, help="Délai max entre requêtes")
+    parser.add_argument("--retries", type=int, default=4, help="Nombre de retries HTTP")
+    parser.add_argument("--timeout", type=float, default=20, help="Timeout HTTP par requête en secondes")
     parser.add_argument("--debug", action="store_true", help="Logs détaillés de diagnostic")
     args = parser.parse_args()
 
@@ -580,9 +811,23 @@ def main():
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
-    scraper = OffiScraper(args.min_delay, args.max_delay, debug=args.debug)
-    scraper.crawl_programme(args.out, args.max_pages)
+    scraper = OffiScraper(
+        min_delay=args.min_delay,
+        max_delay=args.max_delay,
+        retries=args.retries,
+        timeout=args.timeout,
+        debug=args.debug,
+    )
+    stats = scraper.crawl_programme(args.out, args.max_pages)
+
+    if stats.shows_extracted == 0:
+        logging.error("Aucun spectacle extrait")
+        return 2
+    if stats.pages_crawled == 0:
+        logging.error("Aucune page programme récupérée")
+        return 3
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

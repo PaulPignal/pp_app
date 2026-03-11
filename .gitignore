@@ -11,5 +11,7 @@ __pycache__/
 .venv/
 scraper/.venv/
 scraper/__pycache__/
+scraper/logs/
+data/*.tmp
 *.tsbuildinfo
 *.py[cod]

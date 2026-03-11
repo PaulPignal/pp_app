@@ -1,0 +1,12 @@
+# Cron example for the Offi pipeline
+#
+# Install with:
+#   crontab scripts/offi-pipeline.cron.example
+#
+# Adjust the repo path and shell path if needed.
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin
+
+# Local or server cron: every day at 07:00 Europe/Paris machine time
+0 7 * * * cd /Users/paulpignal/Desktop/offi-app && ./scripts/offi-pipeline.sh >> /Users/paulpignal/Desktop/offi-app/scraper/logs/cron.log 2>&1
