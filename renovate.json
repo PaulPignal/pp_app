@@ -1,0 +1,104 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    "helpers:pinGitHubActionDigests",
+    "abandonments:recommended"
+  ],
+  "timezone": "Europe/Paris",
+  "labels": [
+    "dependencies"
+  ],
+  "rangeStrategy": "replace",
+  "rebaseWhen": "behind-base-branch",
+  "separateMajorMinor": true,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 4am on monday"
+    ]
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackageNames": [
+        "next",
+        "react",
+        "react-dom",
+        "eslint-config-next"
+      ],
+      "groupName": "next-react stack",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackageNames": [
+        "prisma",
+        "@prisma/**"
+      ],
+      "groupName": "prisma stack",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackageNames": [
+        "next-auth",
+        "@auth/**"
+      ],
+      "groupName": "auth stack",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "groupName": "dev tooling"
+    },
+    {
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "python scraper dependencies"
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "groupName": "github actions"
+    }
+  ]
+}
