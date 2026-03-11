@@ -9,7 +9,6 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
 export async function GET(req: Request) {
-  // 🔁 imports dynamiques pour éviter toute évaluation au build
   const { auth } = await import("@/auth");
   const { prisma } = await import("@/server/db");
 
@@ -30,14 +29,20 @@ export async function GET(req: Request) {
 
   const friendships = await prisma.friendship.findMany({
     where: { userId: me.id },
-    include: { friend: true },
+    select: {
+      friend: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+    },
   });
 
   return NextResponse.json({ friends: friendships.map((f) => f.friend) });
 }
 
 export async function POST(req: Request) {
-  // 🔁 imports dynamiques
   const { auth } = await import("@/auth");
   const { prisma } = await import("@/server/db");
 

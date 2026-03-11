@@ -9,8 +9,7 @@ export const revalidate = 0
 export const fetchCache = 'force-no-store'
 
 // GET /api/common?friendId=...
-// Renvoie les LIKE des deux utilisateurs (toi + friendId), avec la Work incluse.
-// (Union des likes des deux comptes ; si tu veux l'intersection, dis-le et je te file la variante.)
+// Renvoie l'intersection des LIKE des deux utilisateurs (toi + friendId).
 export async function GET(req: Request) {
   try {
     const prisma = await getPrisma()
