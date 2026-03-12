@@ -2,12 +2,15 @@
 'use client'
 
 import { FormEvent, Suspense, useState } from 'react'
+import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import StatusBanner from '@/shared/ui/StatusBanner'
+import SurfaceCard from '@/shared/ui/SurfaceCard'
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<div className="skeleton h-[28rem] rounded-[1.75rem]" />}>
       <SignInInner />
     </Suspense>
   )
@@ -36,44 +39,56 @@ function SignInInner() {
   }
 
   return (
-    <main className="mx-auto mt-12 max-w-sm p-4">
-      <h1 className="text-2xl font-semibold">Se connecter</h1>
-      <form onSubmit={onSubmit} className="mt-4 space-y-3">
-        <div>
-          <label className="block text-sm">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-xl border px-3 py-2"
-            required
-            autoComplete="email"
-          />
+    <div className="flex h-full items-center">
+      <SurfaceCard tone="accent" className="mx-auto w-full max-w-xl space-y-6 p-6 sm:p-8">
+        <div className="space-y-3">
+          <p className="page-eyebrow">Connexion</p>
+          <h1 className="page-title text-[clamp(1.9rem,4vw,2.7rem)]">Se connecter</h1>
+          <p className="page-description">
+            Retrouve ta pile de découvertes, tes likes et tes amis dans une interface plus calme et lisible.
+          </p>
         </div>
-        <div>
-          <label className="block text-sm">Mot de passe</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-xl border px-3 py-2"
-            required
-            autoComplete="current-password"
-          />
-        </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-2xl border px-4 py-2"
-        >
-          {loading ? 'Connexion…' : 'Se connecter'}
-        </button>
-      </form>
 
-      <p className="mt-4 text-sm">
-        Pas de compte ? <a href="/signup" className="underline">Créer un compte</a>
-      </p>
-    </main>
+        <form onSubmit={onSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label className="label">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="input"
+              required
+              autoComplete="email"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="label">Mot de passe</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="input"
+              required
+              autoComplete="current-password"
+            />
+          </div>
+          {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-primary w-full justify-center"
+          >
+            {loading ? 'Connexion…' : 'Se connecter'}
+          </button>
+        </form>
+
+        <div className="space-y-2 border-t border-[color:var(--color-border)] pt-5">
+          <p className="text-sm text-muted-foreground">Pas encore de compte ?</p>
+          <Link href="/signup" className="text-sm font-semibold text-[color:var(--color-accent)] transition hover:underline">
+            Créer un compte
+          </Link>
+        </div>
+      </SurfaceCard>
+    </div>
   )
 }

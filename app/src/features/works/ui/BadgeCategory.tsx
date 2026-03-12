@@ -4,7 +4,7 @@ export default function BadgeCategory({ category }: { category: string | null })
   }
 
   return (
-    <span className="inline-block rounded bg-indigo-50 px-2 py-1 text-xs text-indigo-700">
+    <span className="inline-flex items-center rounded-full border border-white/45 bg-black/35 px-3 py-1 text-[0.72rem] font-semibold tracking-[0.08em] text-white backdrop-blur-sm">
       {category}
     </span>
   )

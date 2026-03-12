@@ -31,5 +31,42 @@ describe('FriendsClient', () => {
       }),
     )
     expect(await screen.findByText('new@example.com')).toBeInTheDocument()
-  })
+  }, 15000)
+
+  it('loads common works inline for a selected friend', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          ok: true,
+          works: [
+            {
+              id: 'work-1',
+              title: 'Hamlet',
+              section: 'theatre',
+              imageUrl: null,
+              category: null,
+              venue: 'Comédie-Française',
+              address: null,
+              description: null,
+              startDate: '2026-03-01T00:00:00.000Z',
+              endDate: '2026-03-30T00:00:00.000Z',
+              durationMin: 120,
+              priceMin: 18,
+              priceMax: 42,
+              sourceUrl: 'https://www.offi.fr/hamlet',
+            },
+          ],
+        }),
+    } as Response)
+
+    const user = userEvent.setup()
+    render(<FriendsClient initialFriends={[{ id: 'friend-1', email: 'friend@example.com' }]} inviteToken="token-1" />)
+
+    await user.click(screen.getByRole('button', { name: /œuvres en commun/i }))
+
+    expect(fetch).toHaveBeenCalledWith('/api/common?friendId=friend-1', undefined)
+    expect(await screen.findByText('Hamlet')).toBeInTheDocument()
+    expect(screen.getByText('Comédie-Française')).toBeInTheDocument()
+  }, 15000)
 })

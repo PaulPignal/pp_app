@@ -1,19 +1,21 @@
+import { Manrope } from "next/font/google"
 import "./globals.css"
-import NavBar from "@/features/auth/ui/NavBar"
 import Providers from "@/shared/ui/Providers"
+import AppShell from "@/shared/ui/AppShell"
 
 export const metadata = { title: "Offi – Tinder culturel", description: "MVP local" }
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+})
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body className="min-h-screen bg-white text-neutral-900">
-        {/* SessionProvider côté client pour l'UI conditionnelle */}
+      <body className={manrope.variable}>
         <Providers>
-          <header className="border-b">
-            <NavBar />
-          </header>
-          <main className="container mx-auto p-6">{children}</main>
+          <AppShell>{children}</AppShell>
         </Providers>
       </body>
     </html>
