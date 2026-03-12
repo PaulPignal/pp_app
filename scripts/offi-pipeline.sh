@@ -61,6 +61,7 @@ SCRAPER_CMD=(
   "$ROOT_DIR/scraper/offi_scraper.py"
   --out "$TMP_FILE"
   --max-pages "${OFFI_MAX_PAGES:-150}"
+  --sections "${OFFI_SECTIONS:-theatre,cinema}"
   --min-delay "${OFFI_MIN_DELAY:-0.7}"
   --max-delay "${OFFI_MAX_DELAY:-1.6}"
   --retries "${OFFI_RETRIES:-4}"

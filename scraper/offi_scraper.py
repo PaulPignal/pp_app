@@ -20,7 +20,7 @@ import time
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, List
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import urljoin, urlparse, urlunparse, urlencode, parse_qsl
 
 import requests
 from bs4 import BeautifulSoup
@@ -30,7 +30,11 @@ from bs4.element import Tag
 # Configuration
 # -----------------------
 BASE_URL = "https://www.offi.fr"
-PROGRAMME_BASE = f"{BASE_URL}/theatre/programme.html"
+THEATRE_PROGRAMME_URL = f"{BASE_URL}/theatre/programme.html"
+CINEMA_PROGRAMME_URL = (
+    f"{BASE_URL}/cinema/programme.html"
+    "?rubrique=cinema&origine=homepage_rubrique&DateDebut=&DateFin=&NbDay=&arrondissment=&arrondissment=&GenreCinema="
+)
 USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
@@ -54,6 +58,7 @@ ADDRESS_RE = re.compile(
     r"\b\d{1,4}\s+(?:bis\s+|ter\s+)?[A-Za-zÀ-ÖØ-öø-ÿ'’\-. ]+?\b\d{5}\s+[A-Za-zÀ-ÖØ-öø-ÿ'’\-. ]+"
 )
 RUBRIC_RE = re.compile(r"rubrique\s+([^\.]+)\.", re.IGNORECASE)
+SECTION_VALUES = {"theatre", "cinema"}
 
 # Mois FR (longs + abréviations, avec ou sans point)
 MONTHS = {
@@ -115,18 +120,45 @@ A_PARTIR_DU_RE = re.compile(
     re.IGNORECASE,
 )
 
-# URL spectacle : exactement 2 segments après /theatre/
-#  - /theatre/nom-de-lieu-3176/nom-de-piece-94724.html
-SHOW_PATH_RE = re.compile(r"^/theatre/[^/]+-\d+/[^/]+-\d+\.html$")
-# URL d'une page de théâtre (lieu) : 1 segment avec ID numérique
-#  - /theatre/nom-de-lieu-3176(.html)?
-VENUE_PATH_RE = re.compile(r"^/theatre/[^/]+-\d+(?:\.html)?$")
+CINEMA_RELEASE_RE = re.compile(
+    rf"\b(?:date\s+de\s+sortie|sortie|date\s+de\s+ressortie|ressortie)[^:]*[:\-]?\s*({DATE_NUM}|"
+    rf"\d{{1,2}}\s+{MONTH_PATTERN}\s+\d{{4}})",
+    re.IGNORECASE,
+)
+JSONLD_GENRE_RE = re.compile(r'"genre"\s*:\s*(?:"([^"]+)"|\[(.*?)\])', re.IGNORECASE | re.DOTALL)
+JSONLD_DURATION_RE = re.compile(r'"duration"\s*:\s*"([^"]+)"', re.IGNORECASE)
+JSONLD_DATE_RE = re.compile(r'"(?:datePublished|dateCreated|startDate|releaseDate)"\s*:\s*"([^"]+)"', re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class SectionConfig:
+    programme_url: str
+    show_path_re: re.Pattern[str]
+    venue_path_re: Optional[re.Pattern[str]]
+    default_category: Optional[str]
+
+
+SECTION_CONFIGS = {
+    "theatre": SectionConfig(
+        programme_url=THEATRE_PROGRAMME_URL,
+        show_path_re=re.compile(r"^/theatre/[^/]+-\d+/[^/]+-\d+\.html$"),
+        venue_path_re=re.compile(r"^/theatre/[^/]+-\d+(?:\.html)?$"),
+        default_category="théâtre",
+    ),
+    "cinema": SectionConfig(
+        programme_url=CINEMA_PROGRAMME_URL,
+        show_path_re=re.compile(r"^/cinema/evenement/[^/]+-\d+\.html$"),
+        venue_path_re=None,
+        default_category=None,
+    ),
+}
 
 
 @dataclass
 class Show:
     url: str
     title: Optional[str] = None
+    section: Optional[str] = None
     category: Optional[str] = None
     venue: Optional[str] = None
     address: Optional[str] = None
@@ -168,6 +200,7 @@ class OffiScraper:
         timeout: float = 20,
         cache_file: Optional[str] = None,
         refresh_after_hours: int = 72,
+        sections: Optional[List[str]] = None,
         debug: bool = False,
     ):
         self.session = requests.Session()
@@ -183,10 +216,30 @@ class OffiScraper:
         self.timeout = timeout
         self.cache_file = cache_file
         self.refresh_after = timedelta(hours=max(refresh_after_hours, 0))
+        self.sections = self._normalize_sections(sections)
         self._seen_urls: set[str] = set()
         self.debug = debug
         self.stats = CrawlStats()
         self._cache: dict[str, Show] = self._load_cache(cache_file)
+
+    @staticmethod
+    def _normalize_sections(sections: Optional[List[str]]) -> list[str]:
+        selected = sections or ["theatre", "cinema"]
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for section in selected:
+            key = (section or "").strip().lower()
+            if not key:
+                continue
+            if key not in SECTION_VALUES:
+                raise ValueError(f"Section inconnue: {section}")
+            if key in seen:
+                continue
+            normalized.append(key)
+            seen.add(key)
+        if not normalized:
+            raise ValueError("Aucune section valide fournie")
+        return normalized
 
     # ---------------- Utils réseau ----------------
 
@@ -304,9 +357,13 @@ class OffiScraper:
         url = payload.get("url")
         if not isinstance(url, str) or not url:
             return None
+        section = payload.get("section")
+        if not isinstance(section, str) or not section:
+            section = self._infer_section_from_url(url)
         return Show(
             url=url,
             title=payload.get("title"),
+            section=section,
             category=payload.get("category"),
             venue=payload.get("venue"),
             address=payload.get("address"),
@@ -329,7 +386,24 @@ class OffiScraper:
         except ValueError:
             return None
 
+    @staticmethod
+    def _infer_section_from_url(url: str) -> Optional[str]:
+        path = urlparse(url).path
+        if path.startswith("/theatre/"):
+            return "theatre"
+        if path.startswith("/cinema/"):
+            return "cinema"
+        return None
+
+    def _get_section_config(self, section: Optional[str]) -> Optional[SectionConfig]:
+        if not section:
+            return None
+        return SECTION_CONFIGS.get(section)
+
     def _is_cache_complete(self, show: Show) -> bool:
+        section = show.section or self._infer_section_from_url(show.url)
+        if section == "cinema":
+            return bool(show.title and show.description)
         return bool(show.title and show.category and show.venue and show.description)
 
     def _should_refresh_detail(self, cached_show: Optional[Show]) -> bool:
@@ -348,6 +422,8 @@ class OffiScraper:
     def _merge_seed_with_cache(seed: Show, cached_show: Show) -> Show:
         merged = Show(**asdict(cached_show))
         merged.url = seed.url
+        if seed.section and not merged.section:
+            merged.section = seed.section
         if seed.title and not merged.title:
             merged.title = seed.title
         return merged
@@ -497,13 +573,21 @@ class OffiScraper:
 
     # ---------------- URL helpers ----------------
 
-    def _normalize_show_url(self, href: str) -> Optional[str]:
-        """Absolutise + supprime query/fragment ; valide uniquement les fiches 2 segments."""
+    @staticmethod
+    def _append_query_param(url: str, key: str, value: str) -> str:
+        parsed = urlparse(url)
+        query_items = [(k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True) if k != key]
+        query_items.append((key, value))
+        return urlunparse(parsed._replace(query=urlencode(query_items, doseq=True)))
+
+    def _normalize_show_url(self, href: str, section: str) -> Optional[str]:
+        """Absolutise + supprime query/fragment ; valide uniquement les fiches détail de la section."""
         if not href:
             return None
         try:
             u = urlparse(urljoin(BASE_URL, href))
-            if not SHOW_PATH_RE.match(u.path or ""):
+            config = self._get_section_config(section)
+            if not config or not config.show_path_re.match(u.path or ""):
                 return None
             cleaned = u._replace(query="", fragment="")
             return urlunparse((cleaned.scheme, cleaned.netloc, cleaned.path, "", "", ""))
@@ -572,7 +656,7 @@ class OffiScraper:
 
         return None
 
-    def _extract_category(self, text: str) -> Optional[str]:
+    def _extract_theatre_category(self, text: str) -> Optional[str]:
         if not text:
             return None
 
@@ -591,8 +675,120 @@ class OffiScraper:
 
         return "théâtre"
 
+    def _extract_category(self, text: str) -> Optional[str]:
+        return self._extract_theatre_category(text)
+
+    @staticmethod
+    def _jsonld_blobs(soup: BeautifulSoup) -> list[str]:
+        blobs: list[str] = []
+        for script in soup.find_all("script", type="application/ld+json"):
+            raw = script.string or script.get_text() or ""
+            if raw:
+                blobs.append(raw)
+        return blobs
+
+    @staticmethod
+    def _parse_iso8601_duration(value: Optional[str]) -> Optional[int]:
+        if not value:
+            return None
+        match = re.match(r"^PT(?:(\d+)H)?(?:(\d+)M)?$", value.strip(), re.IGNORECASE)
+        if not match:
+            return None
+        hours = int(match.group(1) or 0)
+        minutes = int(match.group(2) or 0)
+        total = hours * 60 + minutes
+        return total or None
+
+    def _parse_single_date_text(self, value: Optional[str]) -> Optional[str]:
+        text = self._clean_text(value)
+        if not text:
+            return None
+
+        word_match = re.fullmatch(rf"(\d{{1,2}})\s+({MONTH_PATTERN})\s+(\d{{4}})", text, flags=re.IGNORECASE)
+        if word_match:
+            day, month_name, year = word_match.groups()
+            return self._to_iso(day, month_name, year)
+
+        numeric_match = DATE_NUMERIC_RE.fullmatch(text)
+        if numeric_match:
+            day, month, year = numeric_match.groups()
+            year_num = int(year) + 2000 if len(year) == 2 else int(year)
+            return f"{year_num:04d}-{int(month):02d}-{int(day):02d}"
+
+        return self._iso_from_any(text)
+
+    def _extract_description(self, soup: BeautifulSoup) -> Optional[str]:
+        desc_keywords = ["présentation", "résumé", "synopsis", "à propos"]
+        for heading in soup.find_all(["h2", "h3", "h4"]):
+            ht = self._extract_text(heading).lower()
+            if any(k in ht for k in desc_keywords):
+                parts = []
+                for sib in heading.find_next_siblings():
+                    if sib.name in ["h2", "h3", "h4"]:
+                        break
+                    if sib.name in ["p", "div", "section"]:
+                        text = self._extract_text(sib)
+                        if text and len(text) > 10:
+                            parts.append(text)
+                if parts:
+                    return " ".join(parts)
+
+        meta_desc = soup.find("meta", attrs={"name": "description"})
+        if meta_desc and meta_desc.get("content"):
+            return meta_desc["content"].strip()
+
+        return None
+
+    def _extract_cinema_category(self, soup: BeautifulSoup) -> Optional[str]:
+        for raw in self._jsonld_blobs(soup):
+            for match in JSONLD_GENRE_RE.finditer(raw):
+                if match.group(1):
+                    return self._clean_text(match.group(1).lower())
+                items = [self._clean_text(item.lower()) for item in re.findall(r'"([^"]+)"', match.group(2) or "")]
+                items = [item for item in items if item]
+                if items:
+                    return ", ".join(items)
+
+        full_text = self._extract_text(soup)
+        match = re.search(
+            r"\bgenre(?:s)?\s*:\s*(.+?)(?=\b(?:durée|duree|date\s+de\s+sortie|sortie|nationalité|réalisateur|réalisation|avec|casting|titre\s+original)\b|$)",
+            full_text,
+            flags=re.IGNORECASE,
+        )
+        if not match:
+            return None
+        return self._clean_text(match.group(1).lower())
+
+    def _extract_cinema_release_date(self, soup: BeautifulSoup) -> Optional[str]:
+        for raw in self._jsonld_blobs(soup):
+            for match in JSONLD_DATE_RE.finditer(raw):
+                iso = self._parse_single_date_text(match.group(1))
+                if iso:
+                    return iso
+
+        full_text = self._extract_text(soup)
+        match = CINEMA_RELEASE_RE.search(full_text)
+        if not match:
+            return None
+        return self._parse_single_date_text(match.group(1))
+
+    def _extract_cinema_duration(self, soup: BeautifulSoup) -> Optional[int]:
+        for raw in self._jsonld_blobs(soup):
+            for match in JSONLD_DURATION_RE.finditer(raw):
+                duration = self._parse_iso8601_duration(match.group(1))
+                if duration:
+                    return duration
+
+        full_text = self._extract_text(soup)
+        match = re.search(r"\bdur(?:ée|e)?\s*:\s*([^\s•|]+)", full_text, flags=re.IGNORECASE)
+        if match:
+            return self._parse_duration(match.group(1))
+
+        return None
+
     def _validate_show(self, show: Show) -> Optional[Show]:
         show.title = self._clean_text(show.title)
+        show.section = self._clean_text(show.section)
         show.category = self._clean_text(show.category)
         show.venue = self._clean_text(show.venue)
         show.address = self._clean_text(show.address)
@@ -604,7 +800,15 @@ class OffiScraper:
             self.stats.invalid_shows += 1
             return None
 
-        if not show.category:
+        if not show.section:
+            show.section = self._infer_section_from_url(show.url)
+
+        if show.section not in SECTION_VALUES:
+            logging.warning("Show ignoré car section invalide: %s (%s)", show.url, show.section)
+            self.stats.invalid_shows += 1
+            return None
+
+        if not show.category and show.section == "theatre":
             show.category = "théâtre"
 
         if show.image and not show.image.startswith(("http://", "https://")):
@@ -650,37 +854,25 @@ class OffiScraper:
 
     # ---------------- Extraction depuis page détail ----------------
 
-    def _complete_show_from_detail_page(self, show: Show) -> Show:
-        # Salle depuis l'URL (rapide et fiable)
+    def _complete_theatre_show_from_detail_page(self, show: Show, soup: BeautifulSoup) -> Show:
         if not show.venue:
-            v = self._venue_from_show_url(show.url)
-            if v:
-                show.venue = v
+            venue = self._venue_from_show_url(show.url)
+            if venue:
+                show.venue = venue
 
-        soup = self._fetch_page(show.url)
-        if not soup:
-            return show
-
-        # Titre
-        if not show.title:
-            h1 = soup.find("h1")
-            if h1:
-                show.title = self._extract_text(h1)
-
-        # Consolider la salle via breadcrumbs si lien de théâtre identifiable
+        config = self._get_section_config("theatre")
         breadcrumbs = soup.select("nav.breadcrumb a, .breadcrumb a, ol.breadcrumb a") or []
         for bc in reversed(breadcrumbs):
             href = bc.get("href", "")
-            if VENUE_PATH_RE.match(urlparse(urljoin(BASE_URL, href)).path or ""):
-                vt = self._extract_text(bc)
-                if self._looks_like_venue_text(vt):
-                    show.venue = vt
+            if config and config.venue_path_re and config.venue_path_re.match(urlparse(urljoin(BASE_URL, href)).path or ""):
+                venue_text = self._extract_text(bc)
+                if self._looks_like_venue_text(venue_text):
+                    show.venue = venue_text
                     break
 
         if not show.address:
             show.address = self._extract_address(soup)
 
-        # Dates (1) : zones candidates → texte → parsing
         if not (show.date_start and show.date_end):
             date_bins: List[str] = []
             for sel in [
@@ -692,54 +884,22 @@ class OffiScraper:
                     if txt and len(txt) > 6:
                         date_bins.append(txt)
             date_text = " • ".join(date_bins[:30])
-            ds, de = self._parse_date_range_text(date_text)
-            if ds:
-                show.date_start = ds
-            if de:
-                show.date_end = de
+            date_start, date_end = self._parse_date_range_text(date_text)
+            if date_start:
+                show.date_start = date_start
+            if date_end:
+                show.date_end = date_end
 
-        # Dates (2) : fallback JSON-LD
         if not (show.date_start and show.date_end):
-            ds2, de2 = self._dates_from_jsonld(soup)
-            if ds2 and (not show.date_start or ds2 < show.date_start):
-                show.date_start = ds2
-            if de2 and (not show.date_end or de2 > show.date_end):
-                show.date_end = de2
-
-        # ⚠️ Pas de forçage end=start si une seule borne trouvée (sauf cas 1 seule date détectée)
-
-        # Image OG
-        if not show.image:
-            og = soup.find("meta", property="og:image")
-            if og and og.get("content"):
-                show.image = urljoin(show.url, og["content"])
-
-        # Description (sans troncature)
-        if not show.description:
-            desc_keywords = ["présentation", "résumé", "synopsis", "à propos"]
-            for heading in soup.find_all(["h2", "h3", "h4"]):
-                ht = self._extract_text(heading).lower()
-                if any(k in ht for k in desc_keywords):
-                    parts = []
-                    for sib in heading.find_next_siblings():
-                        if sib.name in ["h2", "h3", "h4"]:
-                            break
-                        if sib.name in ["p", "div", "section"]:
-                            t = self._extract_text(sib)
-                            if t and len(t) > 10:
-                                parts.append(t)
-                    if parts:
-                        show.description = " ".join(parts)
-                        break
-            if not show.description:
-                meta_desc = soup.find("meta", attrs={"name": "description"})
-                if meta_desc and meta_desc.get("content"):
-                    show.description = meta_desc["content"].strip()
+            date_start, date_end = self._dates_from_jsonld(soup)
+            if date_start and (not show.date_start or date_start < show.date_start):
+                show.date_start = date_start
+            if date_end and (not show.date_end or date_end > show.date_end):
+                show.date_end = date_end
 
         if not show.category:
-            show.category = self._extract_category(show.description or "")
+            show.category = self._extract_theatre_category(show.description or "")
 
-        # Prix
         if show.price_min_eur is None:
             for el in soup.find_all(string=re.compile(r"tarif|prix|billet", re.IGNORECASE)):
                 parent_text = self._extract_text(getattr(el, "parent", None))
@@ -749,9 +909,8 @@ class OffiScraper:
                         show.price_min_eur, show.price_max_eur = lo, hi
                         break
 
-        # Durée
         if not show.duration_min:
-            dur_texts = []
+            duration_texts = []
             for sel, allow_hour_only in [
                 (".informations", False),
                 (".meta", False),
@@ -762,118 +921,154 @@ class OffiScraper:
                 ("[class*=duree]", True),
             ]:
                 for el in soup.select(sel):
-                    t = self._extract_text(el)
-                    if t and self._looks_like_duration_text(t, allow_hour_only=allow_hour_only):
-                        dur_texts.append(t)
-            if dur_texts:
-                show.duration_min = self._parse_duration(" • ".join(dur_texts[:8]))
+                    text = self._extract_text(el)
+                    if text and self._looks_like_duration_text(text, allow_hour_only=allow_hour_only):
+                        duration_texts.append(text)
+            if duration_texts:
+                show.duration_min = self._parse_duration(" • ".join(duration_texts[:8]))
 
         return show
 
+    def _complete_cinema_show_from_detail_page(self, show: Show, soup: BeautifulSoup) -> Show:
+        if not show.category:
+            show.category = self._extract_cinema_category(soup)
+
+        if not show.date_start:
+            show.date_start = self._extract_cinema_release_date(soup)
+
+        if not show.duration_min:
+            show.duration_min = self._extract_cinema_duration(soup)
+
+        return show
+
+    def _complete_show_from_detail_page(self, show: Show) -> Show:
+        show.section = show.section or self._infer_section_from_url(show.url)
+
+        soup = self._fetch_page(show.url)
+        if not soup:
+            return show
+
+        if not show.title:
+            h1 = soup.find("h1")
+            if h1:
+                show.title = self._extract_text(h1)
+
+        if not show.image:
+            og = soup.find("meta", property="og:image")
+            if og and og.get("content"):
+                show.image = urljoin(show.url, og["content"])
+
+        if not show.description:
+            show.description = self._extract_description(soup)
+
+        if show.section == "cinema":
+            return self._complete_cinema_show_from_detail_page(show, soup)
+
+        return self._complete_theatre_show_from_detail_page(show, soup)
+
     # ---------------- Génération des pages programme ----------------
 
-    def _get_programme_pages(self, max_pages: int) -> list[str]:
-        urls = [PROGRAMME_BASE]
+    def _get_programme_pages(self, section: str, max_pages: int) -> list[str]:
+        config = self._get_section_config(section)
+        if not config:
+            return []
+
+        urls = [config.programme_url]
         for page_num in range(2, min(max_pages + 1, 200)):
-            urls.append(f"{PROGRAMME_BASE}?npage={page_num}")
+            urls.append(self._append_query_param(config.programme_url, "npage", str(page_num)))
         return urls
 
     # ---------------- Crawl principal ----------------
 
     def crawl_programme(self, output_file: str, max_pages: int = 150) -> CrawlStats:
-        logging.info(f"Démarrage crawl programme - Max pages: {max_pages}")
+        logging.info("Démarrage crawl programme - Sections: %s - Max pages: %s", ",".join(self.sections), max_pages)
         output_dir = os.path.dirname(output_file)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
 
-        programme_urls = self._get_programme_pages(max_pages)
-
         with open(output_file, "w", encoding="utf-8") as f:
-            for url in programme_urls:
-                logging.info(f"Crawling page {self.stats.pages_crawled + 1}: {url}")
-                soup = self._fetch_page(url)
-                if not soup:
-                    logging.warning(f"Impossible de récupérer {url}")
-                    self.stats.pages_failed += 1
-                    continue
-                self.stats.pages_crawled += 1
-
-                # Tous les liens
-                all_links = soup.find_all("a", href=True)
-
-                # Candidats spectacles (format strict 2 segments)
-                candidate_links: list[tuple[str, Tag]] = []
-                for l in all_links:
-                    href = l.get("href")
-                    if not href:
+            for section in self.sections:
+                programme_urls = self._get_programme_pages(section, max_pages)
+                for section_page_index, url in enumerate(programme_urls, start=1):
+                    logging.info("Crawling %s page %s: %s", section, section_page_index, url)
+                    soup = self._fetch_page(url)
+                    if not soup:
+                        logging.warning("Impossible de récupérer %s", url)
+                        self.stats.pages_failed += 1
                         continue
-                    # ignorer pagination "1 2 3"
-                    link_txt = (l.get_text(strip=True) or "").strip()
-                    if link_txt.isdigit():
-                        continue
-                    norm = self._normalize_show_url(href)
-                    if norm:
-                        candidate_links.append((norm, l))
+                    self.stats.pages_crawled += 1
 
-                if self.debug:
-                    logging.debug(f"[DEBUG] Candidats spectacle (normalisés): {len(candidate_links)}")
-                    for u, l in candidate_links[:20]:
-                        logging.debug(f"[DEBUG] candidat: {u} | txt: {(l.get_text(strip=True) or '')[:80]}")
+                    all_links = soup.find_all("a", href=True)
+                    candidate_links: list[tuple[str, Tag]] = []
+                    for link in all_links:
+                        href = link.get("href")
+                        if not href:
+                            continue
+                        link_text = (link.get_text(strip=True) or "").strip()
+                        if link_text.isdigit():
+                            continue
+                        normalized_url = self._normalize_show_url(href, section)
+                        if normalized_url:
+                            candidate_links.append((normalized_url, link))
 
-                # Dédupliquer par URL normalisée
-                abs_urls: list[tuple[str, Tag]] = []
-                seen = set()
-                for norm_url, link_el in candidate_links:
-                    if norm_url not in seen:
-                        abs_urls.append((norm_url, link_el))
-                        seen.add(norm_url)
+                    if self.debug:
+                        logging.debug("[DEBUG] Candidats %s (normalisés): %s", section, len(candidate_links))
+                        for candidate_url, link in candidate_links[:20]:
+                            logging.debug("[DEBUG] candidat %s: %s | txt: %s", section, candidate_url, (link.get_text(strip=True) or "")[:80])
 
-                page_shows = 0
-                for abs_url, link_el in abs_urls:
-                    if abs_url in self._seen_urls:
-                        continue
-                    self._seen_urls.add(abs_url)
+                    deduped_urls: list[tuple[str, Tag]] = []
+                    seen: set[str] = set()
+                    for normalized_url, link_el in candidate_links:
+                        if normalized_url in seen:
+                            continue
+                        deduped_urls.append((normalized_url, link_el))
+                        seen.add(normalized_url)
 
-                    show = Show(url=abs_url, crawled_at=datetime.now(timezone.utc).isoformat())
+                    page_shows = 0
+                    for abs_url, link_el in deduped_urls:
+                        if abs_url in self._seen_urls:
+                            continue
+                        self._seen_urls.add(abs_url)
 
-                    # Titre si dispo dans le lien
-                    link_txt = (link_el.get_text(strip=True) or "").strip()
-                    if link_txt and not link_txt.isdigit():
-                        show.title = link_txt
+                        show = Show(url=abs_url, section=section, crawled_at=datetime.now(timezone.utc).isoformat())
 
-                    cached_show = self._cache.get(abs_url)
-                    if self._should_refresh_detail(cached_show):
-                        before = asdict(show)
-                        show = self._complete_show_from_detail_page(show)
-                        self.stats.shows_completed += 1
-                        self.stats.detail_fetches += 1
-                        if self.debug:
-                            logging.debug(f"[DEBUG] Complété: {show.url}")
-                            logging.debug(f"[DEBUG]   avant: {json.dumps(before, ensure_ascii=False)}")
-                            logging.debug(f"[DEBUG]   après: {json.dumps(asdict(show), ensure_ascii=False)}")
-                    else:
-                        show = self._merge_seed_with_cache(show, cached_show)
-                        self.stats.cached_reused += 1
-                        if self.debug:
-                            logging.debug(f"[DEBUG] Réutilisé depuis cache: {show.url}")
+                        link_text = (link_el.get_text(strip=True) or "").strip()
+                        if link_text and not link_text.isdigit():
+                            show.title = link_text
 
-                    validated = self._validate_show(show)
-                    if not validated:
-                        continue
+                        cached_show = self._cache.get(abs_url)
+                        if self._should_refresh_detail(cached_show):
+                            before = asdict(show)
+                            show = self._complete_show_from_detail_page(show)
+                            self.stats.shows_completed += 1
+                            self.stats.detail_fetches += 1
+                            if self.debug:
+                                logging.debug("[DEBUG] Complété: %s", show.url)
+                                logging.debug("[DEBUG]   avant: %s", json.dumps(before, ensure_ascii=False))
+                                logging.debug("[DEBUG]   après: %s", json.dumps(asdict(show), ensure_ascii=False))
+                        else:
+                            show = self._merge_seed_with_cache(show, cached_show)
+                            self.stats.cached_reused += 1
+                            if self.debug:
+                                logging.debug("[DEBUG] Réutilisé depuis cache: %s", show.url)
 
-                    f.write(json.dumps(asdict(validated), ensure_ascii=False) + "\n")
-                    f.flush()
-                    self.stats.shows_extracted += 1
-                    page_shows += 1
+                        validated = self._validate_show(show)
+                        if not validated:
+                            continue
 
-                logging.info(f"Page {self.stats.pages_crawled}: {page_shows} spectacles extraits")
+                        f.write(json.dumps(asdict(validated), ensure_ascii=False) + "\n")
+                        f.flush()
+                        self.stats.shows_extracted += 1
+                        page_shows += 1
 
-                if page_shows == 0 and self.stats.pages_crawled > 1:
-                    logging.info("Aucun spectacle trouvé, fin de pagination probable")
-                    break
+                    logging.info("Page %s/%s: %s fiches extraites", section, section_page_index, page_shows)
+
+                    if page_shows == 0 and section_page_index > 1:
+                        logging.info("Aucune fiche trouvée pour %s, fin de pagination probable", section)
+                        break
 
         logging.info(
-            "Terminé - Pages OK: %s, Pages KO: %s, Spectacles: %s, Complétions: %s, Invalides: %s, Requêtes: %s, Retries: %s, Erreurs réseau: %s, Cache chargé: %s, Cache réutilisé: %s, Détails fetchés: %s",
+            "Terminé - Pages OK: %s, Pages KO: %s, Fiches: %s, Complétions: %s, Invalides: %s, Requêtes: %s, Retries: %s, Erreurs réseau: %s, Cache chargé: %s, Cache réutilisé: %s, Détails fetchés: %s",
             self.stats.pages_crawled,
             self.stats.pages_failed,
             self.stats.shows_extracted,
@@ -893,6 +1088,7 @@ def main():
     parser = argparse.ArgumentParser(description="Scraper Offi.fr - fiches 2 segments, venue fiable, dates robustes")
     parser.add_argument("--out", default="spectacles.jsonl", help="Fichier de sortie")
     parser.add_argument("--max-pages", type=int, default=150, help="Nombre max de pages de programme")
+    parser.add_argument("--sections", default="theatre,cinema", help="Sections à crawler (liste séparée par des virgules)")
     parser.add_argument("--min-delay", type=float, default=0.7, help="Délai min entre requêtes")
     parser.add_argument("--max-delay", type=float, default=1.6, help="Délai max entre requêtes")
     parser.add_argument("--retries", type=int, default=4, help="Nombre de retries HTTP")
@@ -914,12 +1110,13 @@ def main():
         timeout=args.timeout,
         cache_file=args.cache_file,
         refresh_after_hours=args.refresh_after_hours,
+        sections=[section.strip() for section in args.sections.split(",")],
         debug=args.debug,
     )
     stats = scraper.crawl_programme(args.out, args.max_pages)
 
     if stats.shows_extracted == 0:
-        logging.error("Aucun spectacle extrait")
+        logging.error("Aucune fiche extraite")
         return 2
     if stats.pages_crawled == 0:
         logging.error("Aucune page programme récupérée")

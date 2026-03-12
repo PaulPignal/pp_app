@@ -6,16 +6,16 @@ async function main() {
   }
 
   const seeds = [
-    { title: "Le Cid",          category: "théâtre", sourceUrl: "seed://le-cid" },
-    { title: "Dom Juan",        category: "théâtre", sourceUrl: "seed://dom-juan" },
-    { title: "Le Misanthrope",  category: "théâtre", sourceUrl: "seed://misanthrope" },
+    { title: "Le Cid",         section: "theatre", category: "théâtre", sourceUrl: "seed://le-cid" },
+    { title: "Dom Juan",       section: "theatre", category: "théâtre", sourceUrl: "seed://dom-juan" },
+    { title: "Le Misanthrope", section: "theatre", category: "théâtre", sourceUrl: "seed://misanthrope" },
   ];
 
   for (const w of seeds) {
     await prisma.work.upsert({
       where: { sourceUrl: w.sourceUrl },
-      update: { title: w.title, category: w.category },
-      create: { title: w.title, category: w.category, sourceUrl: w.sourceUrl },
+      update: { title: w.title, section: w.section, category: w.category },
+      create: { title: w.title, section: w.section, category: w.category, sourceUrl: w.sourceUrl },
     });
   }
 

@@ -10,7 +10,7 @@ type ListDiscoverWorksInput = Partial<ListDiscoverWorksParams> & {
 }
 
 export async function listDiscoverWorks(input: ListDiscoverWorksInput = {}) {
-  const { per, since, category } = listDiscoverWorksParamsSchema.parse(input)
+  const { per, since, category, section } = listDiscoverWorksParamsSchema.parse(input)
   const where: Prisma.WorkWhereInput = {}
 
   if (since) {
@@ -19,6 +19,10 @@ export async function listDiscoverWorks(input: ListDiscoverWorksInput = {}) {
 
   if (category) {
     where.category = category
+  }
+
+  if (section) {
+    where.section = section
   }
 
   if (input.userId) {

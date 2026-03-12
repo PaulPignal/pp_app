@@ -55,7 +55,7 @@ describe('/api/common', () => {
   it('returns common works from the feature query', async () => {
     requireSessionUserMock.mockResolvedValue({ id: 'me', email: 'me@example.com' })
     listCommonLikedWorksMock.mockResolvedValue([
-      { id: 'common-1', title: 'Hamlet', imageUrl: null, venue: 'Odéon', address: null, category: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, sourceUrl: null },
+      { id: 'common-1', title: 'Hamlet', section: 'theatre', imageUrl: null, venue: 'Odéon', address: null, category: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, sourceUrl: null },
     ])
 
     const response = await GET(new Request('http://localhost/api/common?friendId=friend-1'))
@@ -68,6 +68,7 @@ describe('/api/common', () => {
         {
           id: 'common-1',
           title: 'Hamlet',
+          section: 'theatre',
           imageUrl: null,
           venue: 'Odéon',
           address: null,

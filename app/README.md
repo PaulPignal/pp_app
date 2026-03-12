@@ -61,7 +61,7 @@ Commande recommandée depuis la racine du repo :
 Cette commande :
 
 - lance le scraper Python vers `data/offi.jsonl`
-- parcourt toute la pagination Offi et réutilise `data/offi.jsonl` comme cache détail
+- parcourt les sections Offi `theatre` et `cinema`, puis réutilise `data/offi.jsonl` comme cache détail
 - journalise l'exécution dans `scraper/logs/`
 - applique les migrations Prisma avec `pnpm --dir app db:deploy`
 - enchaîne l'ingestion Prisma avec validation stricte et `upsert` par `sourceUrl`
@@ -70,6 +70,12 @@ Pour un run plus léger en local :
 
 ```bash
 OFFI_MAX_PAGES=20 ./scripts/offi-pipeline.sh --debug
+```
+
+Pour limiter le run à une section :
+
+```bash
+OFFI_SECTIONS=cinema ./scripts/offi-pipeline.sh
 ```
 
 Pour installer le cron local sur ton Mac :

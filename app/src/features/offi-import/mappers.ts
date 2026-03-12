@@ -11,6 +11,7 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
 } {
   const create: Prisma.WorkCreateInput = {
     title: record.title,
+    section: record.section,
     category: record.category ?? null,
     venue: record.venue ?? null,
     address: record.address ?? null,
@@ -26,6 +27,7 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
 
   const update: Prisma.WorkUpdateInput = {
     title: record.title,
+    section: record.section,
   }
 
   if (record.category != null) update.category = record.category

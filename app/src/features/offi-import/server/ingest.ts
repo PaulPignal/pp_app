@@ -1,5 +1,3 @@
-import 'server-only'
-
 import fs from 'node:fs'
 import readline from 'node:readline'
 import { prisma } from '@/server/db'

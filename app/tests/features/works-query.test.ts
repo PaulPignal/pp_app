@@ -24,6 +24,7 @@ describe('listDiscoverWorks', () => {
       {
         id: 'work-1',
         title: 'Hamlet',
+        section: 'theatre',
         imageUrl: null,
         category: null,
         venue: null,
@@ -45,6 +46,23 @@ describe('listDiscoverWorks', () => {
       expect.objectContaining({
         where: { reactions: { none: { userId: 'user-1' } } },
         take: 25,
+      }),
+    )
+  })
+
+  it('forwards section and category filters to Prisma', async () => {
+    prisma.work.count.mockResolvedValue(0)
+    prisma.work.findMany.mockResolvedValue([])
+
+    await listDiscoverWorks({ userId: 'user-1', per: 25, section: 'cinema', category: 'drame' })
+
+    expect(prisma.work.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          category: 'drame',
+          section: 'cinema',
+          reactions: { none: { userId: 'user-1' } },
+        },
       }),
     )
   })

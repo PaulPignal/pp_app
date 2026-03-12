@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DEFAULT_WORK_SECTION, inferWorkSectionFromUrl, WORK_SECTION_VALUES } from '@/features/works/section'
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -56,6 +57,7 @@ export const offiWorkSchema = z
   .object({
     url: z.string().url().max(500).refine((value) => value.startsWith('https://www.offi.fr/'), 'Expected an Offi URL'),
     title: z.preprocess(normalizeString, z.string().min(1).max(280)),
+    section: z.preprocess(normalizeString, z.enum(WORK_SECTION_VALUES).nullish()),
     category: nullableString(120),
     venue: nullableString(160),
     address: nullableString(240),
@@ -70,6 +72,7 @@ export const offiWorkSchema = z
     crawled_at: nullableDateTime,
   })
   .transform((record) => {
+    const inferredSection = record.section ?? inferWorkSectionFromUrl(record.url) ?? DEFAULT_WORK_SECTION
     let dateStart = record.date_start
     let dateEnd = record.date_end
     let priceMin = record.price_min_eur
@@ -85,6 +88,7 @@ export const offiWorkSchema = z
 
     return {
       ...record,
+      section: inferredSection,
       date_start: dateStart,
       date_end: dateEnd,
       price_min_eur: priceMin,

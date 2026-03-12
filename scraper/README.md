@@ -13,7 +13,7 @@ Le scraper applique désormais un throttling, des retries exponentiels sur `403/
 
 L'ingestion fait un `upsert` sur `Work.sourceUrl`, valide chaque ligne JSONL, refuse les doublons dans le fichier, et n'écrase plus les champs déjà présents en base par `null`.
 
-Le mode recommandé pour le cron reste exhaustif sur la pagination : il parcourt toujours toutes les pages programme, mais réutilise le dernier `data/offi.jsonl` comme cache de fiches détail. Une fiche connue n'est refetch que si elle est nouvelle, incomplète, ou plus vieille que `72h` par défaut.
+Le mode recommandé pour le cron reste exhaustif sur la pagination : il parcourt les sections `theatre` et `cinema`, puis réutilise le dernier `data/offi.jsonl` comme cache de fiches détail. Une fiche connue n'est refetch que si elle est nouvelle, incomplète, ou plus vieille que `72h` par défaut.
 
 ## Commande recommandée
 
@@ -32,6 +32,7 @@ OFFI_MAX_PAGES=20 ./scripts/offi-pipeline.sh --debug
 Le wrapper applique aussi `pnpm --dir app db:deploy` avant l'ingestion, sauf si `OFFI_SKIP_DB_DEPLOY=1`.
 
 Variables utiles :
+- `OFFI_SECTIONS=theatre,cinema` : sections Offi à crawler
 - `OFFI_REFRESH_AFTER_HOURS=72` : âge max du cache détail avant refresh
 - `OFFI_MAX_PAGES=150` : limite de pagination
 - `OFFI_SKIP_DB_DEPLOY=1` : saute `db:deploy` si tu veux seulement scraper+ingest

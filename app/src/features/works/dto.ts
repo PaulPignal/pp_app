@@ -1,8 +1,10 @@
 import type { Prisma } from '@/generated/prisma/client'
+import type { WorkSection } from '@/features/works/section'
 
 export const workCardSelect = {
   id: true,
   title: true,
+  section: true,
   imageUrl: true,
   category: true,
   venue: true,
@@ -21,6 +23,7 @@ type WorkCardRecord = Prisma.WorkGetPayload<{ select: typeof workCardSelect }>
 export type WorkCardDto = {
   id: string
   title: string
+  section: WorkSection
   imageUrl: string | null
   category: string | null
   venue: string | null
@@ -38,6 +41,7 @@ export function mapWorkToCardDto(work: WorkCardRecord): WorkCardDto {
   return {
     id: work.id,
     title: work.title,
+    section: work.section as WorkSection,
     imageUrl: work.imageUrl,
     category: work.category,
     venue: work.venue,

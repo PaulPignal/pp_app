@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ingestOffiFile } from "@/features/offi-import/server/ingest";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const appDir = path.resolve(scriptDir, "..");
@@ -49,6 +48,7 @@ async function ingest(file: string) {
     throw new Error(`Fichier introuvable: ${file}`);
   }
 
+  const { ingestOffiFile } = await import("@/features/offi-import/server/ingest");
   const { imported, validated } = await ingestOffiFile(file);
   console.log(`[ingest:offi] ${validated} lignes validées depuis ${file}`);
   console.log(`[ingest:offi] Imported ${imported} works from ${file}`);

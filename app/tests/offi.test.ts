@@ -8,6 +8,7 @@ describe('Offi ingestion helpers', () => {
       JSON.stringify({
         url: 'https://www.offi.fr/theatre/theatre-antoine-1408/le-bourgeois-gentilhomme-101852.html',
         title: '  Le Bourgeois gentilhomme  ',
+        section: 'theatre',
         category: 'Pièces de théâtre',
         venue: 'Théâtre Antoine',
         address: '14 boulevard de Strasbourg 75010 Paris',
@@ -25,6 +26,7 @@ describe('Offi ingestion helpers', () => {
     )
 
     expect(record.title).toBe('Le Bourgeois gentilhomme')
+    expect(record.section).toBe('theatre')
     expect(record.date_start).toBe('2025-08-27')
     expect(record.date_end).toBe('2025-11-15')
     expect(record.price_min_eur).toBe(22)
@@ -36,6 +38,7 @@ describe('Offi ingestion helpers', () => {
       JSON.stringify({
         url: 'https://www.offi.fr/theatre/theatre-de-paris-3269/chers-parents-82668.html',
         title: 'Chers parents',
+        section: 'theatre',
         category: null,
         venue: 'Théâtre de Paris',
         address: null,
@@ -53,11 +56,30 @@ describe('Offi ingestion helpers', () => {
 
     const { create, update } = buildWorkUpsert(record)
 
+    expect(create.section).toBe('theatre')
     expect(create.category).toBeNull()
     expect(create.address).toBeNull()
+    expect(update).toHaveProperty('section', 'theatre')
     expect(update).not.toHaveProperty('category')
     expect(update).not.toHaveProperty('address')
     expect(update).toHaveProperty('venue', 'Théâtre de Paris')
+  })
+
+  it('infers section from legacy cinema urls when the field is missing', () => {
+    const record = parseOffiJsonLine(
+      JSON.stringify({
+        url: 'https://www.offi.fr/cinema/evenement/carmen-de-kawachi-45189.html',
+        title: 'Carmen de Kawachi',
+        category: 'drame',
+        date_start: '2026-03-12',
+        duration_min: 89,
+        image: 'https://files.offi.fr/cinema.jpg',
+        description: 'Une restauration flamboyante.',
+      }),
+      1,
+    )
+
+    expect(record.section).toBe('cinema')
   })
 
   it('rejects invalid records with useful line numbers', () => {

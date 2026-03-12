@@ -15,6 +15,7 @@ export async function GET(req: Request) {
       per: url.searchParams.get('per') ?? undefined,
       since: url.searchParams.get('since') ?? undefined,
       category: url.searchParams.get('category') ?? undefined,
+      section: url.searchParams.get('section') ?? undefined,
     })
 
     if (!parsed.success) {

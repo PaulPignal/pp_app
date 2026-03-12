@@ -5,8 +5,8 @@ import SwipeDeck from '@/features/works/ui/SwipeDeck'
 
 test("avance à la carte suivante et appelle POST /api/reactions quand on clique Like", async () => {
   const items = [
-    { id: 'w1', title: 'Œuvre 1', imageUrl: null, category: null, venue: null, address: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, sourceUrl: null },
-    { id: 'w2', title: 'Œuvre 2', imageUrl: null, category: null, venue: null, address: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, sourceUrl: null },
+    { id: 'w1', title: 'Œuvre 1', section: 'theatre', imageUrl: null, category: null, venue: null, address: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, sourceUrl: null },
+    { id: 'w2', title: 'Œuvre 2', section: 'theatre', imageUrl: null, category: null, venue: null, address: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, sourceUrl: null },
   ]
 
   render(<SwipeDeck items={items} />)

@@ -72,6 +72,7 @@ model VerificationToken {
 model Work {
   id        String    @id @default(cuid())
   title     String
+  section   String    @default("theatre")
   category  String?
   venue     String?
   address   String?
@@ -89,6 +90,8 @@ model Work {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([section, createdAt])
 }
 
 // ✅ Enum de statut : un seul état par (user, work)
