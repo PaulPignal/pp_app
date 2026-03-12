@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/server/db'
+import { getParisTodayStart } from '@/features/works/availability'
 import { listDiscoverWorksParamsSchema, type ListDiscoverWorksParams } from '@/features/works/schemas'
 import { mapWorkToCardDto, workCardSelect } from '@/features/works/dto'
 
@@ -11,7 +12,9 @@ type ListDiscoverWorksInput = Partial<ListDiscoverWorksParams> & {
 
 export async function listDiscoverWorks(input: ListDiscoverWorksInput = {}) {
   const { per, since, category, section } = listDiscoverWorksParamsSchema.parse(input)
-  const where: Prisma.WorkWhereInput = {}
+  const where: Prisma.WorkWhereInput = {
+    OR: [{ endDate: null }, { endDate: { gte: getParisTodayStart() } }],
+  }
 
   if (since) {
     where.createdAt = { gte: since }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { prisma } = vi.hoisted(() => ({
   prisma: {
@@ -16,6 +16,12 @@ import { listDiscoverWorks } from '@/features/works/server/queries'
 describe('listDiscoverWorks', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-12T10:00:00.000Z'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('filters out works already reacted to by the current user', async () => {
@@ -44,7 +50,10 @@ describe('listDiscoverWorks', () => {
     expect(result.total).toBe(1)
     expect(prisma.work.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { reactions: { none: { userId: 'user-1' } } },
+        where: {
+          OR: [{ endDate: null }, { endDate: { gte: new Date('2026-03-12T00:00:00.000Z') } }],
+          reactions: { none: { userId: 'user-1' } },
+        },
         take: 25,
       }),
     )
@@ -59,11 +68,25 @@ describe('listDiscoverWorks', () => {
     expect(prisma.work.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          OR: [{ endDate: null }, { endDate: { gte: new Date('2026-03-12T00:00:00.000Z') } }],
           category: 'drame',
           section: 'cinema',
           reactions: { none: { userId: 'user-1' } },
         },
       }),
     )
+  })
+
+  it('excludes works whose end date is before today', async () => {
+    prisma.work.count.mockResolvedValue(0)
+    prisma.work.findMany.mockResolvedValue([])
+
+    await listDiscoverWorks({ per: 10 })
+
+    expect(prisma.work.count).toHaveBeenCalledWith({
+      where: {
+        OR: [{ endDate: null }, { endDate: { gte: new Date('2026-03-12T00:00:00.000Z') } }],
+      },
+    })
   })
 })
