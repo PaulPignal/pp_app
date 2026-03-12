@@ -129,6 +129,18 @@ Recommended feature set for this repo:
 - Do not add large snapshots.
 - Every bug fix should add or update one focused test.
 
+## Git Workflow
+
+- Start every task by checking `git status --short --branch`.
+- Never edit directly on `main`.
+- If `HEAD` is `main` and the worktree is clean, create a dedicated branch before editing: `codex/<short-task-slug>`.
+- Prefer branching from the current local `main`.
+- If `main` is dirty, or if switching branches would risk overwriting local work, stop and ask the user how to handle the existing changes before editing.
+- If already on a non-`main` task branch, stay on it unless the user explicitly asks for a fresh branch.
+- Do not silently switch branches, pull, merge, rebase, reset, stash, or discard changes.
+- Treat user changes as authoritative and leave unrelated modifications untouched.
+- In progress updates and in the final summary, state which branch is being used and whether `main` remained untouched.
+
 ## Change Workflow
 
 Before editing:
