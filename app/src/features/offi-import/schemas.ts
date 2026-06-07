@@ -69,6 +69,11 @@ export const offiWorkSchema = z
     price_max_eur: nullableMoney,
     image: nullableHttpUrl(500),
     description: nullableString(20_000),
+    director: nullableString(160),
+    cast: z.preprocess(
+      (value) => (Array.isArray(value) ? value : []),
+      z.array(z.string().trim().min(1).max(160)).max(20),
+    ),
     crawled_at: nullableDateTime,
   })
   .transform((record) => {

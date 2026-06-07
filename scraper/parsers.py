@@ -76,3 +76,81 @@ def parse_prices(text: str) -> tuple[Optional[float], Optional[float]]:
     if len(prices) == 1:
         return prices[0], prices[0]
     return min(prices), max(prices)
+
+
+# --- Casting / mise en scène ---------------------------------------------------
+# Offi expose les crédits différemment selon le segment :
+#  - cinéma : bloc "fiche technique" labellisé ("Réalisation : X", "Principaux artistes : A, B")
+#    + des liens itemprop="actors" (acteurs "(personnage)" mêlés à l'équipe "(scénario)"…) ;
+#  - théâtre : une phrase de crédit ("De A, B, mise en scène C[, avec D, E]") avec itemprop="performer".
+# On scope l'extraction à ces blocs pour éviter le bruit (footer "Avec L'Officiel des spectacles !").
+
+# Rôles d'équipe à exclure du casting (parenthèse sur les liens acteurs cinéma).
+_CREW_ROLES = {
+    "scénario", "scenario", "musique", "montage", "image", "photographie", "photo",
+    "son", "décors", "decors", "costumes", "production", "dialogues", "adaptation",
+    "réalisation", "realisation", "d'après", "auteur", "mixage", "effets",
+}
+_CREDIT_STOP = (
+    r"(?:Principaux|Genre|Nationalit|Dur[ée]e|Ann[ée]e|Date|Distributeur|Num[ée]ro|Sc[ée]nario|Visa|\||$)"
+)
+
+
+def _clean_credit(value: str) -> str:
+    return re.sub(r"\s+", " ", value or "").strip(" ,.;:•|")
+
+
+def _name_only(text: str) -> str:
+    # "Alida Valli ( Louise )" -> "Alida Valli"
+    return _clean_credit(re.sub(r"\(.*$", "", text or ""))
+
+
+def _tech_block_text(soup) -> str:
+    label = soup.find(string=re.compile(r"R[ée]alisation\s*:", re.IGNORECASE))
+    if not label:
+        return ""
+    node = label.parent
+    for _ in range(4):
+        if node is None or len(node.get_text(" ", strip=True)) > 60:
+            break
+        node = node.parent
+    return _clean_credit(node.get_text(" ", strip=True)) if node else ""
+
+
+def extract_credits(soup) -> tuple[Optional[str], list[str]]:
+    """Retourne (director, cast) depuis une fiche Offi (BeautifulSoup). Robuste théâtre + cinéma."""
+    perf_links = soup.select('a[itemprop="performer"], a[itemprop="actors"]')
+    perf_block = _clean_credit(perf_links[0].parent.get_text(" ", strip=True)) if perf_links else ""
+    tech_block = _tech_block_text(soup)
+
+    director: Optional[str] = None
+    tech_match = re.search(r"R[ée]alisation\s*:?\s*(.+?)\s+" + _CREDIT_STOP, tech_block, re.IGNORECASE)
+    if tech_match and _clean_credit(tech_match.group(1)):
+        director = _clean_credit(tech_match.group(1))
+    if not director:
+        stage_match = re.search(r"mise en sc[èe]ne\s+([A-ZÉÈÀ][^,.|]{2,60})", perf_block, re.IGNORECASE)
+        if stage_match:
+            director = _clean_credit(stage_match.group(1))
+
+    cast: list[str] = []
+    main = re.search(r"Principaux artistes\s*:?\s*(.+?)\s+" + _CREDIT_STOP, tech_block, re.IGNORECASE)
+    if main:
+        cast = [_clean_credit(c) for c in re.split(r",| et ", main.group(1)) if _clean_credit(c)]
+    if not cast:
+        avec = re.search(r"\bavec\s+(.+?)(?:[.;]|$)", perf_block, re.IGNORECASE)
+        if avec:
+            cast = [_clean_credit(c) for c in re.split(r",| et ", avec.group(1)) if _clean_credit(c)]
+    if not cast:
+        seen: set[str] = set()
+        for link in soup.select('a[itemprop="actors"]'):
+            text = link.get_text(" ", strip=True)
+            role = re.search(r"\(([^)]+)\)", text)
+            if role and role.group(1).strip().lower() in _CREW_ROLES:
+                continue
+            name = _name_only(text)
+            if name and name.lower() not in seen:
+                seen.add(name.lower())
+                cast.append(name)
+
+    cast = [c for c in cast if c and c != director and 2 <= len(c) <= 40][:8]
+    return director, cast

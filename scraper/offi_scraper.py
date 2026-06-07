@@ -17,7 +17,7 @@ import random
 import re
 import sys
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, List
 from urllib.parse import urljoin, urlparse, urlunparse, urlencode, parse_qsl
@@ -170,6 +170,8 @@ class Show:
     price_max_eur: Optional[float] = None
     image: Optional[str] = None
     description: Optional[str] = None
+    director: Optional[str] = None
+    cast: list[str] = field(default_factory=list)
     crawled_at: Optional[str] = None
 
     def is_empty(self) -> bool:
@@ -369,6 +371,8 @@ class OffiScraper:
             price_max_eur=payload.get("price_max_eur"),
             image=payload.get("image"),
             description=payload.get("description"),
+            director=payload.get("director"),
+            cast=payload.get("cast") or [],
             crawled_at=payload.get("crawled_at"),
         )
 
@@ -925,6 +929,12 @@ class OffiScraper:
 
         if not show.description:
             show.description = self._extract_description(soup)
+
+        director, cast = parsers.extract_credits(soup)
+        if not show.director:
+            show.director = director
+        if not show.cast and cast:
+            show.cast = cast
 
         if show.section == "cinema":
             return self._complete_cinema_show_from_detail_page(show, soup)

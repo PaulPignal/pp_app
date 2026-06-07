@@ -27,6 +27,7 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
   const description = work.description?.trim()
   const genres = parseGenres(work.category)
   const sectionLabel = work.section === 'cinema' ? 'Cinéma' : 'Théâtre'
+  const directorLabel = work.section === 'cinema' ? 'De' : 'Mise en scène'
   const hasFacts = genres.length > 0 || Boolean(durationLabel) || Boolean(priceLabel)
 
   return (
@@ -70,6 +71,23 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
             {work.title}
           </h2>
         </div>
+
+        {work.director || work.cast.length > 0 ? (
+          <div className="space-y-0.5 text-sm leading-6">
+            {work.director ? (
+              <p>
+                <span className="text-[color:var(--color-text-muted)]">{directorLabel} </span>
+                <span className="font-semibold text-[color:var(--color-text)]">{work.director}</span>
+              </p>
+            ) : null}
+            {work.cast.length > 0 ? (
+              <p>
+                <span className="text-[color:var(--color-text-muted)]">Avec </span>
+                <span className="font-medium text-[color:var(--color-text)]">{work.cast.slice(0, 5).join(', ')}</span>
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {hasFacts ? (
           <div className="flex flex-wrap items-center gap-2">
