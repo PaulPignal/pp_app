@@ -117,3 +117,28 @@ describe('Ingestion — merge non-destructif (vrai PG) — garde C5', () => {
     expect(r.rows[0].venue).toBe('Théâtre A') // préservé, pas écrasé par NULL
   })
 })
+
+describe('Undo de swipe — clearReaction renvoie l’œuvre au deck (vrai PG)', () => {
+  it('réagir retire l’œuvre du deck, effacer la réaction l’y réintègre', async () => {
+    const today = new Date()
+    today.setUTCHours(0, 0, 0, 0)
+    const iso = today.toISOString()
+
+    const before = await discover(db, 'u_0', 'theatre', iso)
+    const target = (before.items as { id: string }[])[0]
+    expect(target).toBeTruthy()
+
+    // Swipe "passer" (DISLIKE) → l'œuvre quitte le deck (anti-jointure NOT EXISTS).
+    await db.exec(
+      `INSERT INTO "Reaction"(id,"userId","workId",status,"createdAt","updatedAt")
+       VALUES('undo_r','u_0','${target.id}','DISLIKE',now(),now())`,
+    )
+    const during = await discover(db, 'u_0', 'theatre', iso)
+    expect((during.items as { id: string }[]).some((w) => w.id === target.id)).toBe(false)
+
+    // Undo = clearReaction (DELETE) → l'œuvre redevient éligible au deck.
+    await db.exec(`DELETE FROM "Reaction" WHERE "userId"='u_0' AND "workId"='${target.id}'`)
+    const after = await discover(db, 'u_0', 'theatre', iso)
+    expect((after.items as { id: string }[]).some((w) => w.id === target.id)).toBe(true)
+  })
+})

@@ -19,9 +19,9 @@ export function formatDateRange(start: string | null, end: string | null) {
     if (end) {
       return new Date(end).toLocaleDateString('fr-FR', options)
     }
-    return 'Dates à venir'
+    return null
   } catch {
-    return 'Dates à venir'
+    return null
   }
 }
 
@@ -41,7 +41,7 @@ export function formatPriceRange(min: number | null, max: number | null) {
   if (max != null) {
     return `Jusqu’à ${format(max)}`
   }
-  return 'Tarifs non communiqués'
+  return null
 }
 
 export function formatDuration(durationMin: number | null) {

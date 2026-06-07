@@ -26,12 +26,22 @@ function safeAnimate(el: Element | null) {
   return null
 }
 
+// Une animation WAAPI ne progresse pas tant que l'onglet est masqué : `finished`
+// peut alors ne jamais se résoudre. On borne l'attente pour ne JAMAIS bloquer le
+// swipe (en onglet visible, `finished` se résout bien avant le timeout).
+function settle(animation: Animation | null | undefined, maxWaitMs: number): Promise<void> {
+  const finished = (animation?.finished ?? Promise.resolve()).then(() => undefined).catch(() => undefined)
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, maxWaitMs))
+  return Promise.race([finished, timeout])
+}
+
 export default function SwipeDeck({ items, totalCount }: Props) {
   const [index, setIndex] = useState(0)
   const [dragX, setDragX] = useState(0)
   const [dragStartTs, setDragStartTs] = useState<number | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [history, setHistory] = useState<{ workId: string; status: 'LIKE' | 'DISLIKE' }[]>([])
 
   const dragging = useRef(false)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -62,6 +72,21 @@ export default function SwipeDeck({ items, totalCount }: Props) {
     }
   }, [])
 
+  const clearReaction = useCallback(async (workId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/reactions?workId=${encodeURIComponent(workId)}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        console.error('undo failed', response.status, payload)
+        return false
+      }
+      return true
+    } catch (requestError) {
+      console.error(requestError)
+      return false
+    }
+  }, [])
+
   const animateBackOnce = useCallback((): Promise<void> => {
     const element = cardRef.current
     if (!element) return Promise.resolve()
@@ -78,7 +103,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
       { duration: 140, easing: 'ease-out' },
     )
 
-    return (animation?.finished ?? Promise.resolve()).then(() => undefined).catch(() => {})
+    return settle(animation, 200)
   }, [dragX])
 
   const advance = useCallback(
@@ -108,7 +133,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           { duration: 180, easing: 'ease-out' },
         )
 
-        return (animation?.finished ?? Promise.resolve()).then(() => undefined).catch(() => {})
+        return settle(animation, 250)
       }
 
       try {
@@ -124,6 +149,8 @@ export default function SwipeDeck({ items, totalCount }: Props) {
         if (!ok) {
           setIndex(fromIndex)
           setError('Action non enregistrée. Réessaie.')
+        } else {
+          setHistory((value) => [...value, { workId: currentId, status: didLike ? 'LIKE' : 'DISLIKE' }])
         }
       } finally {
         setPending(false)
@@ -132,16 +159,48 @@ export default function SwipeDeck({ items, totalCount }: Props) {
     [current, dragX, index, pending, react],
   )
 
+  const undo = useCallback(async () => {
+    if (pending || history.length === 0) return
+    setPending(true)
+    setError(null)
+    const last = history[history.length - 1]
+    const restoreIndex = Math.max(0, index - 1)
+
+    // Optimiste : on revient tout de suite à la carte précédente (toujours en mémoire).
+    setHistory((value) => value.slice(0, -1))
+    setIndex(restoreIndex)
+    setDragX(0)
+    setDragStartTs(null)
+
+    try {
+      const ok = await clearReaction(last.workId)
+      if (!ok) {
+        // Rollback explicite : on remet l'historique et l'index.
+        setHistory((value) => [...value, last])
+        setIndex(index)
+        setError('Annulation impossible. Réessaie.')
+      }
+    } finally {
+      setPending(false)
+    }
+  }, [clearReaction, history, index, pending])
+
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (!current || pending) return
+      if (pending) return
+      if ((event.metaKey || event.ctrlKey) && (event.key === 'z' || event.key === 'Z')) {
+        event.preventDefault()
+        void undo()
+        return
+      }
+      if (!current) return
       if (event.key === 'ArrowRight') void advance(true)
       if (event.key === 'ArrowLeft') void advance(false)
     }
 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [advance, current, pending])
+  }, [advance, undo, current, pending])
 
   const onPointerDown = useCallback(
     (event: React.PointerEvent) => {
@@ -190,6 +249,17 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           <p className="max-w-md text-sm leading-7 text-muted-foreground">
             Reviens plus tard ou change de section pour relancer une nouvelle série de cartes.
           </p>
+          {history.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => void undo()}
+              className="btn btn-secondary mt-2"
+              disabled={pending}
+              aria-label="Annuler le dernier swipe"
+            >
+              ↶ Annuler le dernier swipe
+            </button>
+          ) : null}
         </div>
       </SurfaceCard>
     )
@@ -250,35 +320,36 @@ export default function SwipeDeck({ items, totalCount }: Props) {
         </div>
       </div>
 
-      <SurfaceCard className="mx-auto w-full max-w-xl">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold tracking-[-0.02em] text-[color:var(--color-text)]">Choisis ton prochain mouvement</p>
-            <p className="text-sm leading-6 text-muted-foreground">Chaque geste enregistre directement ta décision.</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void advance(false)}
-              className="btn btn-secondary min-w-[7rem]"
-              disabled={pending}
-              aria-label="Passer"
-            >
-              Passer
-            </button>
-            <button
-              type="button"
-              onClick={() => void advance(true)}
-              className="btn btn-primary min-w-[7rem]"
-              disabled={pending}
-              aria-label="Aimer"
-            >
-              {pending ? 'Envoi…' : 'Aimer'}
-            </button>
-          </div>
-        </div>
-      </SurfaceCard>
+      <div className="mx-auto flex w-full max-w-xl items-center justify-center gap-4">
+        <button
+          type="button"
+          onClick={() => void undo()}
+          className="btn btn-secondary h-12 w-12 rounded-full p-0 text-xl leading-none disabled:opacity-40"
+          disabled={pending || history.length === 0}
+          aria-label="Annuler le dernier swipe"
+          title="Annuler le dernier swipe (Cmd/Ctrl+Z)"
+        >
+          ↶
+        </button>
+        <button
+          type="button"
+          onClick={() => void advance(false)}
+          className="btn btn-secondary min-w-[8.5rem] px-7 py-3 text-base"
+          disabled={pending}
+          aria-label="Passer"
+        >
+          Passer
+        </button>
+        <button
+          type="button"
+          onClick={() => void advance(true)}
+          className="btn btn-primary min-w-[8.5rem] px-7 py-3 text-base"
+          disabled={pending}
+          aria-label="Aimer"
+        >
+          {pending ? 'Envoi…' : 'Aimer'}
+        </button>
+      </div>
 
       {error ? <p role="status" className="text-center text-sm font-medium text-[color:var(--color-danger)]">{error}</p> : null}
     </section>

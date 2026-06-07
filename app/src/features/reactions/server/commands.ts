@@ -29,3 +29,16 @@ export async function setReactionStatus(input: { userId: string; workId: string;
     alreadyExisted: previous?.status === status,
   }
 }
+
+const clearReactionSchema = z.object({
+  userId: z.string().min(1),
+  workId: z.string().min(1),
+})
+
+// Efface la réaction (user, work) → l'œuvre redevient éligible au deck Discover
+// (anti-jointure `reactions: { none }`). Idempotent : aucune erreur si déjà absente.
+export async function clearReaction(input: { userId: string; workId: string }) {
+  const { userId, workId } = clearReactionSchema.parse(input)
+  const { count } = await prisma.reaction.deleteMany({ where: { userId, workId } })
+  return { cleared: count > 0 }
+}
