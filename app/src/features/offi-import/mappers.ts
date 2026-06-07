@@ -22,6 +22,8 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
     priceMin: record.price_min_eur ?? null,
     priceMax: record.price_max_eur ?? null,
     imageUrl: record.image ?? null,
+    director: record.director ?? null,
+    cast: record.cast ?? [],
     sourceUrl: record.url,
   }
 
@@ -40,6 +42,8 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
   if (record.price_min_eur != null) update.priceMin = record.price_min_eur
   if (record.price_max_eur != null) update.priceMax = record.price_max_eur
   if (record.image != null) update.imageUrl = record.image
+  if (record.director != null) update.director = record.director
+  if (record.cast.length > 0) update.cast = record.cast
 
   return { create, update }
 }

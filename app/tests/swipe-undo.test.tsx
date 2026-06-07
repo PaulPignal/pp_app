@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event'
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
 
 const items = [
-  { id: 'w1', title: 'Œuvre 1', section: 'theatre', imageUrl: null, category: null, venue: null, address: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, sourceUrl: null },
-  { id: 'w2', title: 'Œuvre 2', section: 'theatre', imageUrl: null, category: null, venue: null, address: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, sourceUrl: null },
+  { id: 'w1', title: 'Œuvre 1', section: 'theatre', imageUrl: null, category: null, venue: null, address: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, director: null, cast: [], sourceUrl: null },
+  { id: 'w2', title: 'Œuvre 2', section: 'theatre', imageUrl: null, category: null, venue: null, address: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, director: null, cast: [], sourceUrl: null },
 ]
 
 test('annule le dernier swipe : revient à la carte précédente et DELETE /api/reactions', async () => {

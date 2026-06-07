@@ -1,6 +1,56 @@
 import unittest
 
+from bs4 import BeautifulSoup
+
 from scraper import parsers
+
+
+def _soup(html: str) -> BeautifulSoup:
+    return BeautifulSoup(html, "html.parser")
+
+
+class ExtractCreditsTests(unittest.TestCase):
+    def test_cinema_labelled_block(self):
+        html = """
+        <div class="fiche">Réalisation : <a href="/artiste/x">Georges Franju</a>
+          Principaux artistes : <a href="/artiste/a">Pierre Brasseur</a>, <a href="/artiste/b">Alida Valli</a>
+          Genre : Horreur</div>
+        <footer>Avec L'Officiel des spectacles !</footer>
+        """
+        director, cast = parsers.extract_credits(_soup(html))
+        self.assertEqual(director, "Georges Franju")
+        self.assertEqual(cast, ["Pierre Brasseur", "Alida Valli"])
+
+    def test_cinema_itemprop_fallback_excludes_crew(self):
+        html = """
+        <div>Réalisation : <a href="/artiste/x">Jane Doe</a> Genre : Drame</div>
+        <div><a itemprop="actors" href="/a">Actor One ( Hero )</a>
+             <a itemprop="actors" href="/b">Composer Guy (musique)</a></div>
+        """
+        director, cast = parsers.extract_credits(_soup(html))
+        self.assertEqual(director, "Jane Doe")
+        self.assertEqual(cast, ["Actor One"])  # le membre d'équipe (musique) est exclu
+
+    def test_theatre_director_only(self):
+        html = (
+            '<p>De <a itemprop="performer" href="/x">Guilhem Connac</a>, '
+            '<a itemprop="performer" href="/y">Benoît Labannierre</a>, '
+            'mise en scène <a itemprop="performer" href="/z">Romain Thunin</a>.</p>'
+        )
+        director, cast = parsers.extract_credits(_soup(html))
+        self.assertEqual(director, "Romain Thunin")
+        self.assertEqual(cast, [])  # pas d'acteurs listés (auteurs non confondus avec le casting)
+
+    def test_theatre_with_avec_cast(self):
+        html = (
+            '<p>De <a itemprop="performer" href="/x">Dostoïevski</a>, '
+            'mise en scène <a itemprop="performer" href="/d">Dominique Scheer</a>, '
+            'avec <a itemprop="performer" href="/a">Jérémy Petit</a>, '
+            '<a itemprop="performer" href="/b">Milena Marinelli</a>.</p>'
+        )
+        director, cast = parsers.extract_credits(_soup(html))
+        self.assertEqual(director, "Dominique Scheer")
+        self.assertEqual(cast, ["Jérémy Petit", "Milena Marinelli"])
 
 
 class ParsersTests(unittest.TestCase):
