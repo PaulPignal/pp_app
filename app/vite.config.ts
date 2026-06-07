@@ -24,6 +24,9 @@ export default defineConfig({
     css: true, // autorise l'import de css/clsx/tw si besoin
     coverage: {
       provider: 'v8',
+      // `text` uniquement : pas de rapport HTML (dossier coverage/) → évite que
+      // ESLint analyse des assets générés, et accélère la CI. Les seuils restent enforced.
+      reporter: ['text'],
       include: ['src/**'],
       exclude: ['src/generated/**', '**/*.d.ts', '**/.DS_Store'],
       // Plancher anti-régression (ratchet) — relever au fil des tests ajoutés.
