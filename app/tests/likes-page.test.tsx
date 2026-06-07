@@ -23,10 +23,6 @@ vi.mock('@/features/reactions/server/queries', () => ({
   listLikedWorks: listLikedWorksMock,
 }))
 
-vi.mock('@/features/reactions/ui/LikeActions', () => ({
-  default: ({ workId }: { workId: string }) => <div>Actions {workId}</div>,
-}))
-
 import LikesPage from '@/app/likes/page'
 
 describe('/likes page', () => {
