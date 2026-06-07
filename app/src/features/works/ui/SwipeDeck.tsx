@@ -320,45 +320,36 @@ export default function SwipeDeck({ items, totalCount }: Props) {
         </div>
       </div>
 
-      <SurfaceCard className="mx-auto w-full max-w-xl">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold tracking-[-0.02em] text-[color:var(--color-text)]">Choisis ton prochain mouvement</p>
-            <p className="text-sm leading-6 text-muted-foreground">Aimer ou passer — tu peux annuler ton dernier geste.</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void undo()}
-              className="btn btn-secondary min-w-[6rem]"
-              disabled={pending || history.length === 0}
-              aria-label="Annuler le dernier swipe"
-              title="Annuler le dernier swipe (Cmd/Ctrl+Z)"
-            >
-              ↶ Annuler
-            </button>
-            <button
-              type="button"
-              onClick={() => void advance(false)}
-              className="btn btn-secondary min-w-[7rem]"
-              disabled={pending}
-              aria-label="Passer"
-            >
-              Passer
-            </button>
-            <button
-              type="button"
-              onClick={() => void advance(true)}
-              className="btn btn-primary min-w-[7rem]"
-              disabled={pending}
-              aria-label="Aimer"
-            >
-              {pending ? 'Envoi…' : 'Aimer'}
-            </button>
-          </div>
-        </div>
-      </SurfaceCard>
+      <div className="mx-auto flex w-full max-w-xl items-center justify-center gap-4">
+        <button
+          type="button"
+          onClick={() => void undo()}
+          className="btn btn-secondary h-12 w-12 rounded-full p-0 text-xl leading-none disabled:opacity-40"
+          disabled={pending || history.length === 0}
+          aria-label="Annuler le dernier swipe"
+          title="Annuler le dernier swipe (Cmd/Ctrl+Z)"
+        >
+          ↶
+        </button>
+        <button
+          type="button"
+          onClick={() => void advance(false)}
+          className="btn btn-secondary min-w-[8.5rem] px-7 py-3 text-base"
+          disabled={pending}
+          aria-label="Passer"
+        >
+          Passer
+        </button>
+        <button
+          type="button"
+          onClick={() => void advance(true)}
+          className="btn btn-primary min-w-[8.5rem] px-7 py-3 text-base"
+          disabled={pending}
+          aria-label="Aimer"
+        >
+          {pending ? 'Envoi…' : 'Aimer'}
+        </button>
+      </div>
 
       {error ? <p role="status" className="text-center text-sm font-medium text-[color:var(--color-danger)]">{error}</p> : null}
     </section>
