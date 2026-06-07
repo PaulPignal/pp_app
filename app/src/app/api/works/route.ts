@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 
     return jsonOk(result, 200)
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : 'server error'
-    return jsonError(message, 500)
+    console.error('[GET /api/works] error:', e)
+    return jsonError('server_error', 500)
   }
 }

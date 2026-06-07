@@ -7,6 +7,7 @@ import { compare } from 'bcryptjs'
 import { normalizeEmail } from '@/features/auth/schemas'
 import { prisma } from '@/server/db'
 import { env } from '@/server/env'
+import { rateLimit } from '@/shared/lib/rate-limit'
 import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
 function isDev() {
@@ -31,6 +32,12 @@ export const authOptions: NextAuthOptions = {
         try {
           email = normalizeEmail(rawEmail)
         } catch {
+          return null
+        }
+
+        const limit = rateLimit(`login:${email}`, 10, 5 * 60_000)
+        if (!limit.ok) {
+          if (isDev()) console.warn('[auth] rate limited for', email)
           return null
         }
 

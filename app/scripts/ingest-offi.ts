@@ -66,4 +66,8 @@ try {
   const message = error instanceof Error ? error.message : "unknown error";
   console.error(`[ingest:offi] ${message}`);
   process.exitCode = 1;
+} finally {
+  // La connexion appartient au script : on ferme le pool ici (plus dans ingestOffiFile).
+  const { prisma } = await import("@/server/db");
+  await prisma.$disconnect();
 }

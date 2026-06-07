@@ -110,8 +110,8 @@ model Reaction {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
-  user User @relation(name: "UserReactions", fields: [userId], references: [id])
-  work Work @relation(name: "WorkReactions", fields: [workId], references: [id])
+  user User @relation(name: "UserReactions", fields: [userId], references: [id], onDelete: Cascade)
+  work Work @relation(name: "WorkReactions", fields: [workId], references: [id], onDelete: Cascade)
 
   // Unicité : 1 seule réaction (état) par (user, work)
   @@unique([userId, workId], name: "userId_workId")
@@ -126,10 +126,10 @@ model Friendship {
   id String @id @default(cuid())
 
   // Deux relations vers User avec des NOMS DE RELATION différents
-  user   User   @relation("user_friends_user", fields: [userId], references: [id])
+  user   User   @relation("user_friends_user", fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
-  friend   User   @relation("user_friends_friend", fields: [friendId], references: [id])
+  friend   User   @relation("user_friends_friend", fields: [friendId], references: [id], onDelete: Cascade)
   friendId String
 
   createdAt DateTime @default(now())

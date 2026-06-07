@@ -33,4 +33,9 @@ jobs:
       - run: pnpm install --frozen-lockfile --store-dir ~/.pnpm-store
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm test:coverage
+      # Bloque le build sur toute faille CRITIQUE des dépendances livrées.
+      - run: pnpm audit --prod --audit-level=critical
+      # Rapporte les failles HIGH sans bloquer : certaines vivent dans les deps
+      # transitives de Prisma et dépendent d'un correctif amont (suivi via Renovate).
+      - run: pnpm audit --prod --audit-level=high || true

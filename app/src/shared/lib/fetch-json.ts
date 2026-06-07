@@ -7,7 +7,18 @@ export type FetchJsonError = Error & {
 export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init)
   const text = await response.text()
-  const payload = text ? JSON.parse(text) : null
+
+  let payload: { error?: unknown; details?: unknown } | null = null
+  if (text) {
+    try {
+      payload = JSON.parse(text)
+    } catch {
+      // Réponse non-JSON (page d'erreur HTML, proxy, etc.) : erreur explicite plutôt qu'un SyntaxError opaque.
+      const error = new Error(`http_${response.status}`) as FetchJsonError
+      error.status = response.status
+      throw error
+    }
+  }
 
   if (!response.ok) {
     const error = new Error(

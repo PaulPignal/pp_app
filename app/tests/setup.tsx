@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest';
 
-if (!('animate' in Element.prototype)) {
+if (typeof Element !== 'undefined' && !('animate' in Element.prototype)) {
   Object.defineProperty(Element.prototype, 'animate', {
     configurable: true,
     writable: true,

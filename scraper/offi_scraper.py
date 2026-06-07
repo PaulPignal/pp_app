@@ -26,6 +26,11 @@ import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
+try:
+    from scraper import parsers  # contexte package (tests, CI)
+except ModuleNotFoundError:  # exécuté comme script depuis scraper/
+    import parsers  # type: ignore[no-redef]
+
 # -----------------------
 # Configuration
 # -----------------------
@@ -49,11 +54,7 @@ VENUE_BLOCKLIST = {
     "theatre",
 }
 
-# Regex prix / durée
-PRICE_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*€")
-PRICE_RANGE_RE = re.compile(r"(\d+)\s*[-–—]\s*(\d+)\s*€")
-DURATION_RE = re.compile(r"(\d+)h(?:(\d+))?|(\d+)\s*(?:mn|min)")
-DURATION_CONTEXT_RE = re.compile(r"\b(?:durée|duree|dur\.)\b", re.IGNORECASE)
+# Regex prix / durée → déplacées dans scraper/parsers.py
 ADDRESS_RE = re.compile(
     r"\b\d{1,4}\s+(?:bis\s+|ter\s+)?[A-Za-zÀ-ÖØ-öø-ÿ'’\-. ]+?\b\d{5}\s+[A-Za-zÀ-ÖØ-öø-ÿ'’\-. ]+"
 )
@@ -297,13 +298,7 @@ class OffiScraper:
 
     @staticmethod
     def _is_valid_iso_date(value: Optional[str]) -> bool:
-        if not value:
-            return False
-        try:
-            datetime.strptime(value, "%Y-%m-%d")
-            return True
-        except ValueError:
-            return False
+        return parsers.is_valid_iso_date(value)
 
     def _retry_delay(self, attempt: int, response: Optional[requests.Response] = None) -> float:
         if response is not None:
@@ -540,36 +535,14 @@ class OffiScraper:
     # ---------------- Parsing autres champs ----------------
 
     def _parse_duration(self, text: str) -> Optional[int]:
-        m = DURATION_RE.search((text or "").lower())
-        if not m:
-            return None
-        hours, minutes, total_minutes = m.groups()
-        if total_minutes:
-            return int(total_minutes)
-        if hours:
-            return int(hours) * 60 + (int(minutes) if minutes else 0)
-        return None
+        return parsers.parse_duration(text)
 
     @staticmethod
     def _looks_like_duration_text(text: str, allow_hour_only: bool = False) -> bool:
-        tl = (text or "").lower()
-        has_minutes = bool(re.search(r"\b\d+\s*(?:mn|min)\b", tl))
-        has_hour_token = bool(re.search(r"\b\d+h(?:(\d+))?\b", tl))
-        has_hour_duration = has_hour_token and (allow_hour_only or bool(DURATION_CONTEXT_RE.search(tl)))
-        return has_minutes or has_hour_duration
+        return parsers.looks_like_duration_text(text, allow_hour_only)
 
     def _parse_prices(self, text: str) -> tuple[Optional[float], Optional[float]]:
-        range_match = PRICE_RANGE_RE.search(text or "")
-        if range_match:
-            lo = float(range_match.group(1).replace(",", "."))
-            hi = float(range_match.group(2).replace(",", "."))
-            return lo, hi
-        prices = [float(p.replace(",", ".")) for p in PRICE_RE.findall(text or "")]
-        if not prices:
-            return None, None
-        if len(prices) == 1:
-            return prices[0], prices[0]
-        return min(prices), max(prices)
+        return parsers.parse_prices(text)
 
     # ---------------- URL helpers ----------------
 
@@ -689,15 +662,7 @@ class OffiScraper:
 
     @staticmethod
     def _parse_iso8601_duration(value: Optional[str]) -> Optional[int]:
-        if not value:
-            return None
-        match = re.match(r"^PT(?:(\d+)H)?(?:(\d+)M)?$", value.strip(), re.IGNORECASE)
-        if not match:
-            return None
-        hours = int(match.group(1) or 0)
-        minutes = int(match.group(2) or 0)
-        total = hours * 60 + minutes
-        return total or None
+        return parsers.parse_iso8601_duration(value)
 
     def _parse_single_date_text(self, value: Optional[str]) -> Optional[str]:
         text = self._clean_text(value)

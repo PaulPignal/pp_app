@@ -16,7 +16,7 @@ vi.mock('next/image', () => ({
 }))
 
 vi.mock('@/features/auth/server/session', () => ({
-  requireSessionUser: requireSessionUserMock,
+  requireSessionUserOrRedirect: requireSessionUserMock,
 }))
 
 vi.mock('@/features/reactions/server/queries', () => ({
