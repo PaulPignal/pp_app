@@ -38,27 +38,17 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
       <PageHeader
         eyebrow="Découverte"
         title="Découvertes"
-        description="Balaye à droite pour enregistrer un like, à gauche pour passer. Le clavier reste actif avec ← et → pour garder un rythme rapide."
-        meta={
-          <>
-            <span className="chip">{works.total} propositions disponibles</span>
-            <span className="chip">Deck mobile-first</span>
-          </>
-        }
+        description="Théâtre et cinéma à Paris, une carte à la fois."
+        meta={<span className="chip">{works.total} à découvrir</span>}
       >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <SegmentedControl
-            ariaLabel="Sections culturelles"
-            value={section}
-            items={[
-              { label: 'Théâtre', value: 'theatre', href: '/discover?section=theatre' },
-              { label: 'Cinéma', value: 'cinema', href: '/discover?section=cinema' },
-            ]}
-          />
-          <p className="text-sm leading-6 text-muted-foreground">
-            Un seul objet à lire à la fois, avec les informations utiles directement sur la carte.
-          </p>
-        </div>
+        <SegmentedControl
+          ariaLabel="Sections culturelles"
+          value={section}
+          items={[
+            { label: 'Théâtre', value: 'theatre', href: '/discover?section=theatre' },
+            { label: 'Cinéma', value: 'cinema', href: '/discover?section=cinema' },
+          ]}
+        />
       </PageHeader>
 
       <SwipeDeck items={works.items} totalCount={works.total} />

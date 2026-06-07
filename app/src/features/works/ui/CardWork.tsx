@@ -65,7 +65,6 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
           <MetaStat label="Dates" value={dateLabel} />
           <MetaStat label="Budget" value={priceLabel} />
           {durationLabel ? <MetaStat label="Durée" value={durationLabel} /> : null}
-          {work.venue ? <MetaStat label="Lieu" value={work.venue} /> : null}
         </div>
 
         {work.sourceUrl ? (

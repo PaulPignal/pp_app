@@ -200,14 +200,8 @@ export default function SwipeDeck({ items, totalCount }: Props) {
       aria-label="Sélection de découvertes à balayer"
       className="mx-auto flex w-full max-w-5xl flex-col gap-4 select-none"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="page-meta">
-          <span className="chip">Carte {Math.min(index + 1, visibleTotal)} / {visibleTotal}</span>
-          <span className="chip">Glisse ou utilise les fleches</span>
-        </div>
-        <p className="text-sm leading-6 text-muted-foreground">
-          A droite pour enregistrer un coup de coeur, a gauche pour passer sans bruit.
-        </p>
+      <div className="page-meta">
+        <span className="chip">Carte {Math.min(index + 1, visibleTotal)} / {visibleTotal}</span>
       </div>
 
       <div className="relative flex min-h-[38rem] items-center justify-center pb-2">
