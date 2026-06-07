@@ -23,6 +23,8 @@ const base: WorkCardDto = {
   durationMin: 80,
   priceMin: null,
   priceMax: null,
+  director: 'Kelly Reichardt',
+  cast: ['Michelle Williams', 'Will Oldham'],
   sourceUrl: 'https://www.offi.fr/x',
 }
 
@@ -40,6 +42,12 @@ describe('CardWork', () => {
     // la date est retirée
     expect(screen.queryByText(/2009/)).not.toBeInTheDocument()
     expect(screen.queryByText(/avr\./)).not.toBeInTheDocument()
+  })
+
+  it('affiche le réalisateur et le casting (signal de décision)', () => {
+    render(<CardWork work={base} />)
+    expect(screen.getByText(/Kelly Reichardt/)).toBeInTheDocument()
+    expect(screen.getByText(/Michelle Williams/)).toBeInTheDocument()
   })
 
   it('« Voir plus » déplie la description complète', async () => {

@@ -83,6 +83,8 @@ model Work {
   priceMin  Float?
   priceMax  Float?
   imageUrl  String?
+  director  String?
+  cast      String[]
   sourceUrl String    @unique
 
   // ✅ Réactions (remplace l'ancien Work.likes)
