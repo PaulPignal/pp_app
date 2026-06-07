@@ -14,6 +14,7 @@ scraper/__pycache__/
 scraper/logs/
 data/*.tmp
 *.tsbuildinfo
+coverage/
 *.py[cod]
 
 # Gros artefacts locaux (sauvegardes / dumps) — ne jamais committer
