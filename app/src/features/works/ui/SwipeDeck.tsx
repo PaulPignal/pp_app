@@ -43,8 +43,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   const rotation = useMemo(() => dragX * 0.05, [dragX])
   const transform = useMemo(() => transformCss(dragX, rotation), [dragX, rotation])
 
-  const react = useCallback(async (workId: string, status: 'LIKE' | 'DISLIKE') => {
-    setError(null)
+  const react = useCallback(async (workId: string, status: 'LIKE' | 'DISLIKE'): Promise<boolean> => {
     try {
       const response = await fetch('/api/reactions', {
         method: 'POST',
@@ -54,11 +53,12 @@ export default function SwipeDeck({ items, totalCount }: Props) {
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}))
         console.error('reaction failed', response.status, payload)
-        setError("Impossible d'enregistrer l'action")
+        return false
       }
+      return true
     } catch (requestError) {
       console.error(requestError)
-      setError("Impossible d'envoyer l'action")
+      return false
     }
   }, [])
 
@@ -85,7 +85,9 @@ export default function SwipeDeck({ items, totalCount }: Props) {
     async (didLike: boolean) => {
       if (!current || pending) return
       setPending(true)
+      setError(null)
       const currentId = current.id
+      const fromIndex = index
 
       const animateOut = (toX: number, rot: number): Promise<void> => {
         const element = cardRef.current
@@ -110,22 +112,24 @@ export default function SwipeDeck({ items, totalCount }: Props) {
       }
 
       try {
-        if (didLike) {
-          await animateOut(800, 20)
-          void react(currentId, 'LIKE')
-        } else {
-          await animateOut(-800, -20)
-          void react(currentId, 'DISLIKE')
-        }
+        await animateOut(didLike ? 800 : -800, didLike ? 20 : -20)
 
+        // Avance optimiste pour garder un rythme fluide…
         setIndex((value) => value + 1)
         setDragX(0)
         setDragStartTs(null)
+
+        // …puis confirmation serveur. En cas d'échec : rollback explicite de la carte.
+        const ok = await react(currentId, didLike ? 'LIKE' : 'DISLIKE')
+        if (!ok) {
+          setIndex(fromIndex)
+          setError('Action non enregistrée. Réessaie.')
+        }
       } finally {
         setPending(false)
       }
     },
-    [current, dragX, pending, react],
+    [current, dragX, index, pending, react],
   )
 
   useEffect(() => {

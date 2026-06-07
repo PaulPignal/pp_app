@@ -1,10 +1,8 @@
-import { redirect } from 'next/navigation'
-import { requireSessionUser } from '@/features/auth/server/session'
+import { requireSessionUserOrRedirect } from '@/features/auth/server/session'
 import { listLikedWorks } from '@/features/reactions/server/queries'
 import LikeActions from '@/features/reactions/ui/LikeActions'
 import { isWorkCurrentlyShowing } from '@/features/works/availability'
 import WorkSummaryCard from '@/features/works/ui/WorkSummaryCard'
-import { SIGN_IN_PATH } from '@/shared/lib/routes'
 import PageHeader from '@/shared/ui/PageHeader'
 import SegmentedControl from '@/shared/ui/SegmentedControl'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
@@ -26,12 +24,7 @@ function resolveLikesView(value: string | string[] | undefined): LikesView {
 }
 
 export default async function LikesPage({ searchParams }: LikesPageProps = {}) {
-  let sessionUser
-  try {
-    sessionUser = await requireSessionUser()
-  } catch {
-    redirect(SIGN_IN_PATH)
-  }
+  const sessionUser = await requireSessionUserOrRedirect()
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const view = resolveLikesView(resolvedSearchParams?.view)

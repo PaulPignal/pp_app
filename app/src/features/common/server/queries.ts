@@ -20,31 +20,15 @@ export async function listCommonLikedWorks(userId: string, friendId: string) {
     throw new FriendshipForbiddenError()
   }
 
-  const reactions = await prisma.reaction.findMany({
-    where: {
-      status: 'LIKE',
-      userId: { in: [userId, friendId] },
-    },
-    select: { userId: true, workId: true },
-  })
-
-  const workIdToUsers = new Map<string, Set<string>>()
-  for (const reaction of reactions) {
-    const users = workIdToUsers.get(reaction.workId) ?? new Set<string>()
-    users.add(reaction.userId)
-    workIdToUsers.set(reaction.workId, users)
-  }
-
-  const commonIds = [...workIdToUsers.entries()]
-    .filter(([, users]) => users.has(userId) && users.has(friendId))
-    .map(([workId]) => workId)
-
-  if (commonIds.length === 0) {
-    return []
-  }
-
+  // Intersection poussée en SQL (deux EXISTS) : une seule requête, aucun
+  // sur-transfert de réactions vers l'application, aucune jointure en mémoire.
   const works = await prisma.work.findMany({
-    where: { id: { in: commonIds } },
+    where: {
+      AND: [
+        { reactions: { some: { userId, status: 'LIKE' } } },
+        { reactions: { some: { userId: friendId, status: 'LIKE' } } },
+      ],
+    },
     orderBy: { createdAt: 'desc' },
     select: workCardSelect,
   })

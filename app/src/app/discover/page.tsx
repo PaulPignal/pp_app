@@ -1,10 +1,8 @@
 import { Metadata } from 'next'
-import { redirect } from 'next/navigation'
-import { requireSessionUser } from '@/features/auth/server/session'
+import { requireSessionUserOrRedirect } from '@/features/auth/server/session'
 import { DEFAULT_WORK_SECTION, WORK_SECTION_VALUES, type WorkSection } from '@/features/works/section'
 import { listDiscoverWorks } from '@/features/works/server/queries'
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
-import { SIGN_IN_PATH } from '@/shared/lib/routes'
 import PageHeader from '@/shared/ui/PageHeader'
 import SegmentedControl from '@/shared/ui/SegmentedControl'
 
@@ -29,12 +27,7 @@ function resolveSection(value: string | string[] | undefined): WorkSection {
 }
 
 export default async function DiscoverPage({ searchParams }: DiscoverPageProps = {}) {
-  let sessionUser
-  try {
-    sessionUser = await requireSessionUser()
-  } catch {
-    redirect(SIGN_IN_PATH)
-  }
+  const sessionUser = await requireSessionUserOrRedirect()
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const section = resolveSection(resolvedSearchParams?.section)

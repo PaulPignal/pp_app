@@ -4,6 +4,7 @@ import { addFriend } from '@/features/friendships/server/commands'
 import { createInviteToken } from '@/features/friendships/server/invite'
 import { listFriends } from '@/features/friendships/server/queries'
 import { jsonError, jsonOk } from '@/shared/lib/http'
+import { rateLimit } from '@/shared/lib/rate-limit'
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const sessionUser = await requireSessionUser()
+
+    const limit = rateLimit(`friends:${sessionUser.id}`, 30, 60_000)
+    if (!limit.ok) return jsonError('rate_limited', 429)
+
     const body = await req.json().catch(() => null)
     const parsed = addFriendSchema.safeParse(body)
 

@@ -13,7 +13,7 @@ scrape:
 >$(PYTHON) offi_scraper.py --out $(OUT) --max-pages $(MAX_PAGES) --sections $(SECTIONS) --cache-file $(CACHE) --refresh-after-hours $(REFRESH_AFTER_HOURS)
 
 test:
->$(PYTHON) -m unittest discover -s tests
+>PYTHONPATH=.. $(PYTHON) -m unittest discover -s tests
 
 pipeline:
 >../scripts/offi-pipeline.sh

@@ -83,6 +83,9 @@ Optimize for:
 - silent fallbacks that hide auth, env, or schema errors
 - nullable-everywhere models without a domain reason
 - large comments that narrate obvious code
+- returning internal error text or stack traces to clients (log server-side, return a generic code)
+- per-row awaited DB writes in a loop over a remote DB (batch with `prisma.$transaction([...])`)
+- relying solely on mocked-DB tests for query logic (they validate wiring, not SQL)
 
 ## Current Target Structure
 
@@ -104,6 +107,9 @@ Recommended feature set for this repo:
 - `features/common`
 - `features/offi-import`
 
+Allowed top-level dirs under `app/`: `src/`, `prisma/`, `tests/`, `public/`, `scripts/`. Do not add new top-level dirs.
+Dev tooling lives where it belongs: test infra and benchmarks under `tests/` (e.g. `tests/integration/`, `tests/perf/`), one-off orchestration under `scripts/`. Reuse existing infra (e.g. dotenv via `prisma.config`) instead of hand-rolling parsing.
+
 ## Domain Rules For This Repo
 
 - `Reaction` is the single source of truth for swipe state.
@@ -113,6 +119,21 @@ Recommended feature set for this repo:
 - The scraper writes JSONL only.
 - The ingestion layer validates every line before touching the database.
 
+## Security Rules
+
+- Validate every external input with Zod at the boundary.
+- Never return raw error messages, stack traces, or internal identifiers to clients. Log server-side, return a generic code.
+- Rate-limit auth-sensitive endpoints (login, register, invite, friend-add). See `shared/lib/rate-limit.ts`.
+- Set security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) in `next.config.mjs`.
+- One secret per purpose (do not reuse `NEXTAUTH_SECRET` for invite tokens); minimum 32 bytes; never commit a real `.env`.
+- Passwords: min 12 chars with basic complexity. Never log credentials, and never let client responses distinguish "user not found" from "bad password".
+
+## Performance Rules
+
+- Never `await` a DB write per row inside a loop over a remote DB. Batch with `prisma.$transaction([...])` in chunks.
+- List endpoints must paginate (cursor on `createdAt`/`id`) — no unbounded `take`.
+- Do set operations (intersections, dedup) in SQL, not by loading full sets into the application.
+
 ## Dependency Rules
 
 - Use `pnpm` for JavaScript dependencies.
@@ -120,6 +141,8 @@ Recommended feature set for this repo:
 - Keep generated Prisma code out of manual edits.
 - Treat `next`, `react`, `react-dom`, `prisma`, `@prisma/*`, and auth packages as coordinated upgrades.
 - Prefer built-in Next.js, React, Prisma, and platform capabilities before adding libraries.
+- CI must fail on critical production advisories (`pnpm audit --prod --audit-level=critical`) and report high ones (non-blocking). Triage highs via Renovate — some live in transitive tooling deps (e.g. Prisma's config loader) and need an upstream fix. Merge Renovate PRs for `next`/`react`/`prisma`/auth promptly.
+- Pin the toolchain: `engines.node`, `.nvmrc`, and CI must agree on the Node major.
 
 ## Testing Rules
 
@@ -128,6 +151,9 @@ Recommended feature set for this repo:
 - Add component tests only for meaningful interaction flows.
 - Do not add large snapshots.
 - Every bug fix should add or update one focused test.
+- Tests that mock `@/server/db` validate WIRING ONLY — never query correctness. Every server query/command module needs at least one integration test against a real Postgres (pglite — see `tests/perf/harness.ts`).
+- Security primitives (token signing/verification, auth, rate limiting) need dedicated unit tests including tamper/expiry/limit cases.
+- For queries on tables expected to grow past ~50k rows, add an `EXPLAIN`/benchmark check under `tests/perf/`.
 
 ## Git Workflow
 

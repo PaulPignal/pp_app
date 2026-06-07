@@ -15,3 +15,9 @@ scraper/logs/
 data/*.tmp
 *.tsbuildinfo
 *.py[cod]
+
+# Gros artefacts locaux (sauvegardes / dumps) — ne jamais committer
+app-backup.tgz
+offi-app_dump.txt.gz
+*.tgz
+*.txt.gz

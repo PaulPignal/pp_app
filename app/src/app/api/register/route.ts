@@ -2,6 +2,7 @@
 import { registerUser } from '@/features/auth/server/commands'
 import { registerUserSchema } from '@/features/auth/schemas'
 import { jsonError, jsonOk } from '@/shared/lib/http'
+import { clientIp, rateLimit } from '@/shared/lib/rate-limit'
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,9 @@ export const fetchCache = "force-no-store";
 
 export async function POST(req: Request) {
   try {
+    const limit = rateLimit(`register:${clientIp(req)}`, 5, 60_000)
+    if (!limit.ok) return jsonError('rate_limited', 429)
+
     const body = await req.json().catch(() => null)
     const parsed = registerUserSchema.safeParse(body)
 

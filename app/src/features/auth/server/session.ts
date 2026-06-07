@@ -1,6 +1,8 @@
 import 'server-only'
 
+import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
+import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
 export type SessionUser = {
   id: string
@@ -38,4 +40,13 @@ export async function requireSessionUser(): Promise<SessionUser> {
 
 export function isUnauthorizedError(error: unknown): error is UnauthorizedError {
   return error instanceof UnauthorizedError
+}
+
+/** Pour les Server Components : renvoie l'utilisateur connecté ou redirige vers la connexion. */
+export async function requireSessionUserOrRedirect(): Promise<SessionUser> {
+  const user = await getSessionUser()
+  if (!user) {
+    redirect(SIGN_IN_PATH)
+  }
+  return user
 }
