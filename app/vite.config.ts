@@ -22,6 +22,12 @@ export default defineConfig({
     setupFiles: './tests/setup.tsx',
     globals: true,
     css: true, // autorise l'import de css/clsx/tw si besoin
-    // coverage: { reporter: ['text', 'lcov'] },
+    coverage: {
+      provider: 'v8',
+      include: ['src/**'],
+      exclude: ['src/generated/**', '**/*.d.ts', '**/.DS_Store'],
+      // Plancher anti-régression (ratchet) — relever au fil des tests ajoutés.
+      thresholds: { lines: 45, statements: 45, functions: 48, branches: 44 },
+    },
   },
 })

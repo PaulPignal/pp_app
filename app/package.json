@@ -18,7 +18,8 @@
     "ingest:offi": "tsx scripts/ingest-offi.ts",
     "test": "vitest run",
     "test:ui": "vitest",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.2",
@@ -63,7 +64,7 @@
   },
   "type": "module",
   "engines": {
-    "node": "20.x",
+    "node": "20.x || 22.x",
     "pnpm": ">=8"
   },
   "overrides": {
