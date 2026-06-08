@@ -1,5 +1,6 @@
 import type { Prisma } from '@/generated/prisma/client'
 import type { OffiWorkRecord } from '@/features/offi-import/schemas'
+import { cleanCategory } from '@/features/works/category'
 
 function toDate(value: string | null) {
   return value ? new Date(`${value}T00:00:00.000Z`) : null
@@ -12,7 +13,7 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
   const create: Prisma.WorkCreateInput = {
     title: record.title,
     section: record.section,
-    category: record.category ?? null,
+    category: cleanCategory(record.category),
     venue: record.venue ?? null,
     address: record.address ?? null,
     description: record.description ?? null,
@@ -32,7 +33,7 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
     section: record.section,
   }
 
-  if (record.category != null) update.category = record.category
+  if (record.category != null) update.category = cleanCategory(record.category)
   if (record.venue != null) update.venue = record.venue
   if (record.address != null) update.address = record.address
   if (record.description != null) update.description = record.description

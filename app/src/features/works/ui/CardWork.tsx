@@ -1,31 +1,14 @@
 import Image from 'next/image'
+import { splitGenres } from '@/features/works/category'
 import type { WorkCardDto } from '@/features/works/dto'
 import ExpandableDescription from '@/features/works/ui/ExpandableDescription'
 import { formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
-
-// La catégorie brute est souvent dupliquée/concaténée ("drame - drame / road-movie").
-// On découpe sur " / ", " · " et " - " (avec espaces, pour garder "road-movie"), puis on dédoublonne.
-function parseGenres(category: string | null): string[] {
-  if (!category) return []
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const part of category.split(/\s*[/·]\s*|\s+-\s+/)) {
-    const genre = part.trim()
-    if (!genre) continue
-    const key = genre.toLowerCase()
-    if (!seen.has(key)) {
-      seen.add(key)
-      out.push(genre)
-    }
-  }
-  return out.slice(0, 3)
-}
 
 export default function CardWork({ work }: { work: WorkCardDto }) {
   const durationLabel = formatDuration(work.durationMin)
   const priceLabel = formatPriceRange(work.priceMin, work.priceMax)
   const description = work.description?.trim()
-  const genres = parseGenres(work.category)
+  const genres = splitGenres(work.category).slice(0, 3)
   const sectionLabel = work.section === 'cinema' ? 'Cinéma' : 'Théâtre'
   const directorLabel = work.section === 'cinema' ? 'De' : 'Mise en scène'
   const hasFacts = genres.length > 0 || Boolean(durationLabel) || Boolean(priceLabel)
