@@ -65,7 +65,7 @@ export default function NavBar() {
 
       <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <NavLink href="/discover">Decouverte</NavLink>
+          <NavLink href="/discover">Découverte</NavLink>
           <NavLink href="/likes">Mes likes</NavLink>
           <NavLink href="/friends">Amis</NavLink>
         </div>
