@@ -124,6 +124,11 @@ model Reaction {
   @@index([createdAt])
 }
 
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+}
+
 model Friendship {
   id String @id @default(cuid())
 
@@ -133,6 +138,10 @@ model Friendship {
 
   friend   User   @relation("user_friends_friend", fields: [friendId], references: [id], onDelete: Cascade)
   friendId String
+
+  // PENDING : arête unidirectionnelle (demande de userId vers friendId) en attente
+  // d'acceptation. ACCEPTED : amitié confirmée, stockée comme deux arêtes mutuelles.
+  status FriendshipStatus @default(ACCEPTED)
 
   createdAt DateTime @default(now())
 

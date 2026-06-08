@@ -11,8 +11,8 @@ export class FriendshipForbiddenError extends Error {
 }
 
 export async function listCommonLikedWorks(userId: string, friendId: string) {
-  const friendship = await prisma.friendship.findUnique({
-    where: { userId_friendId: { userId, friendId } },
+  const friendship = await prisma.friendship.findFirst({
+    where: { userId, friendId, status: 'ACCEPTED' },
     select: { id: true },
   })
 
