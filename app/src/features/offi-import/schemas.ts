@@ -48,6 +48,11 @@ const nullableInt = z.preprocess(
   z.number().int().positive().max(600).nullable(),
 )
 
+const nullableYear = z.preprocess(
+  (value) => (value === undefined || value === null || value === '' ? null : value),
+  z.number().int().min(1880).max(2100).nullable(),
+)
+
 const nullableMoney = z.preprocess(
   (value) => (value === undefined || value === null || value === '' ? null : value),
   z.number().nonnegative().max(500).nullable(),
@@ -62,6 +67,8 @@ export const offiWorkSchema = z
     venue: nullableString(160),
     address: nullableString(240),
     arrondissement: nullableString(80),
+    country: nullableString(80),
+    year: nullableYear,
     date_start: nullableIsoDate,
     date_end: nullableIsoDate,
     duration_min: nullableInt,

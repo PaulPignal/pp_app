@@ -154,3 +154,65 @@ def extract_credits(soup) -> tuple[Optional[str], list[str]]:
 
     cast = [c for c in cast if c and c != director and 2 <= len(c) <= 40][:8]
     return director, cast
+
+
+# --- Métadonnées cinéma : nationalité + année de production ---------------------
+# La « fiche technique » ciné expose "Nationalité : X" et "Année de production : YYYY".
+_NATIONALITY_RE = re.compile(
+    r"Nationalit[ée]\s*:?\s*([A-Za-zÀ-ÿ'’\- ,]{2,40}?)\s*"
+    r"(?:Dur[ée]e|Langue|Ann[ée]e|Genre|Date|Distributeur|Num[ée]ro|Visa|R[ée]alisation|Sortie|\||$)",
+    re.IGNORECASE,
+)
+_PROD_YEAR_RE = re.compile(r"Ann[ée]e\s+de\s+production\s*:?\s*(\d{4})", re.IGNORECASE)
+
+
+def extract_cinema_meta(soup) -> tuple[Optional[str], Optional[int]]:
+    """Retourne (country, year) depuis une fiche ciné (BeautifulSoup)."""
+    text = soup.get_text(" ", strip=True)
+
+    country: Optional[str] = None
+    m = _NATIONALITY_RE.search(text)
+    if m:
+        candidate = _clean_credit(m.group(1))
+        if candidate:
+            country = candidate
+
+    year: Optional[int] = None
+    y = _PROD_YEAR_RE.search(text)
+    if y:
+        value = int(y.group(1))
+        if 1880 <= value <= 2100:
+            year = value
+
+    return country, year
+
+
+# --- Arrondissement / ville (théâtre) ------------------------------------------
+# Microdata `addressLocality` ("Paris 5e", "Boulogne-Billancourt"). Fallback :
+# dériver depuis le code postal parisien (75001..75020 → "Paris 1er..20e").
+def arrondissement_from_postal(code: Optional[str]) -> Optional[str]:
+    code = (code or "").strip()
+    m = re.match(r"^75(\d{3})$", code)
+    if not m:
+        return None
+    n = int(m.group(1))
+    if not 1 <= n <= 20:
+        return None
+    suffix = "er" if n == 1 else "e"
+    return f"Paris {n}{suffix}"
+
+
+def extract_arrondissement(soup) -> Optional[str]:
+    """Retourne la ville/arrondissement ("Paris 10e") depuis une fiche (BeautifulSoup)."""
+    el = soup.select_one('[itemprop="addressLocality"]')
+    if el:
+        value = _clean_credit(el.get("content") or el.get_text(" ", strip=True))
+        if value:
+            return value
+
+    pc = soup.select_one('[itemprop="postalCode"]')
+    if pc:
+        code = (pc.get("content") or pc.get_text(" ", strip=True) or "").strip()
+        return arrondissement_from_postal(code)
+
+    return None

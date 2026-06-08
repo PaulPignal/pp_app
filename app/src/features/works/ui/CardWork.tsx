@@ -12,6 +12,11 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
   const sectionLabel = work.section === 'cinema' ? 'Cinéma' : 'Théâtre'
   const directorLabel = work.section === 'cinema' ? 'De' : 'Mise en scène'
   const hasFacts = genres.length > 0 || Boolean(durationLabel) || Boolean(priceLabel)
+  // Ligne d'eyebrow : lieu (théâtre, avec arrondissement) ou nationalité·année (cinéma).
+  const venueLine = [work.venue, work.section === 'theatre' ? work.arrondissement : null]
+    .filter(Boolean)
+    .join(' · ')
+  const cinemaMeta = work.section === 'cinema' ? [work.country, work.year].filter(Boolean).join(' · ') : ''
 
   return (
     <article
@@ -42,9 +47,14 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
 
       <div className="flex flex-col gap-3 p-5">
         <div className="space-y-1.5">
-          {work.venue ? (
+          {venueLine ? (
             <p className="text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
-              📍 {work.venue}
+              📍 {venueLine}
+            </p>
+          ) : null}
+          {cinemaMeta ? (
+            <p className="text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
+              {cinemaMeta}
             </p>
           ) : null}
           <h2

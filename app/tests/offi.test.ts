@@ -82,6 +82,58 @@ describe('Offi ingestion helpers', () => {
     expect(record.section).toBe('cinema')
   })
 
+  it('parse et mappe arrondissement (théâtre) + nationalité/année (cinéma)', () => {
+    const theatre = parseOffiJsonLine(
+      JSON.stringify({
+        url: 'https://www.offi.fr/theatre/theatre-de-la-huchette-2490/crime-et-chatiment-105182.html',
+        title: 'Crime et Châtiment',
+        section: 'theatre',
+        arrondissement: 'Paris 5e',
+        description: 'Adaptation du roman.',
+        date_start: '2026-03-14',
+      }),
+      1,
+    )
+    expect(theatre.arrondissement).toBe('Paris 5e')
+    expect(buildWorkUpsert(theatre).create.arrondissement).toBe('Paris 5e')
+
+    const cinema = parseOffiJsonLine(
+      JSON.stringify({
+        url: 'https://www.offi.fr/cinema/evenement/voyage-au-bout-de-l-enfer-104603.html',
+        title: 'Voyage au bout de l’enfer',
+        section: 'cinema',
+        country: 'États-Unis',
+        year: 1978,
+        description: 'Un drame de guerre.',
+        date_start: '2026-03-12',
+      }),
+      1,
+    )
+    expect(cinema.country).toBe('États-Unis')
+    expect(cinema.year).toBe(1978)
+    const { create, update } = buildWorkUpsert(cinema)
+    expect(create.country).toBe('États-Unis')
+    expect(create.year).toBe(1978)
+    expect(update).toHaveProperty('country', 'États-Unis')
+    expect(update).toHaveProperty('year', 1978)
+  })
+
+  it('rejette une année hors plage', () => {
+    expect(() =>
+      parseOffiJsonLine(
+        JSON.stringify({
+          url: 'https://www.offi.fr/cinema/evenement/x-1.html',
+          title: 'X',
+          section: 'cinema',
+          year: 1700,
+          description: 'desc',
+          date_start: '2026-03-12',
+        }),
+        7,
+      ),
+    ).toThrow(/Line 7/)
+  })
+
   it('rejects invalid records with useful line numbers', () => {
     expect(() =>
       parseOffiJsonLine(
