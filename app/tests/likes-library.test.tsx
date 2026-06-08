@@ -8,13 +8,17 @@ vi.mock('next/image', () => ({
 
 import LikesLibrary, { type LikedItem } from '@/features/reactions/ui/LikesLibrary'
 
-function makeItem(id: string, title: string): LikedItem {
+function makeItem(
+  id: string,
+  title: string,
+  credits?: { director?: string | null; cast?: string[]; section?: 'theatre' | 'cinema' },
+): LikedItem {
   return {
     workId: id,
     work: {
       id,
       title,
-      section: 'theatre',
+      section: credits?.section ?? 'theatre',
       imageUrl: null,
       category: null,
       venue: null,
@@ -25,6 +29,8 @@ function makeItem(id: string, title: string): LikedItem {
       durationMin: null,
       priceMin: null,
       priceMax: null,
+      director: credits?.director ?? null,
+      cast: credits?.cast ?? [],
       sourceUrl: null,
     },
   }
@@ -94,6 +100,20 @@ describe('LikesLibrary', () => {
       '/api/reactions',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ workId: 'w1', status: 'LIKE' }) }),
     )
+  })
+
+  it('affiche le réalisateur et le casting sur la carte', () => {
+    render(
+      <LikesLibrary
+        current={[makeItem('w1', 'Voyage au bout de l’enfer', { section: 'cinema', director: 'Michael Cimino', cast: ['Robert De Niro', 'Christopher Walken'] })]}
+        archived={[]}
+        view="all"
+      />,
+    )
+
+    expect(screen.getByText('Michael Cimino')).toBeInTheDocument()
+    expect(screen.getByText('Robert De Niro, Christopher Walken')).toBeInTheDocument()
+    expect(screen.getByText(/^De$/)).toBeInTheDocument()
   })
 
   it('rollback : si le POST échoue, la carte revient avec un message d’erreur', async () => {
