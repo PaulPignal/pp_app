@@ -15,11 +15,11 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
 
   return (
     <article
-      className="flex h-full w-full flex-col overflow-hidden rounded-[1.85rem] bg-[color:var(--color-surface-strong)] outline-none"
+      className="flex h-full w-full flex-col overflow-hidden rounded-[var(--radius-xl)] bg-[color:var(--color-surface-strong)] outline-none"
       tabIndex={-1}
       aria-describedby={`work-${work.id}-title`}
     >
-      <div className="relative min-h-[14rem] flex-1 overflow-hidden rounded-[1.85rem] bg-muted">
+      <div className="relative min-h-[14rem] flex-1 overflow-hidden rounded-[var(--radius-xl)] bg-muted">
         {work.imageUrl ? (
           <Image
             src={work.imageUrl}

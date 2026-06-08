@@ -210,7 +210,7 @@ function LikesSection({ title, description, emptyLabel, items, tone, onAct }: Li
       </div>
 
       {items.length === 0 ? (
-        <div className="empty-state rounded-[1.5rem] border border-dashed border-[color:var(--color-border)] bg-white/50">
+        <div className="empty-state rounded-[var(--radius-lg)] border border-dashed border-[color:var(--color-border)] bg-white/50">
           <strong>{emptyLabel}</strong>
         </div>
       ) : (
