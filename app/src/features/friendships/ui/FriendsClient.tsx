@@ -326,7 +326,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                   return (
                     <li
                       key={request.id}
-                      className="flex flex-col gap-3 rounded-[1.4rem] border border-[color:var(--color-border)] bg-white/72 p-4 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[color:var(--color-border)] bg-white/72 p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(15,93,94,0.12)] text-sm font-semibold text-[color:var(--color-accent)]">
@@ -370,7 +370,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
           </div>
 
           {friends.length === 0 ? (
-            <div className="empty-state rounded-[1.5rem] border border-dashed border-[color:var(--color-border)] bg-white/45">
+            <div className="empty-state rounded-[var(--radius-lg)] border border-dashed border-[color:var(--color-border)] bg-white/45">
               <strong>Aucun ami pour le moment.</strong>
               <p className="text-sm leading-7 text-muted-foreground">Commence par partager ton lien ou par inviter un email.</p>
             </div>
@@ -384,7 +384,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                 return (
                   <li
                     key={friend.id}
-                    className="rounded-[1.6rem] border border-[color:var(--color-border)] bg-white/72 p-4 shadow-[0_8px_24px_rgba(54,39,24,0.06)]"
+                    className="rounded-[var(--radius-lg)] border border-[color:var(--color-border)] bg-white/72 p-4 shadow-[0_8px_24px_rgba(54,39,24,0.06)]"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-3">
@@ -421,7 +421,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                         {isLoadingCommon ? <p className="text-sm text-muted-foreground">Chargement…</p> : null}
 
                         {!isLoadingCommon && commons.length === 0 ? (
-                          <div className="empty-state rounded-[1.35rem] border border-dashed border-[color:var(--color-border)] bg-[rgba(255,255,255,0.65)]">
+                          <div className="empty-state rounded-[var(--radius-md)] border border-dashed border-[color:var(--color-border)] bg-[rgba(255,255,255,0.65)]">
                             <strong>Aucune œuvre commune pour le moment.</strong>
                           </div>
                         ) : null}

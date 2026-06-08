@@ -279,7 +279,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           <div
             key={item.id}
             aria-hidden
-            className="pointer-events-none absolute inset-x-[4%] top-6 bottom-16 rounded-[2rem] border border-[color:var(--color-border)] bg-white/55 shadow-[0_22px_48px_rgba(54,39,24,0.10)]"
+            className="pointer-events-none absolute inset-x-[4%] top-6 bottom-16 rounded-[var(--radius-2xl)] border border-[color:var(--color-border)] bg-white/55 shadow-[0_22px_48px_rgba(54,39,24,0.10)]"
             style={{
               transform: `translateY(${(previewIndex + 1) * 14}px) scale(${1 - (previewIndex + 1) * 0.03})`,
               opacity: 0.9 - previewIndex * 0.18,
@@ -298,7 +298,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           style={{ transform, pointerEvents: pending ? 'none' : 'auto' }}
-          className="relative z-10 h-full w-full max-w-xl cursor-grab touch-none rounded-[2rem] border border-[color:var(--color-border)] bg-[color:var(--color-surface-strong)] p-2 shadow-[var(--shadow-lg)] will-change-transform"
+          className="relative z-10 h-full w-full max-w-xl cursor-grab touch-none rounded-[var(--radius-2xl)] border border-[color:var(--color-border)] bg-[color:var(--color-surface-strong)] p-2 shadow-[var(--shadow-lg)] will-change-transform"
         >
           <CardWork work={current} />
           <div className="pointer-events-none absolute inset-x-6 top-6 flex items-start justify-between">

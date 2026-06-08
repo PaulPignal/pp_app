@@ -10,7 +10,7 @@ import SurfaceCard from '@/shared/ui/SurfaceCard'
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="skeleton h-[28rem] rounded-[1.75rem]" />}>
+    <Suspense fallback={<div className="skeleton h-[28rem] rounded-[var(--radius-xl)]" />}>
       <SignInInner />
     </Suspense>
   )

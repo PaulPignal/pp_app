@@ -102,7 +102,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-[1rem] border border-[color:var(--color-border)] bg-white/60 px-3 py-2">
+    <div className="flex items-start justify-between gap-3 rounded-[var(--radius-panel)] border border-[color:var(--color-border)] bg-white/60 px-3 py-2">
       <span className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</span>
       <span className="text-right font-medium leading-6">{value}</span>
     </div>
