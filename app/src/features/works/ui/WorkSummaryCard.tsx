@@ -19,6 +19,9 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
   const priceLabel = work ? formatPriceRange(work.priceMin, work.priceMax) : null
   const durationLabel = work ? formatDuration(work.durationMin) : null
   const description = work?.description?.trim()
+  const director = work?.director?.trim()
+  const castNames = work?.cast?.slice(0, 5) ?? []
+  const directorLabel = work?.section === 'cinema' ? 'De' : 'Mise en scène'
 
   return (
     <SurfaceCard className={cn('flex h-full flex-col overflow-hidden p-0', className)} tone="muted">
@@ -52,6 +55,22 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
         <div className="space-y-2">
           <h3 className="line-clamp-2 text-lg font-semibold tracking-[-0.03em] text-[color:var(--color-text)]">{title}</h3>
           {work?.venue ? <p className="text-sm font-medium text-muted-foreground">{work.venue}</p> : null}
+          {director || castNames.length > 0 ? (
+            <div className="space-y-0.5 text-sm leading-6">
+              {director ? (
+                <p>
+                  <span className="text-muted-foreground">{directorLabel} </span>
+                  <span className="font-semibold text-[color:var(--color-text)]">{director}</span>
+                </p>
+              ) : null}
+              {castNames.length > 0 ? (
+                <p>
+                  <span className="text-muted-foreground">Avec </span>
+                  <span className="font-medium text-[color:var(--color-text)]">{castNames.join(', ')}</span>
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           {description ? <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{description}</p> : null}
         </div>
 
