@@ -10,7 +10,7 @@ const AVAILABILITY_CHIP_CLASS: Record<'success' | 'danger' | 'warning', string> 
   danger: 'bg-[color:var(--color-danger-soft)] text-[color:var(--color-danger)]',
 }
 
-export default function CardWork({ work }: { work: WorkCardDto }) {
+export default function CardWork({ work, counter }: { work: WorkCardDto; counter?: string }) {
   const durationLabel = formatDuration(work.durationMin)
   const priceLabel = formatPriceRange(work.priceMin, work.priceMax)
   const availability = formatAvailability(work.availability)
@@ -58,6 +58,11 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
         <span className="absolute right-3 top-3 rounded-full border border-white/35 bg-black/35 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-white backdrop-blur-sm">
           {sectionLabel}
         </span>
+        {counter ? (
+          <span className="absolute left-3 top-3 rounded-full border border-white/35 bg-black/35 px-3 py-1 text-xs font-medium tabular-nums text-white backdrop-blur-sm">
+            {counter}
+          </span>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-2 p-4">
