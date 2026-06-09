@@ -42,7 +42,9 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          # Node 22 requis : Prisma 7 (migrate deploy) importe node:sqlite,
+          # absent de Node 20 (ERR_UNKNOWN_BUILTIN_MODULE). Le local tourne en 22.
+          node-version: 22
           package-manager-cache: false
       - run: corepack enable
 
