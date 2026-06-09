@@ -44,6 +44,25 @@ body {
   font-family: var(--font-manrope);
   color: var(--color-text);
   background: linear-gradient(180deg, var(--color-page-top) 0%, var(--color-page) 100%);
+  /* Limite le rebond/pull-to-refresh et le retour-arrière par swipe horizontal. */
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
+}
+
+/* Réactivité tactile : supprime le délai de 300 ms (double-tap zoom) et le flash
+   gris au tap ; un retour :active explicite donne un feedback immédiat. */
+button,
+a,
+select,
+[role='button'],
+[role='tab'] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active:not(:disabled),
+.segmented-control__item:active {
+  transform: scale(0.97);
 }
 
 a {

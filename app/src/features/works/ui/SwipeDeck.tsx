@@ -71,6 +71,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   const [history, setHistory] = useState<{ workId: string; status: 'LIKE' | 'DISLIKE' }[]>([])
 
   const dragging = useRef(false)
+  const startX = useRef(0)
   const cardRef = useRef<HTMLDivElement>(null)
   const current = items[index]
   const hasMore = index < items.length
@@ -233,8 +234,11 @@ export default function SwipeDeck({ items, totalCount }: Props) {
     (event: React.PointerEvent) => {
       if (pending) return
       dragging.current = true
+      startX.current = event.clientX
       setDragStartTs(performance.now())
-      ;(event.target as Element).setPointerCapture?.(event.pointerId)
+      // Capture sur la carte (et non l'enfant touché) → tous les déplacements lui
+      // sont routés, le geste ne « fuit » pas vers le scroll/retour navigateur.
+      cardRef.current?.setPointerCapture?.(event.pointerId)
     },
     [pending],
   )
@@ -242,7 +246,9 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   const onPointerMove = useCallback(
     (event: React.PointerEvent) => {
       if (!dragging.current || pending) return
-      setDragX((value) => value + event.movementX)
+      // Delta absolu depuis le point de départ : `movementX` est peu fiable
+      // (souvent 0) sur tactile mobile → le drag ne suivait pas le doigt.
+      setDragX(event.clientX - startX.current)
     },
     [pending],
   )
