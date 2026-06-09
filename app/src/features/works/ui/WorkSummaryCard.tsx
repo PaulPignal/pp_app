@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import Image from 'next/image'
 import type { WorkCardDto } from '@/features/works/dto'
 import BadgeCategory from '@/features/works/ui/BadgeCategory'
+import WorkImage from '@/features/works/ui/WorkImage'
 import { formatDateRange, formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
 import { cn } from '@/shared/lib/cn'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
@@ -30,17 +30,15 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
   return (
     <SurfaceCard className={cn('flex h-full flex-col overflow-hidden p-0', className)} tone="muted">
       <div className="relative h-48 w-full overflow-hidden bg-muted">
-        {work?.imageUrl ? (
-          <Image
-            src={work.imageUrl}
-            alt={title}
-            fill
-            sizes="(max-width: 768px) 100vw, 420px"
-            className="object-cover"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Pas d&apos;image</div>
-        )}
+        <WorkImage
+          src={work?.imageUrl}
+          alt={title}
+          sizes="(max-width: 768px) 100vw, 420px"
+          className="object-cover"
+          fallback={
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Pas d&apos;image</div>
+          }
+        />
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent" />
 

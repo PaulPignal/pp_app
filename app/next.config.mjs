@@ -34,6 +34,11 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    // Loader custom : les images offi sont servies directement par offi (à la bonne
+    // taille hébergée), sans passer par l'optimiseur Vercel (évite le quota d'Image
+    // Optimization qui cassait les images en preview/prod).
+    loader: 'custom',
+    loaderFile: './image-loader.ts',
     remotePatterns: [
       { protocol: 'https', hostname: 'files.offi.fr' },
       { protocol: 'https', hostname: 'images.offi.fr' },
