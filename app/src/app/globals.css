@@ -356,7 +356,9 @@ a {
   gap: 0.375rem;
   padding: 0.375rem;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  /* Rectangle arrondi (pas un stadium 999px) : reste propre quand les onglets
+     passent sur deux lignes en écran étroit (mobile). */
+  border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.72);
   box-shadow: var(--shadow-sm);
 }
@@ -390,7 +392,9 @@ a {
 }
 
 .segmented-control__item--full {
-  flex: 1 1 0;
+  /* base ~40% : 2 items tiennent sur une ligne (et grandissent à 50/50), 4 items
+     se rangent proprement en 2×2 au lieu de déborder sur écran étroit. */
+  flex: 1 1 40%;
 }
 
 .segmented-control__count {

@@ -38,6 +38,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
       <SegmentedControl
         ariaLabel="Sections culturelles"
         value={section}
+        fullWidth
         items={[
           { label: 'Théâtre', value: 'theatre', href: '/discover?section=theatre' },
           { label: 'Cinéma', value: 'cinema', href: '/discover?section=cinema' },
