@@ -210,7 +210,7 @@ Hard-won, repo-specific facts. Read before touching scraper, ingestion, CI, or t
 
 ## Sections (Work.section)
 
-- Six sections, free-string column (no DB enum): `theatre`, `cinema`, `exposition`, `concert`, `visite`, `enfants`.
+- Seven sections, free-string column (no DB enum): `theatre`, `cinema`, `streaming`, `exposition`, `concert`, `visite`, `enfants`. All are offi-sourced **except `streaming`** (TMDB — see below).
 - **Single source of truth: `app/src/features/works/section.ts`** — `WORK_SECTION_VALUES`, `WORK_SECTION_LABELS` (FR), `inferWorkSectionFromUrl`, `workSectionLabel`, `workDirectorLabel`. Ingestion (`offi-import/schemas`) and the works API import from here; add a section in one place.
 - Offi URL shapes: all sections are venue-based `/{section}/{venue}-{id}/{show}-{id}.html` (theatre, exposition `expositions-musees`, concert `concerts`, visite `visites-conferences`, enfants `enfants`) **except cinema** which is `/cinema/evenement/{slug}-{id}.html` (no venue — a film plays in many cinemas).
 - UI: section badge + `workDirectorLabel` per section; arrondissement shows for all venue-based sections (not cinema); cinema shows nationality·year + "N salles".
@@ -235,6 +235,20 @@ Hard-won, repo-specific facts. Read before touching scraper, ingestion, CI, or t
 
 - `Venue` model (`kind: theatre | cinema`), `Work.venueId` (nullable, `onDelete: SetNull`). Theatre shows link 1:1; cinema is a catalog only (a film has many venues). `app/scripts/backfill-venues.ts` derives theatre venue URLs from show URLs and relinks; cinema venues are harvested from film pages.
 
+## Source links (Work.officialUrl)
+
+- `Venue.website` = venue official site (offi marks it `rel="external"` on the **venue** page; `parsers.extract_official_website` + social/share host filter). `Work.officialUrl` = the **show-specific** external link when offi exposes one **on the show page** (`rel="external"`) — present for expo/concert, **absent for theatre** (offi handles theatre booking in-house).
+- UI priority (`SourceLink`): title → `officialUrl` (dedicated page) when present; venue name → `Venue.website`; else fall back to the offi link. Copy button sits on the primary source.
+- **Theatre deep links are discovered, not built**: there is no common URL scheme across venue sites (`/spectacle/`, `/project/`, slug-at-root…). `scraper/discover.py` (`slugify`/`tokens`/`match_titles`, unit-tested) inspects the venue homepage and matches each title **conservatively** (exact-slug, or ≥2 significant tokens) — a wrong link is worse than none. `app/scripts/backfill-official-url-from-venue.ts` fetches the venue site, matches, and writes `officialUrl` **only if the URL returns 200**. Coverage is partial (only shows listed on the homepage; some sites 403/SSL-fail).
+
+## Streaming (TMDB)
+
+- `section='streaming'` films come from **TMDB** (`watch/providers` is JustWatch-powered, FR). No offi. `Work.platforms String[]` (+ GIN index) holds the subscription platforms; `Work.sourceUrl` = TMDB movie URL (stable upsert key), `officialUrl` = TMDB where-to-watch (`/movie/{id}/watch?locale=FR`).
+- `app/scripts/ingest-tmdb-streaming.ts` (needs `TMDB_API_KEY`, v3 key): resolves provider IDs **by name** from the FR list, then `/discover/movie` per platform with `with_watch_monetization_types=flatrate|free|ads` (= no extra cost; excludes rent/buy), **aggregating platforms per film**. No per-film detail call (fast, large catalogue). Idempotent: after the run, films not seen get `platforms=[]` (→ hidden, not deleted — reactions preserved).
+- Targeted platforms: Netflix, Prime Video, Disney+, Canal+, Arte, TF1+, M6+. **France TV is NOT a TMDB movie provider in FR** (only "France TV Amazon Channel") → absent.
+- Query (`listDiscoverWorks`): streaming filters `platforms: { isEmpty: false }` (hide departed) + optional `platforms hasSome` filter; `listStreamingPlatforms()` powers the filter UI (`StreamingPlatformFilter`, state in the URL). Card/modal show platform chips; modal CTA is "Où regarder".
+- TMDB poster URLs (`image.tmdb.org`) pass through `image-loader.ts` unchanged (only offi URLs are rewritten).
+
 ## Mobile / touch UX
 
 - Swipe (`SwipeDeck`): track horizontal drag via **absolute `clientX - startX`**, never `event.movementX` (unreliable/0 on touch). Capture the pointer on the card; card has `touch-action: none`.
@@ -253,7 +267,8 @@ Hard-won, repo-specific facts. Read before touching scraper, ingestion, CI, or t
   - **pnpm 10** via `corepack prepare pnpm@10.0.0 --activate` (project pins `packageManager: pnpm@10`; the pipeline runs `pnpm --dir app` from repo root where corepack would otherwise pick pnpm 11 and refuse).
   - **Preflight `prisma migrate deploy` BEFORE the scrape** (fail-fast: env errors surface in ~10s, not after a ~40min scrape). Pipeline runs with `OFFI_SKIP_DB_DEPLOY=1`.
   - **Cache `data/offi.jsonl`** with `actions/cache/restore` + `actions/cache/save` (`if: always()`) so a failed run's scrape is preserved → incremental retries.
-- The pipeline (`scripts/offi-pipeline.sh`) and CLI default to all 6 sections. A full 6-section scrape is long; the job `timeout-minutes` is 90.
+- The pipeline (`scripts/offi-pipeline.sh`) and CLI default to all 6 offi sections. A full 6-section scrape is long; the job `timeout-minutes` is 90.
+- **`streaming-refresh.yml`** (weekly, Mon 04:00 UTC + `workflow_dispatch`) runs `ingest-tmdb-streaming.ts` → Neon. Required repo secrets: **`DATABASE_URL`** + **`TMDB_API_KEY`** (the app itself never calls TMDB at runtime — it only reads the DB, so prod/Vercel does NOT need the key).
 
 ## Backfill scripts
 
