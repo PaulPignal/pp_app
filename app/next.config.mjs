@@ -12,7 +12,7 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src ${scriptSrc}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' https://*.offi.fr data: blob:",
+  "img-src 'self' https://*.offi.fr https://image.tmdb.org data: blob:",
   "font-src 'self'",
   "connect-src 'self'",
   "base-uri 'self'",
@@ -43,6 +43,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'files.offi.fr' },
       { protocol: 'https', hostname: 'images.offi.fr' },
       { protocol: 'https', hostname: 'www.offi.fr' },
+      { protocol: 'https', hostname: 'image.tmdb.org' }, // affiches streaming (TMDB)
     ],
   },
   env: {
