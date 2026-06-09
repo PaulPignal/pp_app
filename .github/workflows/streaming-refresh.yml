@@ -1,0 +1,62 @@
+name: Streaming refresh
+
+# Rafraîchit le catalogue « streaming » (films par plateforme) depuis TMDB → Neon,
+# une fois par semaine (lundi 04:00 UTC). L'ingestion est idempotente : elle met à
+# jour les plateformes par film et VIDE `platforms` des films ayant quitté toutes les
+# plateformes (→ masqués côté Découverte, sans suppression : réactions préservées).
+#
+# Pré-requis : secrets de dépôt DATABASE_URL (Neon) et TMDB_API_KEY (clé v3 TMDB).
+
+on:
+  schedule:
+    - cron: '0 4 * * 1' # lundi 04:00 UTC
+  workflow_dispatch:
+    inputs:
+      maxPages:
+        description: 'Pages /discover par plateforme (20 ≈ 400 films/plateforme)'
+        required: false
+        default: '30'
+
+concurrency:
+  group: streaming-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      # env.ts exige NEXTAUTH_SECRET ; l'ingestion ne l'utilise pas → placeholder.
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-ingestion-placeholder' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          # Node 22 : Prisma 7 (migrate deploy) importe node:sqlite, absent de Node 20.
+          node-version: 22
+          package-manager-cache: false
+      - run: corepack enable
+      - run: corepack prepare pnpm@10.0.0 --activate
+
+      - name: Install app deps (postinstall → prisma generate)
+        working-directory: app
+        run: pnpm install --frozen-lockfile
+
+      # Fail-fast : valide DB + migrations en ~10 s (et applique add_work_platforms si besoin).
+      - name: Preflight — migrations
+        working-directory: app
+        run: pnpm exec prisma migrate deploy --schema prisma/schema.prisma
+
+      - name: Guard — clé TMDB présente
+        run: |
+          if [ -z "${TMDB_API_KEY}" ]; then
+            echo "::error::Secret TMDB_API_KEY manquant (Settings → Secrets → Actions)."
+            exit 1
+          fi
+
+      - name: Ingest TMDB streaming
+        working-directory: app
+        run: pnpm exec tsx scripts/ingest-tmdb-streaming.ts "${{ github.event.inputs.maxPages || '30' }}"
