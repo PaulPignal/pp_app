@@ -301,13 +301,13 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   return (
     <section
       aria-label="Sélection de découvertes à balayer"
-      className="mx-auto flex w-full max-w-5xl flex-col gap-4 select-none"
+      className="mx-auto flex w-full max-w-5xl flex-col gap-3 select-none"
     >
       <div className="page-meta">
         <span className="chip">Carte {Math.min(index + 1, visibleTotal)} / {visibleTotal}</span>
       </div>
 
-      <div className="relative flex min-h-[38rem] items-center justify-center pb-2">
+      <div className="relative flex min-h-[30rem] items-center justify-center pb-2">
         {nextItems.map((item, previewIndex) => (
           <div
             key={item.id}
