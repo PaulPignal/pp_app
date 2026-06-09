@@ -1,4 +1,3 @@
-import { splitGenres } from '@/features/works/category'
 import { workDirectorLabel, workSectionLabel } from '@/features/works/section'
 import WorkImage from '@/features/works/ui/WorkImage'
 import type { WorkCardDto } from '@/features/works/dto'
@@ -16,11 +15,9 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
   const priceLabel = formatPriceRange(work.priceMin, work.priceMax)
   const availability = formatAvailability(work.availability)
   const description = work.description?.trim()
-  const genres = splitGenres(work.category).slice(0, 3)
   const sectionLabel = workSectionLabel(work.section)
   const directorLabel = workDirectorLabel(work.section)
-  const hasFacts =
-    genres.length > 0 || Boolean(durationLabel) || Boolean(priceLabel) || Boolean(availability)
+  const hasFacts = Boolean(durationLabel) || Boolean(priceLabel) || Boolean(availability)
   // Ligne d'eyebrow : lieu + arrondissement (toutes sections « lieu » sauf le cinéma,
   // qui affiche plutôt nationalité·année).
   const venueLine = [work.venue, work.section !== 'cinema' ? work.arrondissement : null]
@@ -63,21 +60,21 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
         </span>
       </div>
 
-      <div className="flex flex-col gap-3 p-5">
-        <div className="space-y-1.5">
+      <div className="flex flex-col gap-2 p-4">
+        <div className="space-y-1">
           {venueLine ? (
-            <p className="text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
               📍 {venueLine}
             </p>
           ) : null}
           {cinemaMeta ? (
-            <p className="text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
               {cinemaMeta}
             </p>
           ) : null}
           <h2
             id={`work-${work.id}-title`}
-            className="text-[1.6rem] font-semibold leading-[1.05] tracking-[-0.04em] text-[color:var(--color-text)]"
+            className="text-[1.4rem] font-semibold leading-[1.05] tracking-[-0.04em] text-[color:var(--color-text)]"
           >
             {work.title}
           </h2>
@@ -113,14 +110,6 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
 
         {hasFacts ? (
           <div className="flex flex-wrap items-center gap-2">
-            {genres.map((genre) => (
-              <span
-                key={genre}
-                className="rounded-full border border-[color:var(--color-border)] bg-white/70 px-3 py-1 text-xs font-semibold capitalize text-[color:var(--color-text)]"
-              >
-                {genre}
-              </span>
-            ))}
             {durationLabel ? (
               <span className="rounded-full bg-[rgba(54,39,24,0.06)] px-3 py-1 text-xs font-medium text-[color:var(--color-text)]">
                 ⏱️ {durationLabel}

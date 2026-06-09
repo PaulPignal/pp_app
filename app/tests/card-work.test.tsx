@@ -35,13 +35,13 @@ const base: WorkCardDto = {
 }
 
 describe('CardWork', () => {
-  it('dédoublonne le genre, affiche la durée en emoji, et n’affiche aucune date', () => {
+  it('affiche la durée en emoji, n’affiche pas le genre ni la date', () => {
     render(<CardWork work={base} />)
 
     expect(screen.getByRole('heading', { name: 'Wendy et Lucy' })).toBeInTheDocument()
-    // genre nettoyé : "drame" une seule fois (dédoublonné), + "road-movie" intact
-    expect(screen.getAllByText('drame')).toHaveLength(1)
-    expect(screen.getByText('road-movie')).toBeInTheDocument()
+    // le genre n'est plus affiché (page Découverte condensée)
+    expect(screen.queryByText('drame')).not.toBeInTheDocument()
+    expect(screen.queryByText('road-movie')).not.toBeInTheDocument()
     // durée en emoji, pas de label "DURÉE"
     expect(screen.getByText(/1 h 20/)).toBeInTheDocument()
     expect(screen.queryByText(/DURÉE/i)).not.toBeInTheDocument()
