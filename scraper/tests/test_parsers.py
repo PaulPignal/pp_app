@@ -229,6 +229,14 @@ class VenueTests(unittest.TestCase):
         self.assertTrue(v["image"].endswith("x.jpg"))
         self.assertEqual(v["website"], "http://www.lechaplin.fr")  # site officiel, pas le partage
 
+    def test_clean_metro(self):
+        # Coupe le texte parasite, garde les stations multi-mots, rejette le bruit.
+        self.assertEqual(parsers._clean_metro("Commerce Accès PMR"), "Commerce")
+        self.assertEqual(parsers._clean_metro("Charonne le 8 février 1962 en 2023"), "Charonne")
+        self.assertEqual(parsers._clean_metro("Notre-Dame des Champs"), "Notre-Dame des Champs")
+        self.assertEqual(parsers._clean_metro("Pont de Sèvres"), "Pont de Sèvres")
+        self.assertIsNone(parsers._clean_metro("pole Paris 2e Théâtre Mélo"))
+
     def test_extract_venue_requires_name(self):
         self.assertIsNone(parsers.extract_venue(_soup("<div>no h1</div>"), "https://www.offi.fr/cinema/x-1.html", "cinema"))
 
