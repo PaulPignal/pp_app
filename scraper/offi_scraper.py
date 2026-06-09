@@ -697,26 +697,9 @@ class OffiScraper:
         return self._iso_from_any(text)
 
     def _extract_description(self, soup: BeautifulSoup) -> Optional[str]:
-        desc_keywords = ["présentation", "résumé", "synopsis", "à propos"]
-        for heading in soup.find_all(["h2", "h3", "h4"]):
-            ht = self._extract_text(heading).lower()
-            if any(k in ht for k in desc_keywords):
-                parts = []
-                for sib in heading.find_next_siblings():
-                    if sib.name in ["h2", "h3", "h4"]:
-                        break
-                    if sib.name in ["p", "div", "section"]:
-                        text = self._extract_text(sib)
-                        if text and len(text) > 10:
-                            parts.append(text)
-                if parts:
-                    return " ".join(parts)
-
-        meta_desc = soup.find("meta", attrs={"name": "description"})
-        if meta_desc and meta_desc.get("content"):
-            return meta_desc["content"].strip()
-
-        return None
+        # Délègue au parser pur : priorité au synopsis itemprop="description"
+        # (présent côté théâtre comme cinéma), sinon section dédiée, sinon meta.
+        return parsers.extract_description(soup)
 
     def _extract_cinema_category(self, soup: BeautifulSoup) -> Optional[str]:
         for raw in self._jsonld_blobs(soup):

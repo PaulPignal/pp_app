@@ -392,3 +392,42 @@ def extract_venue(soup, source_url: str, kind: str) -> Optional[dict]:
         "image": image,
         "source_url": source_url,
     }
+
+
+# --- Description / synopsis ------------------------------------------------------
+# Priorité au microdata itemprop="description" (synopsis propre, présent côté
+# théâtre ET cinéma), puis section "Présentation/Résumé/Synopsis", et en dernier
+# recours la meta name=description (souvent promotionnelle « Réservez vos billets… »).
+_DESC_HEADINGS = ("présentation", "presentation", "résumé", "resume", "synopsis", "à propos", "a propos")
+
+
+def _clean_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value or "").strip()
+
+
+def extract_description(soup) -> Optional[str]:
+    el = soup.select_one('[itemprop="description"]')
+    if el:
+        text = _clean_text(el.get("content") or el.get_text(" ", strip=True))
+        if len(text) > 20:
+            return text
+
+    for heading in soup.find_all(["h2", "h3", "h4"]):
+        ht = heading.get_text(" ", strip=True).lower()
+        if any(k in ht for k in _DESC_HEADINGS):
+            parts: list[str] = []
+            for sib in heading.find_next_siblings():
+                if getattr(sib, "name", None) in ("h2", "h3", "h4"):
+                    break
+                if getattr(sib, "name", None) in ("p", "div", "section"):
+                    text = _clean_text(sib.get_text(" ", strip=True))
+                    if len(text) > 10:
+                        parts.append(text)
+            if parts:
+                return " ".join(parts)
+
+    meta_desc = soup.find("meta", attrs={"name": "description"})
+    if meta_desc and meta_desc.get("content"):
+        return _clean_text(meta_desc["content"])
+
+    return None

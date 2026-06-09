@@ -227,5 +227,31 @@ class VenueTests(unittest.TestCase):
         self.assertIsNone(parsers.extract_venue(_soup("<div>no h1</div>"), "https://www.offi.fr/cinema/x-1.html", "cinema"))
 
 
+class ExtractDescriptionTests(unittest.TestCase):
+    def test_prefers_itemprop_over_promo_meta(self):
+        html = (
+            '<meta name="description" content="Réservez vos billets ✓ pour X • Du 5 juin">'
+            '<div itemprop="description">Mathurin Bolze réinvente sur scène un spectacle acrobatique et magnétique.</div>'
+        )
+        self.assertEqual(
+            parsers.extract_description(_soup(html)),
+            'Mathurin Bolze réinvente sur scène un spectacle acrobatique et magnétique.',
+        )
+
+    def test_section_heading_fallback(self):
+        html = '<h2>Présentation</h2><p>Une comédie baroque pleine de rebondissements et de musique.</p>'
+        self.assertEqual(
+            parsers.extract_description(_soup(html)),
+            'Une comédie baroque pleine de rebondissements et de musique.',
+        )
+
+    def test_meta_last_resort(self):
+        html = '<meta name="description" content="Description de repli quand rien d autre.">'
+        self.assertEqual(parsers.extract_description(_soup(html)), 'Description de repli quand rien d autre.')
+
+    def test_none_when_empty(self):
+        self.assertIsNone(parsers.extract_description(_soup('<div>rien</div>')))
+
+
 if __name__ == "__main__":
     unittest.main()
