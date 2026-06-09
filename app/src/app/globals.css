@@ -3,12 +3,12 @@
 :root {
   color-scheme: dark;
   --font-manrope: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  /* Cinéma sombre : charbon doux (pas noir profond), texte clair chaud, accent corail. */
-  --color-page: #181a21;
-  --color-page-top: #21242d;
-  --color-surface: rgba(255, 255, 255, 0.05);
-  --color-surface-strong: #262a34;
-  --color-surface-muted: #30343f;
+  /* Cinéma sombre : gris ardoise (franchement éclairci), texte clair chaud, accent corail. */
+  --color-page: #2a2f38;
+  --color-page-top: #333944;
+  --color-surface: rgba(255, 255, 255, 0.06);
+  --color-surface-strong: #373d48;
+  --color-surface-muted: #424955;
   --color-border: rgba(255, 255, 255, 0.10);
   --color-border-strong: rgba(255, 255, 255, 0.20);
   --color-text: #f3f0ea;
