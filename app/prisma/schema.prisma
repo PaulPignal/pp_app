@@ -90,6 +90,8 @@ model Work {
   year      Int?           // année de production (cinéma)
   availability String?     // dispo billetterie (schema.org) : "InStock", "SoldOut"…
   currency  String?        // devise du prix : "EUR"
+  cinemaVenueCount Int?    // nb de salles où le film est programmé (cinéma)
+  cinemaVenues String[]    // échantillon de noms de salles (cinéma)
   sourceUrl String    @unique
 
   // Lien vers le lieu (pertinent surtout pour le théâtre : un spectacle = un lieu ;

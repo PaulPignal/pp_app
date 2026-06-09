@@ -27,6 +27,12 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
     ? [work.venue, work.section !== 'cinema' ? work.arrondissement : null].filter(Boolean).join(' · ')
     : ''
   const cinemaMeta = work?.section === 'cinema' ? [work.country, work.year].filter(Boolean).join(' · ') : ''
+  const cinemaVenuesLine =
+    work?.section === 'cinema' && work.cinemaVenueCount
+      ? `🎬 ${work.cinemaVenueCount} salle${work.cinemaVenueCount > 1 ? 's' : ''}${
+          work.cinemaVenues.length ? ' · ' + work.cinemaVenues.slice(0, 3).join(', ') : ''
+        }`
+      : ''
 
   return (
     <SurfaceCard className={cn('flex h-full flex-col overflow-hidden p-0', className)} tone="muted">
@@ -59,6 +65,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
           <h3 className="line-clamp-2 text-lg font-semibold tracking-[-0.03em] text-[color:var(--color-text)]">{title}</h3>
           {venueLine ? <p className="text-sm font-medium text-muted-foreground">{venueLine}</p> : null}
           {cinemaMeta ? <p className="text-sm font-medium text-muted-foreground">{cinemaMeta}</p> : null}
+          {cinemaVenuesLine ? <p className="text-sm text-muted-foreground">{cinemaVenuesLine}</p> : null}
           {director || castNames.length > 0 ? (
             <div className="space-y-0.5 text-sm leading-6">
               {director ? (

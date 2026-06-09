@@ -207,6 +207,8 @@ class Show:
     year: Optional[int] = None             # année de production (cinéma)
     availability: Optional[str] = None     # dispo billetterie : "InStock", "SoldOut"…
     currency: Optional[str] = None         # devise du prix : "EUR"
+    cinema_venue_count: Optional[int] = None  # nb de salles où le film passe (cinéma)
+    cinema_venues: list[str] = field(default_factory=list)  # échantillon de noms de salles
     crawled_at: Optional[str] = None
 
     def is_empty(self) -> bool:
@@ -413,6 +415,8 @@ class OffiScraper:
             year=payload.get("year"),
             availability=payload.get("availability"),
             currency=payload.get("currency"),
+            cinema_venue_count=payload.get("cinema_venue_count"),
+            cinema_venues=payload.get("cinema_venues") or [],
             crawled_at=payload.get("crawled_at"),
         )
 
@@ -964,6 +968,11 @@ class OffiScraper:
                 show.country = country
             if not show.year and year:
                 show.year = year
+
+        count, venues = parsers.extract_cinema_venues(soup)
+        if count:
+            show.cinema_venue_count = count
+            show.cinema_venues = venues
 
         return show
 
