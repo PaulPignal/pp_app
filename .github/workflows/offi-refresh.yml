@@ -47,6 +47,10 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - run: corepack enable
+      # Le pipeline lance `pnpm --dir app` depuis la racine (sans packageManager) :
+      # on active globalement la version épinglée par app/package.json (pnpm@10),
+      # sinon pnpm 11 par défaut refuse le projet (version mismatch).
+      - run: corepack prepare pnpm@10.0.0 --activate
 
       - uses: actions/setup-python@v5
         with:
