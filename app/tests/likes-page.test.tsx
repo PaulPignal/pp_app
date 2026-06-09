@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 
-const { requireSessionUserMock, listLikedWorksMock, redirectMock } = vi.hoisted(() => ({
+const { requireSessionUserMock, listLibraryWorksMock, friendsWhoLikedMock, redirectMock } = vi.hoisted(() => ({
   requireSessionUserMock: vi.fn(),
-  listLikedWorksMock: vi.fn(),
+  listLibraryWorksMock: vi.fn(),
+  friendsWhoLikedMock: vi.fn(),
   redirectMock: vi.fn(),
 }))
 
@@ -20,73 +21,79 @@ vi.mock('@/features/auth/server/session', () => ({
 }))
 
 vi.mock('@/features/reactions/server/queries', () => ({
-  listLikedWorks: listLikedWorksMock,
+  listLibraryWorks: listLibraryWorksMock,
+  friendsWhoLiked: friendsWhoLikedMock,
 }))
 
 import LikesPage from '@/app/likes/page'
+
+function work(id: string, title: string, endDate: string | null) {
+  return {
+    id,
+    title,
+    section: 'theatre',
+    imageUrl: null,
+    category: null,
+    venue: null,
+    address: null,
+    description: null,
+    startDate: null,
+    endDate,
+    durationMin: null,
+    priceMin: null,
+    priceMax: null,
+    director: null,
+    cast: [],
+    arrondissement: null,
+    country: null,
+    year: null,
+    availability: null,
+    currency: null,
+    sourceUrl: 'https://www.offi.fr/x',
+    venueInfo: null,
+  }
+}
 
 describe('/likes page', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-03-12T10:00:00.000Z'))
+    requireSessionUserMock.mockResolvedValue({ id: 'user-1', email: 'me@example.com' })
+    friendsWhoLikedMock.mockResolvedValue({})
   })
 
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('splits current likes from works that are no longer showing', async () => {
-    requireSessionUserMock.mockResolvedValue({ id: 'user-1', email: 'me@example.com' })
-    listLikedWorksMock.mockResolvedValue([
-      {
-        workId: 'work-current',
-        work: {
-          id: 'work-current',
-          title: 'Hamlet',
-          section: 'theatre',
-          imageUrl: null,
-          category: null,
-          venue: null,
-          address: null,
-          description: null,
-          startDate: '2026-03-01T00:00:00.000Z',
-          endDate: '2026-03-30T00:00:00.000Z',
-          durationMin: null,
-          priceMin: null,
-          priceMax: null,
-          sourceUrl: 'https://www.offi.fr/hamlet',
-        },
-      },
-      {
-        workId: 'work-archived',
-        work: {
-          id: 'work-archived',
-          title: 'La Lecon',
-          section: 'theatre',
-          imageUrl: null,
-          category: null,
-          venue: null,
-          address: null,
-          description: null,
-          startDate: '2026-02-01T00:00:00.000Z',
-          endDate: '2026-03-11T00:00:00.000Z',
-          durationMin: null,
-          priceMin: null,
-          priceMax: null,
-          sourceUrl: 'https://www.offi.fr/la-lecon',
-        },
-      },
-    ])
+  it('affiche les likes courants et archivés dans l’onglet « Tous »', async () => {
+    listLibraryWorksMock.mockResolvedValue({
+      likes: [
+        { workId: 'work-current', work: work('work-current', 'Hamlet', '2026-03-30T00:00:00.000Z') },
+        { workId: 'work-archived', work: work('work-archived', 'La Lecon', '2026-03-11T00:00:00.000Z') },
+      ],
+      seen: [],
+    })
 
     render(await LikesPage())
 
-    const currentSection = screen.getByRole('heading', { name: 'À l’affiche' }).closest('section')
-    const archivedSection = screen.getByRole('heading', { name: 'Plus à l’affiche' }).closest('section')
+    expect(screen.getByRole('button', { name: /Voir le détail de Hamlet/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Voir le détail de La Lecon/ })).toBeInTheDocument()
+    expect(friendsWhoLikedMock).toHaveBeenCalledWith('user-1', ['work-current', 'work-archived'])
+  })
 
-    expect(currentSection).not.toBeNull()
-    expect(archivedSection).not.toBeNull()
-    expect(within(currentSection as HTMLElement).getByText('Hamlet')).toBeInTheDocument()
-    expect(within(archivedSection as HTMLElement).getByText('La Lecon')).toBeInTheDocument()
-    expect(within(currentSection as HTMLElement).queryByText('La Lecon')).not.toBeInTheDocument()
+  it('n’affiche que les œuvres à l’affiche en vue active', async () => {
+    listLibraryWorksMock.mockResolvedValue({
+      likes: [
+        { workId: 'work-current', work: work('work-current', 'Hamlet', '2026-03-30T00:00:00.000Z') },
+        { workId: 'work-archived', work: work('work-archived', 'La Lecon', '2026-03-11T00:00:00.000Z') },
+      ],
+      seen: [],
+    })
+
+    render(await LikesPage({ searchParams: Promise.resolve({ view: 'active' }) }))
+
+    expect(screen.getByRole('button', { name: /Voir le détail de Hamlet/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Voir le détail de La Lecon/ })).not.toBeInTheDocument()
   })
 })
