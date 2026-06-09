@@ -51,7 +51,10 @@ export async function readOffiFile(file: string) {
   return records
 }
 
-const INGEST_CHUNK_SIZE = 500
+// Lots volontairement petits : une transaction trop grosse dépasse le timeout
+// Prisma (5 s) sur Neon distant (un lot de 500 prenait ~6 s → échec). ~50 upserts
+// par transaction (~0,6 s) garde une large marge, même en cas de latence.
+const INGEST_CHUNK_SIZE = 50
 
 export async function ingestOffiFile(file: string) {
   if (!fs.existsSync(file)) {
@@ -64,7 +67,7 @@ export async function ingestOffiFile(file: string) {
   // Upsert par lots dans une transaction : 1 aller-retour réseau par lot au lieu
   // d'un par enregistrement (mesuré jusqu'à ~200× plus rapide en base distante).
   // La sémantique non-destructive est préservée : chaque upsert garde son `update`
-  // ciblé construit par buildWorkUpsert.
+  // ciblé construit par buildWorkUpsert. Timeout relevé pour absorber la latence.
   for (let i = 0; i < records.length; i += INGEST_CHUNK_SIZE) {
     const chunk = records.slice(i, i + INGEST_CHUNK_SIZE)
     await prisma.$transaction(
