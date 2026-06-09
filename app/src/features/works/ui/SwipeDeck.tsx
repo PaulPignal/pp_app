@@ -308,7 +308,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           <div
             key={item.id}
             aria-hidden
-            className="pointer-events-none absolute inset-x-[4%] top-6 bottom-16 rounded-[var(--radius-2xl)] border border-[color:var(--color-border)] bg-white/55 shadow-[0_22px_48px_rgba(54,39,24,0.10)]"
+            className="pointer-events-none absolute inset-x-[4%] top-6 bottom-16 rounded-[var(--radius-2xl)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] shadow-[0_22px_48px_rgba(255,255,255,0.10)]"
             style={{
               transform: `translateY(${(previewIndex + 1) * 14}px) scale(${1 - (previewIndex + 1) * 0.03})`,
               opacity: 0.9 - previewIndex * 0.18,
@@ -333,14 +333,14 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           <div className="pointer-events-none absolute inset-x-6 top-6 flex items-start justify-between">
             <span
               aria-hidden
-              className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[color:var(--color-success)] bg-[rgba(232,244,237,0.92)] text-[color:var(--color-success)] opacity-0 shadow-[0_14px_30px_rgba(35,100,75,0.16)]"
+              className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[color:var(--color-success)] bg-[color:var(--color-success-soft)] text-[color:var(--color-success)] opacity-0 shadow-[0_14px_30px_rgba(0,0,0,0.45)]"
               style={{ opacity: Math.max(0, Math.min(1, dragX / 120)) }}
             >
               <IconHeart className="h-6 w-6" />
             </span>
             <span
               aria-hidden
-              className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[color:var(--color-danger)] bg-[rgba(249,236,233,0.94)] text-[color:var(--color-danger)] opacity-0 shadow-[0_14px_30px_rgba(160,74,65,0.14)]"
+              className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[color:var(--color-danger)] bg-[color:var(--color-danger-soft)] text-[color:var(--color-danger)] opacity-0 shadow-[0_14px_30px_rgba(0,0,0,0.45)]"
               style={{ opacity: Math.max(0, Math.min(1, -dragX / 120)) }}
             >
               <IconX className="h-6 w-6" />

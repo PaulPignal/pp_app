@@ -290,10 +290,10 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                   return (
                     <li
                       key={request.id}
-                      className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[color:var(--color-border)] bg-white/72 p-4 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgba(15,93,94,0.12)] text-sm font-semibold text-[color:var(--color-accent)]">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--color-accent-soft)] text-sm font-semibold text-[color:var(--color-accent)]">
                           {initialsFromEmail(request.email)}
                         </div>
                         <div className="text-sm font-semibold tracking-[-0.02em]">{request.email}</div>
@@ -329,7 +329,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
           </div>
 
           {friends.length === 0 ? (
-            <div className="empty-state rounded-[var(--radius-lg)] border border-dashed border-[color:var(--color-border)] bg-white/45">
+            <div className="empty-state rounded-[var(--radius-lg)] border border-dashed border-[color:var(--color-border)] bg-[color:var(--color-surface)]">
               <strong>Aucun ami pour le moment.</strong>
               <p className="text-sm leading-7 text-muted-foreground">Commence par partager ton lien ou par inviter un email.</p>
             </div>
@@ -343,11 +343,11 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                 return (
                   <li
                     key={friend.id}
-                    className="rounded-[var(--radius-lg)] border border-[color:var(--color-border)] bg-white/72 p-4 shadow-[0_8px_24px_rgba(54,39,24,0.06)]"
+                    className="rounded-[var(--radius-lg)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[rgba(15,93,94,0.12)] text-sm font-semibold text-[color:var(--color-accent)]">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--color-accent-soft)] text-sm font-semibold text-[color:var(--color-accent)]">
                           {initialsFromEmail(friend.email)}
                         </div>
                         <div className="min-w-0 truncate text-sm font-semibold tracking-[-0.02em]">{friend.email}</div>

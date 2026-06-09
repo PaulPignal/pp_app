@@ -1,7 +1,49 @@
 @import "tailwindcss";
 
 :root {
+  /* === Thème SOMBRE (défaut) — cinéma. Gris ardoise éclairci, contraste texte préservé. === */
+  color-scheme: dark;
   --font-manrope: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --color-page: #313640;
+  --color-page-top: #3c434f;
+  --color-surface: rgba(255, 255, 255, 0.06);
+  --color-surface-strong: #3d434f;
+  --color-surface-muted: #474e5b;
+  --color-border: rgba(255, 255, 255, 0.11);
+  --color-border-strong: rgba(255, 255, 255, 0.22);
+  --color-text: #f5f2ed;
+  --color-text-muted: #aab0bd;
+  --color-accent: #f25c54;
+  --color-accent-strong: #e0453d;
+  --color-accent-soft: rgba(242, 92, 84, 0.16);
+  --color-danger: #ff6b6b;
+  --color-danger-soft: rgba(255, 107, 107, 0.15);
+  --color-success: #4cd0a0;
+  --color-success-soft: rgba(76, 208, 160, 0.15);
+  --color-rating: #f5c518;
+  /* Surfaces de contrôles + overlays (tokenisés pour basculer avec le thème). */
+  --color-fill: rgba(255, 255, 255, 0.07);
+  --color-fill-hover: rgba(255, 255, 255, 0.13);
+  --color-control-bg: rgba(255, 255, 255, 0.06);
+  --color-control-bg-strong: rgba(255, 255, 255, 0.10);
+  --color-topbar: rgba(20, 22, 28, 0.72);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.55);
+  /* Échelle de rayons (du plus petit au plus grand). Les composants doivent
+     piocher dans cette échelle plutôt que de coder des valeurs en dur.
+     Resserrée pour un rendu plus net (moins « bubble »). */
+  --radius-control: 0.55rem;
+  --radius-panel: 0.85rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.15rem;
+  --radius-xl: 1.35rem;
+  --radius-2xl: 1.5rem;
+}
+
+/* === Thème CLAIR « parisien » — appliqué quand <html data-theme="light"> ===
+   (le script no-flash dans layout.tsx choisit selon la préférence stockée, sinon l'OS). */
+:root[data-theme="light"] {
+  color-scheme: light;
   --color-page: #f3ede3;
   --color-page-top: #faf6ef;
   --color-surface: rgba(255, 251, 246, 0.9);
@@ -11,23 +53,21 @@
   --color-border-strong: rgba(83, 63, 43, 0.24);
   --color-text: #201710;
   --color-text-muted: #6f5b49;
-  --color-accent: #0f5d5e;
-  --color-accent-strong: #0a494a;
-  --color-accent-soft: #e6f4f2;
+  --color-accent: #bf5a3c;
+  --color-accent-strong: #a3492f;
+  --color-accent-soft: rgba(191, 90, 60, 0.14);
   --color-danger: #a04a41;
   --color-danger-soft: #f9ece9;
   --color-success: #23644b;
   --color-success-soft: #e8f4ed;
+  --color-rating: #7a5c00;
+  --color-fill: rgba(54, 39, 24, 0.06);
+  --color-fill-hover: rgba(54, 39, 24, 0.12);
+  --color-control-bg: rgba(255, 255, 255, 0.72);
+  --color-control-bg-strong: rgba(255, 255, 255, 0.88);
+  --color-topbar: rgba(250, 246, 239, 0.82);
   --shadow-sm: 0 2px 8px rgba(54, 39, 24, 0.06);
   --shadow-lg: 0 8px 24px rgba(54, 39, 24, 0.09);
-  /* Échelle de rayons (du plus petit au plus grand). Les composants doivent
-     piocher dans cette échelle plutôt que de coder des valeurs en dur. */
-  --radius-control: 0.7rem;
-  --radius-panel: 1rem;
-  --radius-md: 1.25rem;
-  --radius-lg: 1.5rem;
-  --radius-xl: 1.85rem;
-  --radius-2xl: 2rem;
 }
 
 * {
@@ -71,7 +111,18 @@ a {
 }
 
 ::selection {
-  background: rgba(15, 93, 94, 0.16);
+  background: var(--color-accent-soft);
+}
+
+/* Toggle de thème : en sombre on montre le soleil (→ passer au clair), en clair la lune. */
+.theme-toggle__moon {
+  display: none;
+}
+:root[data-theme="light"] .theme-toggle__sun {
+  display: none;
+}
+:root[data-theme="light"] .theme-toggle__moon {
+  display: inline-block;
 }
 
 .text-muted-foreground {
@@ -95,7 +146,7 @@ a {
   top: 0;
   z-index: 40;
   border-bottom: 1px solid var(--color-border);
-  background: rgba(250, 246, 239, 0.82);
+  background: var(--color-topbar);
   backdrop-filter: blur(20px);
 }
 
@@ -134,13 +185,13 @@ a {
   gap: 2rem;
   padding: 2rem;
   background:
-    linear-gradient(180deg, rgba(15, 93, 94, 0.08), transparent 45%),
+    linear-gradient(180deg, rgba(242, 92, 84, 0.08), transparent 45%),
     var(--color-surface);
 }
 
 .auth-main {
   padding: 1.25rem;
-  background: rgba(255, 253, 249, 0.95);
+  background: var(--color-surface-strong);
 }
 
 .auth-title {
@@ -167,9 +218,9 @@ a {
   display: grid;
   gap: 0.35rem;
   padding: 1rem 1.1rem;
-  border: 1px solid rgba(15, 93, 94, 0.12);
+  border: 1px solid var(--color-accent-soft);
   border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-control-bg);
 }
 
 .auth-highlight-label {
@@ -248,7 +299,7 @@ a {
   padding: 0.7rem 0.95rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-control-bg);
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-text-muted);
@@ -264,12 +315,12 @@ a {
 }
 
 .surface-card--muted {
-  background: rgba(255, 253, 249, 0.7);
+  background: var(--color-surface-strong);
 }
 
 .surface-card--accent {
-  border-color: rgba(15, 93, 94, 0.14);
-  background: linear-gradient(180deg, rgba(15, 93, 94, 0.06), rgba(255, 253, 249, 0.96));
+  border-color: rgba(242, 92, 84, 0.14);
+  background: linear-gradient(180deg, rgba(242, 92, 84, 0.06), var(--color-surface-strong));
 }
 
 .btn {
@@ -281,7 +332,7 @@ a {
   padding: 0.7rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-control-bg);
   font-size: 0.92rem;
   font-weight: 600;
   color: var(--color-text);
@@ -290,7 +341,7 @@ a {
 
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(54, 39, 24, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .btn:disabled {
@@ -302,7 +353,7 @@ a {
   border-color: transparent;
   background: var(--color-accent);
   color: #fff;
-  box-shadow: 0 3px 10px rgba(15, 93, 94, 0.16);
+  box-shadow: 0 3px 10px var(--color-accent-soft);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -310,7 +361,7 @@ a {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--color-control-bg-strong);
 }
 
 .btn-danger {
@@ -331,7 +382,7 @@ a {
   width: 100%;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--color-control-bg-strong);
   padding: 0.92rem 1rem;
   font-size: 0.95rem;
   color: var(--color-text);
@@ -340,18 +391,18 @@ a {
 
 .input::placeholder,
 .textarea::placeholder {
-  color: color-mix(in srgb, var(--color-text-muted) 78%, white);
+  color: color-mix(in srgb, var(--color-text-muted) 65%, transparent);
 }
 
 .input:focus,
 .textarea:focus {
   outline: none;
-  border-color: rgba(15, 93, 94, 0.36);
-  box-shadow: 0 0 0 4px rgba(15, 93, 94, 0.12);
+  border-color: rgba(242, 92, 84, 0.36);
+  box-shadow: 0 0 0 4px var(--color-accent-soft);
 }
 
 .input[readonly] {
-  background: rgba(244, 238, 230, 0.92);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .label {
@@ -378,7 +429,7 @@ a {
   /* Rectangle arrondi (pas un stadium 999px) : reste propre quand les onglets
      passent sur deux lignes en écran étroit (mobile). */
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-control-bg);
   box-shadow: var(--shadow-sm);
 }
 
@@ -408,7 +459,7 @@ a {
   min-height: 2.4rem;
   white-space: nowrap;
   border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-control-bg);
 }
 .segmented-control--scroll .segmented-control__item--active {
   border-color: var(--color-accent);
@@ -437,7 +488,7 @@ a {
 .segmented-control__item--active {
   background: var(--color-surface-strong);
   color: var(--color-text);
-  box-shadow: 0 2px 6px rgba(54, 39, 24, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .segmented-control__item--full {
@@ -454,7 +505,7 @@ a {
   height: 1.5rem;
   padding: 0 0.35rem;
   border-radius: 999px;
-  background: rgba(15, 93, 94, 0.12);
+  background: var(--color-accent-soft);
   font-size: 0.74rem;
   color: var(--color-accent);
 }
@@ -473,7 +524,7 @@ a {
 }
 
 .status-banner--info {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--color-control-bg);
   color: var(--color-text);
 }
 
@@ -513,7 +564,7 @@ a {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: rgba(227, 218, 204, 0.8);
+  background: var(--color-control-bg);
 }
 
 .skeleton::after {
@@ -521,7 +572,7 @@ a {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.52), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
   animation: shimmer 1.3s linear infinite;
 }
 

@@ -25,7 +25,7 @@ export default function StreamingPlatformFilter({ available, selected }: Props) 
         className={`rounded-full px-3 py-1 text-xs font-medium transition ${
           selectedSet.size === 0
             ? 'bg-[color:var(--color-accent)] text-white'
-            : 'bg-[rgba(54,39,24,0.06)] text-[color:var(--color-text)] hover:bg-[rgba(54,39,24,0.12)]'
+            : 'bg-[color:var(--color-fill)] text-[color:var(--color-text)] hover:bg-[color:var(--color-fill-hover)]'
         }`}
       >
         Toutes
@@ -41,7 +41,7 @@ export default function StreamingPlatformFilter({ available, selected }: Props) 
             className={`rounded-full px-3 py-1 text-xs font-medium transition ${
               active
                 ? 'bg-[color:var(--color-accent)] text-white'
-                : 'bg-[rgba(54,39,24,0.06)] text-[color:var(--color-text)] hover:bg-[rgba(54,39,24,0.12)]'
+                : 'bg-[color:var(--color-fill)] text-[color:var(--color-text)] hover:bg-[color:var(--color-fill-hover)]'
             }`}
           >
             {platform}

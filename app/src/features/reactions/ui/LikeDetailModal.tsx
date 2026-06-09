@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import type { FriendSummaryDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
 import WorkSummaryCard from '@/features/works/ui/WorkSummaryCard'
+import { IconAccess, IconMetro, IconPhone, IconPin, IconUsers } from '@/shared/ui/icons'
 import { formatAvailability } from '@/features/works/ui/work-formatters'
 
 export type LikeBucket = 'like' | 'seen'
@@ -88,16 +89,16 @@ export default function LikeDetailModal({ work, fallbackTitle, friends, bucket, 
               {/* Infos pratiques (lieu relié) */}
               {venueMetro || venueAccess || venuePhone ? (
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[color:var(--color-text-muted)]">
-                  {venueMetro ? <span>🚇 {venueMetro}</span> : null}
-                  {venueAccess ? <span>♿ {venueAccess}</span> : null}
-                  {venuePhone ? <span>📞 {venuePhone}</span> : null}
+                  {venueMetro ? <span className="inline-flex items-center gap-1.5"><IconMetro size={14} /> {venueMetro}</span> : null}
+                  {venueAccess ? <span className="inline-flex items-center gap-1.5"><IconAccess size={14} /> {venueAccess}</span> : null}
+                  {venuePhone ? <span className="inline-flex items-center gap-1.5"><IconPhone size={14} /> {venuePhone}</span> : null}
                 </div>
               ) : null}
 
               {/* Amis qui aiment aussi */}
               {friends.length > 0 ? (
-                <p className="text-sm text-[color:var(--color-text)]">
-                  <span aria-hidden>👥 </span>
+                <p className="inline-flex items-center gap-1.5 text-sm text-[color:var(--color-text)]">
+                  <IconUsers size={15} />
                   <span className="text-muted-foreground">Aimé aussi par </span>
                   <span className="font-medium">{friends.map((f) => f.email.split('@')[0]).join(', ')}</span>
                 </p>
@@ -121,9 +122,9 @@ export default function LikeDetailModal({ work, fallbackTitle, friends, bucket, 
                   href={mapsUrl(work)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-center text-xs font-medium text-[color:var(--color-text-muted)] underline-offset-4 hover:text-[color:var(--color-accent)] hover:underline"
+                  className="inline-flex w-full items-center justify-center gap-1.5 text-xs font-medium text-[color:var(--color-text-muted)] underline-offset-4 hover:text-[color:var(--color-accent)] hover:underline"
                 >
-                  📍 Itinéraire
+                  <IconPin size={14} /> Itinéraire
                 </a>
               ) : null}
 

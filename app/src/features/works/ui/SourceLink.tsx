@@ -58,7 +58,7 @@ export default function SourceLink({ label, href, textClassName, copy = true }: 
           onClick={onCopy}
           aria-label={copied ? 'Lien copié' : 'Copier le lien'}
           title={copied ? 'Copié !' : 'Copier le lien'}
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[color:var(--color-text-muted)] transition hover:bg-[rgba(54,39,24,0.08)] hover:text-[color:var(--color-accent)]"
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[color:var(--color-text-muted)] transition hover:bg-[color:var(--color-fill)] hover:text-[color:var(--color-accent)]"
         >
           {copied ? <CheckIcon /> : <CopyIcon />}
         </button>
