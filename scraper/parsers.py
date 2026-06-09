@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from typing import Optional
+from urllib.parse import urlparse
 
 # Regex prix / durée
 PRICE_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*€")
@@ -326,6 +327,33 @@ def _venue_access_features(text: str) -> Optional[str]:
     return ", ".join(features) or None
 
 
+# Site officiel du lieu : offi marque le lien vers le site du théâtre/salle par
+# rel="external" sur la page lieu (ex. <a rel="external nofollow">www.theatremontparnasse.com</a>).
+# Les autres liens externes sont des boutons de partage (wa.me, bsky, pinterest) ou
+# des bannières promo — on les écarte (rel sans "external" + liste de hosts sociaux).
+_SOCIAL_HOSTS = (
+    "facebook", "instagram", "twitter", "x.com", "youtube", "youtu.be", "tiktok",
+    "linkedin", "pinterest", "wa.me", "whatsapp", "bsky.app", "t.me", "telegram",
+    "snapchat", "threads.net", "google.", "apple.com", "offi.fr",
+)
+
+
+def extract_official_website(soup) -> Optional[str]:
+    """URL du site officiel du lieu (lien rel="external" non social), ou None."""
+    for a in soup.find_all("a", href=True):
+        rel = " ".join(a.get("rel") or []).lower()
+        if "external" not in rel:
+            continue
+        href = (a.get("href") or "").strip()
+        if not href.startswith(("http://", "https://")):
+            continue
+        host = urlparse(href).netloc.lower()
+        if any(s in host for s in _SOCIAL_HOSTS):
+            continue
+        return href
+    return None
+
+
 def extract_venue(soup, source_url: str, kind: str) -> Optional[dict]:
     """Extrait les infos d'une page lieu (BeautifulSoup) → dict, ou None si pas de nom."""
     offi_id = offi_id_from_url(source_url)
@@ -390,6 +418,7 @@ def extract_venue(soup, source_url: str, kind: str) -> Optional[dict]:
         "metro": metro,
         "access": access,
         "image": image,
+        "website": extract_official_website(soup),
         "source_url": source_url,
     }
 

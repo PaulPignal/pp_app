@@ -1,12 +1,15 @@
-// Backfill / ingestion des lieux (Venue) depuis offi, + lien Work.venueId (théâtre).
+// Backfill / ingestion des lieux (Venue) depuis offi, + lien Work.venueId.
 //
-// - Théâtre : l'URL de la page lieu se déduit de l'URL du spectacle
-//   (/theatre/<venue>-<id>/<show>.html → /theatre/<venue>-<id>.html). On upsert le
-//   lieu et on relie tous les spectacles de ce lieu (venueId).
+// - Sections « lieu » (théâtre, expo, concert, visite, enfants) : un spectacle = un
+//   lieu, l'URL de la page lieu se déduit de l'URL du spectacle
+//   (/<seg>/<lieu>-<id>/<show>.html → /<seg>/<lieu>-<id>.html). On upsert le lieu
+//   (avec son site officiel) et on relie tous les spectacles de ce lieu (venueId).
 // - Cinéma : un film joue dans plusieurs salles → pas de lien 1:1. On récolte les
 //   salles listées sur les fiches films (catalogue uniquement).
 //
-// Usage : pnpm exec tsx --env-file=.env --env-file=.env.local scripts/backfill-venues.ts [theatre|cinema|all] [limit]
+// Usage : pnpm exec tsx --env-file=.env --env-file=.env.local scripts/backfill-venues.ts \
+//   [theatre|exposition|concert|visite|enfants|cinema|venues|all] [limit]
+//   venues = toutes les sections « lieu » ; all = venues + cinema.
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
@@ -18,8 +21,17 @@ const PY = path.join(scraperDir, '.venv/bin/python')
 const CLI = path.join(scraperDir, 'extract_venue_cli.py')
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
 
-const mode = (process.argv[2] ?? 'all') as 'theatre' | 'cinema' | 'all'
+const mode = process.argv[2] ?? 'all'
 const limit = Number(process.argv[3] ?? 1000)
+
+// Sections « lieu » → segment d'URL offi correspondant.
+const VENUE_SECTIONS: Record<string, string> = {
+  theatre: 'theatre',
+  exposition: 'expositions-musees',
+  concert: 'concerts',
+  visite: 'visites-conferences',
+  enfants: 'enfants',
+}
 
 type VenueData = {
   offi_id: number
@@ -35,11 +47,12 @@ type VenueData = {
   metro: string | null
   access: string | null
   image: string | null
+  website: string | null
   source_url: string
 }
 
-function theatreVenueUrlFromShow(url: string): string | null {
-  const m = url.match(/^(https?:\/\/[^/]+\/theatre\/[^/]+-\d+)\/[^/]+-\d+(?:\.html)?$/)
+function venueUrlFromShow(url: string, seg: string): string | null {
+  const m = url.match(new RegExp(`^(https?://[^/]+/${seg}/[^/]+-\\d+)/[^/]+-\\d+(?:\\.html)?$`))
   return m ? `${m[1]}.html` : null
 }
 
@@ -98,6 +111,7 @@ async function upsertVenue(v: VenueData): Promise<string> {
     metro: v.metro,
     access: v.access,
     imageUrl: v.image,
+    website: v.website,
     sourceUrl: v.source_url,
   }
   const venue = await prisma.venue.upsert({ where: { offiId: v.offi_id }, create: data, update: data })
@@ -106,15 +120,16 @@ async function upsertVenue(v: VenueData): Promise<string> {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-async function backfillTheatre() {
+async function backfillVenueSection(section: string) {
+  const seg = VENUE_SECTIONS[section]
   const works = await prisma.work.findMany({
-    where: { section: 'theatre' },
+    where: { section },
     select: { id: true, sourceUrl: true },
   })
   // Regroupe les spectacles par URL de lieu déduite.
   const byVenueUrl = new Map<string, string[]>()
   for (const w of works) {
-    const venueUrl = theatreVenueUrlFromShow(w.sourceUrl)
+    const venueUrl = venueUrlFromShow(w.sourceUrl, seg)
     if (!venueUrl) continue
     const list = byVenueUrl.get(venueUrl) ?? []
     list.push(w.id)
@@ -122,7 +137,7 @@ async function backfillTheatre() {
   }
 
   // Ne (re)traite que les lieux pas encore en base, dans la limite demandée.
-  const existing = new Set((await prisma.venue.findMany({ where: { kind: 'theatre' }, select: { sourceUrl: true } })).map((v) => v.sourceUrl))
+  const existing = new Set((await prisma.venue.findMany({ where: { kind: section }, select: { sourceUrl: true } })).map((v) => v.sourceUrl))
   const urls = [...byVenueUrl.keys()].filter((u) => !existing.has(u)).slice(0, limit)
 
   let venues = 0
@@ -130,7 +145,7 @@ async function backfillTheatre() {
   for (const url of urls) {
     const html = await fetchHtml(url)
     if (!html) continue
-    const v = extractVenue(html, url, 'theatre')
+    const v = extractVenue(html, url, section)
     if (!v) continue
     const venueId = await upsertVenue(v)
     venues += 1
@@ -142,15 +157,15 @@ async function backfillTheatre() {
 
   // Relink (sans fetch) : spectacles encore non liés dont le lieu est déjà en base.
   // Couvre les nouveaux spectacles ajoutés dans un lieu déjà connu.
-  const knownVenues = await prisma.venue.findMany({ where: { kind: 'theatre' }, select: { id: true, offiId: true } })
+  const knownVenues = await prisma.venue.findMany({ where: { kind: section }, select: { id: true, offiId: true } })
   const venueIdByOffiId = new Map(knownVenues.map((v) => [v.offiId, v.id]))
   const unlinked = await prisma.work.findMany({
-    where: { section: 'theatre', venueId: null },
+    where: { section, venueId: null },
     select: { id: true, sourceUrl: true },
   })
   const relinkGroups = new Map<string, string[]>()
   for (const w of unlinked) {
-    const offiId = offiIdFromUrl(theatreVenueUrlFromShow(w.sourceUrl))
+    const offiId = offiIdFromUrl(venueUrlFromShow(w.sourceUrl, seg))
     const vid = offiId != null ? venueIdByOffiId.get(offiId) : undefined
     if (!vid) continue
     const list = relinkGroups.get(vid) ?? []
@@ -163,7 +178,7 @@ async function backfillTheatre() {
     relinked += res.count
   }
 
-  console.log(JSON.stringify({ segment: 'theatre', venues, linkedWorks: linked, relinked, candidates: urls.length }))
+  console.log(JSON.stringify({ segment: section, venues, linkedWorks: linked, relinked, candidates: urls.length }))
 }
 
 async function backfillCinema() {
@@ -199,7 +214,12 @@ async function backfillCinema() {
 }
 
 async function main() {
-  if (mode === 'theatre' || mode === 'all') await backfillTheatre()
+  const venueSections = Object.keys(VENUE_SECTIONS)
+  if (mode === 'all' || mode === 'venues') {
+    for (const section of venueSections) await backfillVenueSection(section)
+  } else if (venueSections.includes(mode)) {
+    await backfillVenueSection(mode)
+  }
   if (mode === 'cinema' || mode === 'all') await backfillCinema()
 }
 

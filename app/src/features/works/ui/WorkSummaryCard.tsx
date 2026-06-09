@@ -3,6 +3,7 @@ import type { WorkCardDto } from '@/features/works/dto'
 import { workDirectorLabel, workSectionLabel } from '@/features/works/section'
 import BadgeCategory from '@/features/works/ui/BadgeCategory'
 import WorkImage from '@/features/works/ui/WorkImage'
+import VenueSource from '@/features/works/ui/VenueSource'
 import { formatDateRange, formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
 import { cn } from '@/shared/lib/cn'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
@@ -63,7 +64,13 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
       <div className="flex flex-1 flex-col gap-4 p-4">
         <div className="space-y-2">
           <h3 className="line-clamp-2 text-lg font-semibold tracking-[-0.03em] text-[color:var(--color-text)]">{title}</h3>
-          {venueLine ? <p className="text-sm font-medium text-muted-foreground">{venueLine}</p> : null}
+          {venueLine ? (
+            <VenueSource
+              label={venueLine}
+              website={work?.venueInfo?.website ?? null}
+              textClassName="text-sm font-medium text-muted-foreground"
+            />
+          ) : null}
           {cinemaMeta ? <p className="text-sm font-medium text-muted-foreground">{cinemaMeta}</p> : null}
           {cinemaVenuesLine ? <p className="text-sm text-muted-foreground">{cinemaVenuesLine}</p> : null}
           {director || castNames.length > 0 ? (
@@ -93,14 +100,16 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
         </div>
 
         <div className="mt-auto flex flex-col gap-3 border-t border-[color:var(--color-border)] pt-4">
-          {work?.sourceUrl ? (
+          {/* Fallback Offi : uniquement si le lieu n'a pas de site officiel (sinon la
+              source est portée par le nom du lieu ci-dessus). */}
+          {work?.sourceUrl && !work.venueInfo?.website ? (
             <a
               href={work.sourceUrl}
               target="_blank"
               rel="noreferrer"
               className="text-sm font-semibold text-[color:var(--color-accent)] transition hover:underline"
             >
-              Voir la source
+              Voir sur Offi.fr ↗
             </a>
           ) : null}
 

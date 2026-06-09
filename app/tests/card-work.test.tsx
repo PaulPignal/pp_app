@@ -91,12 +91,46 @@ describe('CardWork', () => {
         work={{
           ...base,
           section: 'theatre',
-          venueInfo: { name: 'Théâtre de la Huchette', metro: 'Cluny - La Sorbonne', access: 'Accès PMR', phone: null, city: 'Paris 5e' },
+          venueInfo: { name: 'Théâtre de la Huchette', metro: 'Cluny - La Sorbonne', access: 'Accès PMR', phone: null, city: 'Paris 5e', website: null },
         }}
       />,
     )
     expect(screen.getByText(/Cluny - La Sorbonne/)).toBeInTheDocument()
     expect(screen.getByText(/Accès PMR/)).toBeInTheDocument()
+  })
+
+  it('quand le lieu a un site officiel : le nom du lieu est un lien vers la source + bouton copier, sans lien Offi', () => {
+    render(
+      <CardWork
+        work={{
+          ...base,
+          section: 'theatre',
+          venue: 'Théâtre Montparnasse',
+          arrondissement: 'Paris 14e',
+          country: null,
+          year: null,
+          venueInfo: {
+            name: 'Théâtre Montparnasse',
+            metro: null,
+            access: null,
+            phone: null,
+            city: 'Paris 14e',
+            website: 'https://www.theatremontparnasse.com',
+          },
+        }}
+      />,
+    )
+    const link = screen.getByRole('link', { name: /Théâtre Montparnasse/ })
+    expect(link).toHaveAttribute('href', 'https://www.theatremontparnasse.com')
+    expect(screen.getByRole('button', { name: /copier le lien/i })).toBeInTheDocument()
+    // le lien Offi générique disparaît au profit de la source
+    expect(screen.queryByText(/Voir sur Offi\.fr/)).not.toBeInTheDocument()
+  })
+
+  it('sans site officiel : conserve le lien Offi de secours', () => {
+    render(<CardWork work={{ ...base, section: 'theatre', venue: 'Petit Théâtre', venueInfo: null }} />)
+    expect(screen.getByText(/Voir sur Offi\.fr/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /copier le lien/i })).not.toBeInTheDocument()
   })
 
   it('théâtre : affiche le lieu avec l’arrondissement', () => {

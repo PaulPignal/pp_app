@@ -1,5 +1,6 @@
 import { workDirectorLabel, workSectionLabel } from '@/features/works/section'
 import WorkImage from '@/features/works/ui/WorkImage'
+import VenueSource from '@/features/works/ui/VenueSource'
 import type { WorkCardDto } from '@/features/works/dto'
 import ExpandableDescription from '@/features/works/ui/ExpandableDescription'
 import { formatAvailability, formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
@@ -68,9 +69,11 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
       <div className="flex flex-col gap-2 p-4">
         <div className="space-y-1">
           {venueLine ? (
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
-              📍 {venueLine}
-            </p>
+            <VenueSource
+              label={`📍 ${venueLine}`}
+              website={work.venueInfo?.website ?? null}
+              textClassName="text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]"
+            />
           ) : null}
           {cinemaMeta ? (
             <p className="text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
@@ -135,7 +138,9 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
 
         {description ? <ExpandableDescription text={description} /> : null}
 
-        {work.sourceUrl ? (
+        {/* Fallback Offi : seulement quand le lieu n'a pas de site officiel (ex. cinéma,
+            ou lieu non encore relié). Sinon, la source est portée par le nom du lieu. */}
+        {work.sourceUrl && !work.venueInfo?.website ? (
           <a
             href={work.sourceUrl}
             target="_blank"
