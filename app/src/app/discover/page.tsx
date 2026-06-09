@@ -46,15 +46,22 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
   // Le filtre plateformes ne s'applique que sur l'onglet streaming.
   const selectedPlatforms = isStreaming ? resolvePlatforms(resolvedSearchParams?.platforms) : []
 
-  const [works, availablePlatforms] = await Promise.all([
-    listDiscoverWorks({
-      userId: sessionUser?.id ?? null,
-      per: 200,
-      section,
-      platforms: selectedPlatforms.length ? selectedPlatforms : undefined,
-    }),
-    isStreaming ? listStreamingPlatforms() : Promise.resolve([]),
-  ])
+  // Liste des plateformes (mise en cache) AVANT la requête works : pour le streaming
+  // non filtré, on requête « hasSome: toutes les plateformes » (≡ dispo, mais via
+  // l'index GIN) plutôt que « isEmpty:false » (scan séquentiel, lent sur gros volume).
+  const availablePlatforms = isStreaming ? await listStreamingPlatforms() : []
+  const platformsForQuery = selectedPlatforms.length
+    ? selectedPlatforms
+    : isStreaming && availablePlatforms.length
+      ? availablePlatforms
+      : undefined
+
+  const works = await listDiscoverWorks({
+    userId: sessionUser?.id ?? null,
+    per: 200,
+    section,
+    platforms: platformsForQuery,
+  })
 
   return (
     <div className="page-shell">

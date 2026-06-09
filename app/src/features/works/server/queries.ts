@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { unstable_cache } from 'next/cache'
 import type { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/server/db'
 import { getParisTodayStart } from '@/features/works/availability'
@@ -57,11 +58,17 @@ export async function listDiscoverWorks(input: ListDiscoverWorksInput = {}) {
 }
 
 // Plateformes de streaming présentes dans le catalogue (options du filtre Découverte).
-export async function listStreamingPlatforms(): Promise<string[]> {
-  const rows = await prisma.$queryRaw<{ p: string }[]>`
-    SELECT DISTINCT unnest(platforms) AS p
-    FROM "Work"
-    WHERE section = 'streaming'
-    ORDER BY p`
-  return rows.map((r) => r.p)
-}
+// Mis en cache (revalidation 1 h) : le catalogue ne change qu'au refresh hebdo →
+// inutile de relancer ce DISTINCT à chaque chargement / clic de filtre.
+export const listStreamingPlatforms = unstable_cache(
+  async (): Promise<string[]> => {
+    const rows = await prisma.$queryRaw<{ p: string }[]>`
+      SELECT DISTINCT unnest(platforms) AS p
+      FROM "Work"
+      WHERE section = 'streaming'
+      ORDER BY p`
+    return rows.map((r) => r.p)
+  },
+  ['streaming-platforms'],
+  { revalidate: 3600 },
+)
