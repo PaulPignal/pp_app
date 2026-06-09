@@ -8,11 +8,11 @@ import { IconAccess, IconClock, IconFilm, IconMetro, IconStar, IconTicket, IconT
 
 const AVAILABILITY_CHIP_CLASS: Record<'success' | 'danger' | 'warning', string> = {
   success: 'bg-[color:var(--color-success-soft)] text-[color:var(--color-success)]',
-  warning: 'bg-[rgba(255,107,107,0.16)] text-[color:var(--color-danger)]',
+  warning: 'bg-[color:var(--color-danger-soft)] text-[color:var(--color-danger)]',
   danger: 'bg-[color:var(--color-danger-soft)] text-[color:var(--color-danger)]',
 }
 
-const FACT_CHIP = 'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-white/[0.07] px-2.5 py-1 text-xs font-medium text-[color:var(--color-text)]'
+const FACT_CHIP = 'inline-flex items-center gap-1.5 rounded-[var(--radius-control)] bg-[color:var(--color-fill)] px-2.5 py-1 text-xs font-medium text-[color:var(--color-text)]'
 
 export default function CardWork({ work, counter }: { work: WorkCardDto; counter?: string }) {
   const durationLabel = formatDuration(work.durationMin)
@@ -75,7 +75,7 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
 
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1.5 p-4">
           {ratingLabel ? (
-            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-[#f5c518] backdrop-blur-sm">
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-[color:var(--color-rating)] backdrop-blur-sm">
               <IconStar size={13} /> {ratingLabel}
             </span>
           ) : null}
@@ -143,7 +143,7 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
               <IconTv size={14} /> Dispo sur
             </span>
             {work.platforms.map((p) => (
-              <span key={p} className="rounded-full bg-white/[0.07] px-2.5 py-0.5 text-xs font-medium text-[color:var(--color-text)]">
+              <span key={p} className="rounded-full bg-[color:var(--color-fill)] px-2.5 py-0.5 text-xs font-medium text-[color:var(--color-text)]">
                 {p}
               </span>
             ))}

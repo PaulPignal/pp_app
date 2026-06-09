@@ -109,6 +109,19 @@ export const IconCopy = (p: IconProps) => (
   </Svg>
 )
 
+export const IconSun = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
+  </Svg>
+)
+
+export const IconMoon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M20 14.5A8 8 0 0 1 9.5 4 7 7 0 1 0 20 14.5z" />
+  </Svg>
+)
+
 export const IconCheck = (p: IconProps) => (
   <Svg strokeWidth={2.2} {...p}>
     <path d="M20 6 9 17l-5-5" />

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import LogoutButton from '@/features/auth/ui/LogoutButton'
+import ThemeToggle from '@/shared/ui/ThemeToggle'
 import { cn } from '@/shared/lib/cn'
 import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
@@ -18,7 +19,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
         'inline-flex items-center rounded-full border border-transparent px-4 py-2 text-sm font-semibold tracking-[-0.01em] transition',
         active
           ? 'border-[color:var(--color-border-strong)] bg-[color:var(--color-surface-strong)] text-[color:var(--color-text)] shadow-[0_12px_30px_rgba(0,0,0,0.35)]'
-          : 'text-[color:var(--color-text-muted)] hover:border-[color:var(--color-border)] hover:bg-white/5 hover:text-[color:var(--color-text)]',
+          : 'text-[color:var(--color-text-muted)] hover:border-[color:var(--color-border)] hover:bg-[color:var(--color-surface)] hover:text-[color:var(--color-text)]',
       )}
       aria-current={active ? 'page' : undefined}
     >
@@ -51,7 +52,8 @@ export default function NavBar() {
           </span>
         ) : session ? (
           <div className="ml-auto flex items-center gap-2 lg:hidden">
-            <span className="rounded-full border border-[color:var(--color-border)] bg-white/5 px-3 py-1 text-xs text-[color:var(--color-text-muted)]">
+            <ThemeToggle />
+            <span className="rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 py-1 text-xs text-[color:var(--color-text-muted)]">
               {userName}
             </span>
             <LogoutButton />
@@ -71,6 +73,7 @@ export default function NavBar() {
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
+          <ThemeToggle />
           <a
             className="text-xs font-medium text-[color:var(--color-text-muted)] transition hover:text-[color:var(--color-text)]"
             href="https://www.offi.fr"
@@ -85,7 +88,7 @@ export default function NavBar() {
               Chargement
             </span>
           ) : session ? (
-            <div className="flex items-center gap-3 rounded-full border border-[color:var(--color-border)] bg-white/5 px-3 py-2">
+            <div className="flex items-center gap-3 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 py-2">
               <span className="text-xs font-medium text-[color:var(--color-text-muted)]">Connecté en tant que {userName}</span>
               <LogoutButton />
             </div>

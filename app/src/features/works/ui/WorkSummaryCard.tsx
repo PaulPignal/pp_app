@@ -94,7 +94,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
                 <IconTv size={14} /> Dispo sur
               </span>
               {work.platforms.map((p) => (
-                <span key={p} className="rounded-full bg-[rgba(255,255,255,0.07)] px-2.5 py-0.5 text-xs font-medium text-[color:var(--color-text)]">
+                <span key={p} className="rounded-full bg-[color:var(--color-fill)] px-2.5 py-0.5 text-xs font-medium text-[color:var(--color-text)]">
                   {p}
                 </span>
               ))}
@@ -150,7 +150,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-[var(--radius-panel)] border border-[color:var(--color-border)] bg-white/5 px-3 py-2">
+    <div className="flex items-start justify-between gap-3 rounded-[var(--radius-panel)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 py-2">
       <span className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</span>
       <span className="text-right font-medium leading-6">{value}</span>
     </div>

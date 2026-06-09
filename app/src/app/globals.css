@@ -1,25 +1,32 @@
 @import "tailwindcss";
 
 :root {
+  /* === Thème SOMBRE (défaut) — cinéma. Gris ardoise éclairci, contraste texte préservé. === */
   color-scheme: dark;
   --font-manrope: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  /* Cinéma sombre : gris ardoise (franchement éclairci), texte clair chaud, accent corail. */
-  --color-page: #2a2f38;
-  --color-page-top: #333944;
+  --color-page: #313640;
+  --color-page-top: #3c434f;
   --color-surface: rgba(255, 255, 255, 0.06);
-  --color-surface-strong: #373d48;
-  --color-surface-muted: #424955;
-  --color-border: rgba(255, 255, 255, 0.10);
-  --color-border-strong: rgba(255, 255, 255, 0.20);
-  --color-text: #f3f0ea;
-  --color-text-muted: #9aa0ad;
+  --color-surface-strong: #3d434f;
+  --color-surface-muted: #474e5b;
+  --color-border: rgba(255, 255, 255, 0.11);
+  --color-border-strong: rgba(255, 255, 255, 0.22);
+  --color-text: #f5f2ed;
+  --color-text-muted: #aab0bd;
   --color-accent: #f25c54;
   --color-accent-strong: #e0453d;
-  --color-accent-soft: rgba(242, 92, 84, 0.15);
+  --color-accent-soft: rgba(242, 92, 84, 0.16);
   --color-danger: #ff6b6b;
-  --color-danger-soft: rgba(255, 107, 107, 0.14);
+  --color-danger-soft: rgba(255, 107, 107, 0.15);
   --color-success: #4cd0a0;
-  --color-success-soft: rgba(76, 208, 160, 0.14);
+  --color-success-soft: rgba(76, 208, 160, 0.15);
+  --color-rating: #f5c518;
+  /* Surfaces de contrôles + overlays (tokenisés pour basculer avec le thème). */
+  --color-fill: rgba(255, 255, 255, 0.07);
+  --color-fill-hover: rgba(255, 255, 255, 0.13);
+  --color-control-bg: rgba(255, 255, 255, 0.06);
+  --color-control-bg-strong: rgba(255, 255, 255, 0.10);
+  --color-topbar: rgba(20, 22, 28, 0.72);
   --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.55);
   /* Échelle de rayons (du plus petit au plus grand). Les composants doivent
@@ -31,6 +38,36 @@
   --radius-lg: 1.15rem;
   --radius-xl: 1.35rem;
   --radius-2xl: 1.5rem;
+}
+
+/* === Thème CLAIR « parisien » — appliqué quand <html data-theme="light"> ===
+   (le script no-flash dans layout.tsx choisit selon la préférence stockée, sinon l'OS). */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-page: #f3ede3;
+  --color-page-top: #faf6ef;
+  --color-surface: rgba(255, 251, 246, 0.9);
+  --color-surface-strong: #fffdf9;
+  --color-surface-muted: #efe7da;
+  --color-border: rgba(83, 63, 43, 0.14);
+  --color-border-strong: rgba(83, 63, 43, 0.24);
+  --color-text: #201710;
+  --color-text-muted: #6f5b49;
+  --color-accent: #bf5a3c;
+  --color-accent-strong: #a3492f;
+  --color-accent-soft: rgba(191, 90, 60, 0.14);
+  --color-danger: #a04a41;
+  --color-danger-soft: #f9ece9;
+  --color-success: #23644b;
+  --color-success-soft: #e8f4ed;
+  --color-rating: #7a5c00;
+  --color-fill: rgba(54, 39, 24, 0.06);
+  --color-fill-hover: rgba(54, 39, 24, 0.12);
+  --color-control-bg: rgba(255, 255, 255, 0.72);
+  --color-control-bg-strong: rgba(255, 255, 255, 0.88);
+  --color-topbar: rgba(250, 246, 239, 0.82);
+  --shadow-sm: 0 2px 8px rgba(54, 39, 24, 0.06);
+  --shadow-lg: 0 8px 24px rgba(54, 39, 24, 0.09);
 }
 
 * {
@@ -74,7 +111,18 @@ a {
 }
 
 ::selection {
-  background: rgba(242, 92, 84, 0.16);
+  background: var(--color-accent-soft);
+}
+
+/* Toggle de thème : en sombre on montre le soleil (→ passer au clair), en clair la lune. */
+.theme-toggle__moon {
+  display: none;
+}
+:root[data-theme="light"] .theme-toggle__sun {
+  display: none;
+}
+:root[data-theme="light"] .theme-toggle__moon {
+  display: inline-block;
 }
 
 .text-muted-foreground {
@@ -98,7 +146,7 @@ a {
   top: 0;
   z-index: 40;
   border-bottom: 1px solid var(--color-border);
-  background: rgba(12, 13, 17, 0.72);
+  background: var(--color-topbar);
   backdrop-filter: blur(20px);
 }
 
@@ -143,7 +191,7 @@ a {
 
 .auth-main {
   padding: 1.25rem;
-  background: #1a1d25;
+  background: var(--color-surface-strong);
 }
 
 .auth-title {
@@ -170,9 +218,9 @@ a {
   display: grid;
   gap: 0.35rem;
   padding: 1rem 1.1rem;
-  border: 1px solid rgba(242, 92, 84, 0.12);
+  border: 1px solid var(--color-accent-soft);
   border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-control-bg);
 }
 
 .auth-highlight-label {
@@ -251,7 +299,7 @@ a {
   padding: 0.7rem 0.95rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-control-bg);
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-text-muted);
@@ -267,12 +315,12 @@ a {
 }
 
 .surface-card--muted {
-  background: #1a1d25;
+  background: var(--color-surface-strong);
 }
 
 .surface-card--accent {
   border-color: rgba(242, 92, 84, 0.14);
-  background: linear-gradient(180deg, rgba(242, 92, 84, 0.06), #1a1d25);
+  background: linear-gradient(180deg, rgba(242, 92, 84, 0.06), var(--color-surface-strong));
 }
 
 .btn {
@@ -284,7 +332,7 @@ a {
   padding: 0.7rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-control-bg);
   font-size: 0.92rem;
   font-weight: 600;
   color: var(--color-text);
@@ -305,7 +353,7 @@ a {
   border-color: transparent;
   background: var(--color-accent);
   color: #fff;
-  box-shadow: 0 3px 10px rgba(242, 92, 84, 0.16);
+  box-shadow: 0 3px 10px var(--color-accent-soft);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -313,7 +361,7 @@ a {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.10);
+  background: var(--color-control-bg-strong);
 }
 
 .btn-danger {
@@ -334,7 +382,7 @@ a {
   width: 100%;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.10);
+  background: var(--color-control-bg-strong);
   padding: 0.92rem 1rem;
   font-size: 0.95rem;
   color: var(--color-text);
@@ -343,14 +391,14 @@ a {
 
 .input::placeholder,
 .textarea::placeholder {
-  color: color-mix(in srgb, var(--color-text-muted) 68%, black);
+  color: color-mix(in srgb, var(--color-text-muted) 65%, transparent);
 }
 
 .input:focus,
 .textarea:focus {
   outline: none;
   border-color: rgba(242, 92, 84, 0.36);
-  box-shadow: 0 0 0 4px rgba(242, 92, 84, 0.12);
+  box-shadow: 0 0 0 4px var(--color-accent-soft);
 }
 
 .input[readonly] {
@@ -381,7 +429,7 @@ a {
   /* Rectangle arrondi (pas un stadium 999px) : reste propre quand les onglets
      passent sur deux lignes en écran étroit (mobile). */
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-control-bg);
   box-shadow: var(--shadow-sm);
 }
 
@@ -411,7 +459,7 @@ a {
   min-height: 2.4rem;
   white-space: nowrap;
   border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-control-bg);
 }
 .segmented-control--scroll .segmented-control__item--active {
   border-color: var(--color-accent);
@@ -457,7 +505,7 @@ a {
   height: 1.5rem;
   padding: 0 0.35rem;
   border-radius: 999px;
-  background: rgba(242, 92, 84, 0.12);
+  background: var(--color-accent-soft);
   font-size: 0.74rem;
   color: var(--color-accent);
 }
@@ -476,7 +524,7 @@ a {
 }
 
 .status-banner--info {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-control-bg);
   color: var(--color-text);
 }
 
@@ -516,7 +564,7 @@ a {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-control-bg);
 }
 
 .skeleton::after {
