@@ -84,7 +84,8 @@ Optimize for:
 - nullable-everywhere models without a domain reason
 - large comments that narrate obvious code
 - returning internal error text or stack traces to clients (log server-side, return a generic code)
-- per-row awaited DB writes in a loop over a remote DB (batch with `prisma.$transaction([...])`)
+- per-row awaited DB writes in a loop over a remote DB (use bounded concurrency — see "Scraper & ingestion")
+- bulk writes via `prisma.$transaction([...])` (the batch array form has a fixed 5s timeout, NOT configurable — only `isolationLevel` is; Neon latency blows past it). Use concurrent upserts without a transaction for bulk.
 - relying solely on mocked-DB tests for query logic (they validate wiring, not SQL)
 
 ## Current Target Structure
@@ -130,7 +131,7 @@ Dev tooling lives where it belongs: test infra and benchmarks under `tests/` (e.
 
 ## Performance Rules
 
-- Never `await` a DB write per row inside a loop over a remote DB. Batch with `prisma.$transaction([...])` in chunks.
+- Never `await` a DB write per row inside a loop over a remote DB. Use **bounded concurrency** (`Promise.all` over chunks of ~25), NOT `prisma.$transaction([...])`: the batch transaction form has a hard 5s timeout that Neon latency (~125 ms/upsert) exceeds for any non-trivial chunk. Upserts are idempotent, so a transaction buys nothing here. (See ingestion in `features/offi-import/server/ingest.ts`.)
 - List endpoints must paginate (cursor on `createdAt`/`id`) — no unbounded `take`.
 - Do set operations (intersections, dedup) in SQL, not by loading full sets into the application.
 
@@ -200,3 +201,67 @@ Before finishing:
 8. No magic fallback for env, auth, or data-shape failures.
 9. No refactor that moves code without removing duplication.
 10. No temporary abstraction without an owner and a reason.
+
+---
+
+# Project knowledge (offi-app)
+
+Hard-won, repo-specific facts. Read before touching scraper, ingestion, CI, or the swipe/likes UI.
+
+## Sections (Work.section)
+
+- Six sections, free-string column (no DB enum): `theatre`, `cinema`, `exposition`, `concert`, `visite`, `enfants`.
+- **Single source of truth: `app/src/features/works/section.ts`** — `WORK_SECTION_VALUES`, `WORK_SECTION_LABELS` (FR), `inferWorkSectionFromUrl`, `workSectionLabel`, `workDirectorLabel`. Ingestion (`offi-import/schemas`) and the works API import from here; add a section in one place.
+- Offi URL shapes: all sections are venue-based `/{section}/{venue}-{id}/{show}-{id}.html` (theatre, exposition `expositions-musees`, concert `concerts`, visite `visites-conferences`, enfants `enfants`) **except cinema** which is `/cinema/evenement/{slug}-{id}.html` (no venue — a film plays in many cinemas).
+- UI: section badge + `workDirectorLabel` per section; arrondissement shows for all venue-based sections (not cinema); cinema shows nationality·year + "N salles".
+
+## Scraper & ingestion
+
+- `scraper/parsers.py` holds **pure, unit-tested** functions (no I/O): `extract_credits`, `extract_cinema_meta`, `extract_arrondissement`, `extract_offers`, `extract_description`, `extract_venue`, `extract_cinema_venues`. `offi_scraper.py` delegates to them; `extract_credits_cli.py` re-exposes them for one-off backfills (`app/scripts/backfill-*.ts` pipe page HTML to it).
+- **Description**: prioritize `itemprop="description"` (real synopsis, theatre + cinema). The `<meta name=description>` is promotional ("Réservez vos billets…") — last resort only.
+- **Offers / availability / structured price** (`extract_offers`): the `offers` microdata (availability `InStock`/`SoldOut`, currency, low/high price) exists mostly on **theatre** pages, and only while a show is **currently bookable**. Past shows have none.
+- **Cinema venues** (`extract_cinema_venues`): `.nomSalle` repeats per showtime — dedup. Store a count + a sample of names. Showtimes are too volatile to store (link to offi).
+- **Images are already 1000px** in the data (`og:image`); offi serves only `/images/{120,200,1000}/` — other sizes 302 to an error page.
+- Cache reuse: `_is_cache_complete` is per-section. An "incomplete" cached entry is re-fetched every run (this is why theatre with missing descriptions never reused cache until the description fix).
+- **Ingestion is tolerant** (`readOffiFile`): an invalid or duplicate line is skipped + logged, never aborts the whole run. `nullableMoney` clamps out-of-range prices to `null` (cap 1000) rather than rejecting the record.
+- **Bulk upsert uses bounded concurrency, no transaction** (see Performance Rules). Do not reintroduce `$transaction([...])` here.
+
+## Images (next/image)
+
+- Custom loader `app/image-loader.ts` (`images.loader = 'custom'`) rewrites offi URLs to the nearest hosted size (120/200/1000) so images are served **directly by offi**, bypassing the Vercel image optimizer (its Hobby quota was exhausting → broken images in preview/prod).
+- `features/works/ui/WorkImage.tsx` wraps `next/image` with an `onError` fallback. It tracks the **failed URL** (`failedSrc`), not a sticky boolean — the SwipeDeck reuses one `WorkImage` instance across cards, so a sticky flag would hide every later image after a single error.
+
+## Venues
+
+- `Venue` model (`kind: theatre | cinema`), `Work.venueId` (nullable, `onDelete: SetNull`). Theatre shows link 1:1; cinema is a catalog only (a film has many venues). `app/scripts/backfill-venues.ts` derives theatre venue URLs from show URLs and relinks; cinema venues are harvested from film pages.
+
+## Mobile / touch UX
+
+- Swipe (`SwipeDeck`): track horizontal drag via **absolute `clientX - startX`**, never `event.movementX` (unreliable/0 on touch). Capture the pointer on the card; card has `touch-action: none`.
+- Global: `touch-action: manipulation` on interactive elements (kills the 300ms double-tap delay), `-webkit-tap-highlight-color: transparent` + `:active` feedback, `overscroll-behavior` on body (limits pull-to-refresh and horizontal back-swipe).
+
+## UI components
+
+- `SegmentedControl` variants: default (panel), `fullWidth` (2-col grid that wraps — `:active` scale), `scroll` (single-row horizontal pill strip, for many items). Likes tabs = `fullWidth`; Discover sections = `scroll`. Container radius is `--radius-lg` (rounded-rect, stays clean on two rows). All inline radii use `--radius-*` tokens — no hard-coded `rounded-[Nrem]`.
+- No big `PageHeader` block on pages (removed for vertical space) — pages render a visually-hidden `<h1 className="sr-only">` + the functional controls directly.
+
+## CI / cron runbook
+
+- Two CI workflows, path-filtered: `app-ci.yml` (`app/**`), `scraper-ci.yml` (`scraper/**`). A PR can trigger app-checks **twice** (push + pull_request) — gate merges on **all** runs green.
+- **`offi-refresh.yml`** (scheduled + `workflow_dispatch`) runs the pipeline → Neon. Required repo secret: **`DATABASE_URL`** (Neon pooled). Hard-won config:
+  - **Node 22** (Prisma 7 imports `node:sqlite`, absent in Node 20 → `ERR_UNKNOWN_BUILTIN_MODULE`).
+  - **pnpm 10** via `corepack prepare pnpm@10.0.0 --activate` (project pins `packageManager: pnpm@10`; the pipeline runs `pnpm --dir app` from repo root where corepack would otherwise pick pnpm 11 and refuse).
+  - **Preflight `prisma migrate deploy` BEFORE the scrape** (fail-fast: env errors surface in ~10s, not after a ~40min scrape). Pipeline runs with `OFFI_SKIP_DB_DEPLOY=1`.
+  - **Cache `data/offi.jsonl`** with `actions/cache/restore` + `actions/cache/save` (`if: always()`) so a failed run's scrape is preserved → incremental retries.
+- The pipeline (`scripts/offi-pipeline.sh`) and CLI default to all 6 sections. A full 6-section scrape is long; the job `timeout-minutes` is 90.
+
+## Backfill scripts
+
+- Pattern: `app/scripts/backfill-*.ts` select rows where a field is null, fetch the offi page, run it through `extract_credits_cli.py`, update. Run with `pnpm exec tsx --env-file=.env --env-file=.env.local scripts/<x>.ts` (env.ts throws otherwise). Throttle ~350ms (polite).
+- **Coverage is naturally partial**: offers/availability, showtimes, and cinema venues only exist for **currently-showing** works — past/repertory entries return nothing. Low backfill counts there are expected, not a bug.
+
+## Local / tooling gotchas
+
+- `gh` is NOT installed. Use the GitHub API with the token from `git credential fill` (host=github.com); the token can create/merge PRs and read checks. Parse JSON with `json.loads(..., strict=False)` (PR bodies contain literal newlines).
+- Shell is **zsh**: unquoted `$VAR` does NOT word-split (pass explicit arg lists or use `${=VAR}`); `status` is a read-only builtin (don't name a var `status`); `timeout` is not available; foreground `sleep` is blocked (use background jobs).
+- Migrations: hand-write `prisma/migrations/<ts>_<name>/migration.sql`, then `DATABASE_URL=… pnpm exec prisma migrate deploy` (no shadow DB on Neon). Generated client (`src/generated/prisma`) is gitignored — `prisma generate` after any schema change.
