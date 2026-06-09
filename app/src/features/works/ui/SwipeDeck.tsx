@@ -86,7 +86,6 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   const current = items[index]
   const hasMore = index < items.length
   const visibleTotal = totalCount ?? items.length
-  const nextItems = items.slice(index + 1, index + 3)
 
   const rotation = useMemo(() => dragX * 0.05, [dragX])
   const transform = useMemo(() => transformCss(dragX, rotation), [dragX, rotation])
@@ -342,18 +341,6 @@ export default function SwipeDeck({ items, totalCount }: Props) {
       className="mx-auto flex w-full max-w-xl flex-col gap-3 select-none"
     >
       <div className="relative flex min-h-[30rem] items-center justify-center pb-2">
-        {nextItems.map((item, previewIndex) => (
-          <div
-            key={item.id}
-            aria-hidden
-            className="pointer-events-none absolute inset-x-[4%] top-6 bottom-16 rounded-[var(--radius-2xl)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] shadow-[0_22px_48px_rgba(255,255,255,0.10)]"
-            style={{
-              transform: `translateY(${(previewIndex + 1) * 14}px) scale(${1 - (previewIndex + 1) * 0.03})`,
-              opacity: 0.9 - previewIndex * 0.18,
-            }}
-          />
-        ))}
-
         <div
           ref={cardRef}
           role="group"
