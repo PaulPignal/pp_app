@@ -303,10 +303,6 @@ export default function SwipeDeck({ items, totalCount }: Props) {
       aria-label="Sélection de découvertes à balayer"
       className="mx-auto flex w-full max-w-5xl flex-col gap-3 select-none"
     >
-      <div className="page-meta">
-        <span className="chip">Carte {Math.min(index + 1, visibleTotal)} / {visibleTotal}</span>
-      </div>
-
       <div className="relative flex min-h-[30rem] items-center justify-center pb-2">
         {nextItems.map((item, previewIndex) => (
           <div
@@ -333,7 +329,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           style={{ transform, pointerEvents: pending ? 'none' : 'auto' }}
           className="relative z-10 h-full w-full max-w-xl cursor-grab touch-none rounded-[var(--radius-2xl)] border border-[color:var(--color-border)] bg-[color:var(--color-surface-strong)] p-2 shadow-[var(--shadow-lg)] will-change-transform"
         >
-          <CardWork work={current} />
+          <CardWork work={current} counter={`${Math.min(index + 1, visibleTotal)} / ${visibleTotal}`} />
           <div className="pointer-events-none absolute inset-x-6 top-6 flex items-start justify-between">
             <span
               aria-hidden
