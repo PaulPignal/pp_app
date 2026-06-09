@@ -16,11 +16,13 @@ type Props = {
   fallbackTitle: string
   friends: FriendSummaryDto[]
   onOpen: () => void
+  onRemove: () => void
 }
 
 // Carte compacte et cliquable (le détail s'ouvre dans une modale). Vignette à
 // gauche, titre + signaux d'action à droite (urgence, dispo, prix, amis).
-export default function CompactLikeCard({ work, fallbackTitle, friends, onOpen }: Props) {
+// Une croix en haut à droite retire directement l'œuvre des likes.
+export default function CompactLikeCard({ work, fallbackTitle, friends, onOpen, onRemove }: Props) {
   const title = work?.title ?? fallbackTitle
   const sectionLabel = workSectionLabel(work?.section)
   const ends = formatEndsIn(work?.endDate ?? null)
@@ -32,12 +34,23 @@ export default function CompactLikeCard({ work, fallbackTitle, friends, onOpen }
       : [work?.venue, work?.arrondissement].filter(Boolean).join(' · ')
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group flex w-full items-stretch gap-3 overflow-hidden rounded-[var(--radius-lg)] border border-[color:var(--color-border)] bg-[color:var(--color-surface-strong)] p-2 text-left transition hover:border-[color:var(--color-border-strong)] hover:shadow-[var(--shadow-sm)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)]"
-      aria-label={`Voir le détail de ${title}`}
-    >
+    <div className="group relative overflow-hidden rounded-[var(--radius-lg)] border border-[color:var(--color-border)] bg-[color:var(--color-surface-strong)] transition hover:border-[color:var(--color-border-strong)] hover:shadow-[var(--shadow-sm)]">
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Retirer « ${title} » des likes`}
+        className="absolute right-1.5 top-1.5 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[color:var(--color-surface)] text-[color:var(--color-text-muted)] backdrop-blur-sm transition hover:bg-[color:var(--color-danger-soft)] hover:text-[color:var(--color-danger)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-danger)]"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+          <path d="M6 6l12 12M18 6 6 18" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex w-full items-stretch gap-3 p-2 pr-9 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)]"
+        aria-label={`Voir le détail de ${title}`}
+      >
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-muted">
         <WorkImage
           src={work?.imageUrl}
@@ -93,6 +106,7 @@ export default function CompactLikeCard({ work, fallbackTitle, friends, onOpen }
           ) : null}
         </div>
       </div>
-    </button>
+      </button>
+    </div>
   )
 }

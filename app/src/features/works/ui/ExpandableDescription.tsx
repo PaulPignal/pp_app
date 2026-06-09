@@ -21,6 +21,9 @@ export default function ExpandableDescription({ text }: { text: string }) {
       {canExpand ? (
         <button
           type="button"
+          // stopPropagation : sinon la carte Découverte capture le pointeur (swipe)
+          // et « avale » le clic → le bouton ne basculait plus.
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setExpanded((value) => !value)}
           className="text-sm font-semibold text-[color:var(--color-accent)] underline-offset-4 hover:underline"
           aria-expanded={expanded}

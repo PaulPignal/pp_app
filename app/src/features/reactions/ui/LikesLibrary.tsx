@@ -253,6 +253,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
                     fallbackTitle={item.workId}
                     friends={friendsByWork[item.workId] ?? []}
                     onOpen={() => setSelected({ workId: item.workId, bucket: baseItems.bucket })}
+                    onRemove={() => remove(item, view === 'seen' ? 'seen' : bucketOf(item, active, archive))}
                   />
                 </li>
               ))}
