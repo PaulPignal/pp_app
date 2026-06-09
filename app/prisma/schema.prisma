@@ -129,6 +129,7 @@ model Venue {
   access String?                  // "Accès PMR, Espace climatisé"
 
   imageUrl  String?
+  website   String?                  // site officiel du lieu (rel="external" sur offi)
   sourceUrl String @unique
 
   works Work[]

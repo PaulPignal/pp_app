@@ -26,7 +26,7 @@ export const workCardSelect = {
   cinemaVenues: true,
   sourceUrl: true,
   venue_ref: {
-    select: { name: true, metro: true, access: true, phone: true, city: true },
+    select: { name: true, metro: true, access: true, phone: true, city: true, website: true },
   },
 } satisfies Prisma.WorkSelect
 
@@ -62,6 +62,7 @@ export type WorkCardDto = {
     access: string | null
     phone: string | null
     city: string | null
+    website: string | null
   } | null
 }
 
@@ -97,6 +98,7 @@ export function mapWorkToCardDto(work: WorkCardRecord): WorkCardDto {
           access: work.venue_ref.access,
           phone: work.venue_ref.phone,
           city: work.venue_ref.city,
+          website: work.venue_ref.website,
         }
       : null,
   }

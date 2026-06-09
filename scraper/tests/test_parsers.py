@@ -211,6 +211,11 @@ class VenueTests(unittest.TestCase):
             '<span itemprop="telephone">01.42.50.23.32 (tlj 13h30-21h)</span>'
             '<p>Métro : Commerce Accès PMR, salle climatisée</p>'
             '<meta property="og:image" content="https://files.offi.fr/lieu/3113/images/1000/x.jpg">'
+            # Boutons de partage (rel external mais hosts sociaux) → écartés
+            '<a rel="external" href="https://pinterest.com/pin/create/x">Pinterest</a>'
+            '<a href="https://wa.me/?text=x">WhatsApp</a>'
+            # Site officiel du lieu → retenu
+            '<a rel="external nofollow" href="http://www.lechaplin.fr">www.lechaplin.fr</a>'
         )
         v = parsers.extract_venue(_soup(html), "https://www.offi.fr/cinema/le-chaplin-3113.html", "cinema")
         self.assertEqual(v["offi_id"], 3113)
@@ -222,6 +227,7 @@ class VenueTests(unittest.TestCase):
         self.assertEqual(v["metro"], "Commerce")  # coupé à la rubrique suivante
         self.assertEqual(v["access"], "Accès PMR, Espace climatisé")
         self.assertTrue(v["image"].endswith("x.jpg"))
+        self.assertEqual(v["website"], "http://www.lechaplin.fr")  # site officiel, pas le partage
 
     def test_extract_venue_requires_name(self):
         self.assertIsNone(parsers.extract_venue(_soup("<div>no h1</div>"), "https://www.offi.fr/cinema/x-1.html", "cinema"))
