@@ -1,30 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
   --font-manrope: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  /* Cinéma sombre : gris ardoise (franchement éclairci), texte clair chaud, accent corail. */
-  --color-page: #2a2f38;
-  --color-page-top: #333944;
-  --color-surface: rgba(255, 255, 255, 0.06);
-  --color-surface-strong: #373d48;
-  --color-surface-muted: #424955;
-  --color-border: rgba(255, 255, 255, 0.10);
-  --color-border-strong: rgba(255, 255, 255, 0.20);
-  --color-text: #f3f0ea;
-  --color-text-muted: #9aa0ad;
-  --color-accent: #f25c54;
-  --color-accent-strong: #e0453d;
-  --color-accent-soft: rgba(242, 92, 84, 0.15);
-  --color-danger: #ff6b6b;
-  --color-danger-soft: rgba(255, 107, 107, 0.14);
-  --color-success: #4cd0a0;
-  --color-success-soft: rgba(76, 208, 160, 0.14);
-  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.55);
-  /* Échelle de rayons (du plus petit au plus grand). Les composants doivent
-     piocher dans cette échelle plutôt que de coder des valeurs en dur.
-     Resserrée pour un rendu plus net (moins « bubble »). */
+  --color-page: #f3ede3;
+  --color-page-top: #faf6ef;
+  --color-surface: rgba(255, 251, 246, 0.9);
+  --color-surface-strong: #fffdf9;
+  --color-surface-muted: #efe7da;
+  --color-border: rgba(83, 63, 43, 0.14);
+  --color-border-strong: rgba(83, 63, 43, 0.24);
+  --color-text: #201710;
+  --color-text-muted: #6f5b49;
+  /* Parisien assumé : base crème chaude, accent terracotta. */
+  --color-accent: #bf5a3c;
+  --color-accent-strong: #a3492f;
+  --color-accent-soft: #f6e7df;
+  --color-danger: #a04a41;
+  --color-danger-soft: #f9ece9;
+  --color-success: #23644b;
+  --color-success-soft: #e8f4ed;
+  --shadow-sm: 0 2px 8px rgba(54, 39, 24, 0.06);
+  --shadow-lg: 0 8px 24px rgba(54, 39, 24, 0.09);
+  /* Rayons resserrés (rendu plus net, moins « bubble »). */
   --radius-control: 0.55rem;
   --radius-panel: 0.85rem;
   --radius-md: 1rem;
@@ -74,7 +71,7 @@ a {
 }
 
 ::selection {
-  background: rgba(242, 92, 84, 0.16);
+  background: rgba(191, 90, 60, 0.16);
 }
 
 .text-muted-foreground {
@@ -98,7 +95,7 @@ a {
   top: 0;
   z-index: 40;
   border-bottom: 1px solid var(--color-border);
-  background: rgba(12, 13, 17, 0.72);
+  background: rgba(250, 246, 239, 0.82);
   backdrop-filter: blur(20px);
 }
 
@@ -137,13 +134,13 @@ a {
   gap: 2rem;
   padding: 2rem;
   background:
-    linear-gradient(180deg, rgba(242, 92, 84, 0.08), transparent 45%),
+    linear-gradient(180deg, rgba(191, 90, 60, 0.08), transparent 45%),
     var(--color-surface);
 }
 
 .auth-main {
   padding: 1.25rem;
-  background: #1a1d25;
+  background: rgba(255, 253, 249, 0.95);
 }
 
 .auth-title {
@@ -170,9 +167,9 @@ a {
   display: grid;
   gap: 0.35rem;
   padding: 1rem 1.1rem;
-  border: 1px solid rgba(242, 92, 84, 0.12);
+  border: 1px solid rgba(191, 90, 60, 0.12);
   border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .auth-highlight-label {
@@ -251,7 +248,7 @@ a {
   padding: 0.7rem 0.95rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.72);
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-text-muted);
@@ -267,12 +264,12 @@ a {
 }
 
 .surface-card--muted {
-  background: #1a1d25;
+  background: rgba(255, 253, 249, 0.7);
 }
 
 .surface-card--accent {
-  border-color: rgba(242, 92, 84, 0.14);
-  background: linear-gradient(180deg, rgba(242, 92, 84, 0.06), #1a1d25);
+  border-color: rgba(191, 90, 60, 0.14);
+  background: linear-gradient(180deg, rgba(191, 90, 60, 0.06), rgba(255, 253, 249, 0.96));
 }
 
 .btn {
@@ -284,7 +281,7 @@ a {
   padding: 0.7rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.72);
   font-size: 0.92rem;
   font-weight: 600;
   color: var(--color-text);
@@ -293,7 +290,7 @@ a {
 
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(54, 39, 24, 0.08);
 }
 
 .btn:disabled {
@@ -305,7 +302,7 @@ a {
   border-color: transparent;
   background: var(--color-accent);
   color: #fff;
-  box-shadow: 0 3px 10px rgba(242, 92, 84, 0.16);
+  box-shadow: 0 3px 10px rgba(191, 90, 60, 0.16);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -313,7 +310,7 @@ a {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.88);
 }
 
 .btn-danger {
@@ -334,7 +331,7 @@ a {
   width: 100%;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.88);
   padding: 0.92rem 1rem;
   font-size: 0.95rem;
   color: var(--color-text);
@@ -343,18 +340,18 @@ a {
 
 .input::placeholder,
 .textarea::placeholder {
-  color: color-mix(in srgb, var(--color-text-muted) 68%, black);
+  color: color-mix(in srgb, var(--color-text-muted) 78%, white);
 }
 
 .input:focus,
 .textarea:focus {
   outline: none;
-  border-color: rgba(242, 92, 84, 0.36);
-  box-shadow: 0 0 0 4px rgba(242, 92, 84, 0.12);
+  border-color: rgba(191, 90, 60, 0.36);
+  box-shadow: 0 0 0 4px rgba(191, 90, 60, 0.12);
 }
 
 .input[readonly] {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(244, 238, 230, 0.92);
 }
 
 .label {
@@ -381,7 +378,7 @@ a {
   /* Rectangle arrondi (pas un stadium 999px) : reste propre quand les onglets
      passent sur deux lignes en écran étroit (mobile). */
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.72);
   box-shadow: var(--shadow-sm);
 }
 
@@ -411,7 +408,7 @@ a {
   min-height: 2.4rem;
   white-space: nowrap;
   border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.72);
 }
 .segmented-control--scroll .segmented-control__item--active {
   border-color: var(--color-accent);
@@ -440,7 +437,7 @@ a {
 .segmented-control__item--active {
   background: var(--color-surface-strong);
   color: var(--color-text);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(54, 39, 24, 0.08);
 }
 
 .segmented-control__item--full {
@@ -457,7 +454,7 @@ a {
   height: 1.5rem;
   padding: 0 0.35rem;
   border-radius: 999px;
-  background: rgba(242, 92, 84, 0.12);
+  background: rgba(191, 90, 60, 0.12);
   font-size: 0.74rem;
   color: var(--color-accent);
 }
@@ -476,7 +473,7 @@ a {
 }
 
 .status-banner--info {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--color-text);
 }
 
@@ -516,7 +513,7 @@ a {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(227, 218, 204, 0.8);
 }
 
 .skeleton::after {
@@ -524,7 +521,7 @@ a {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.52), transparent);
   animation: shimmer 1.3s linear infinite;
 }
 

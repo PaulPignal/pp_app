@@ -17,8 +17,8 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
       className={cn(
         'inline-flex items-center rounded-full border border-transparent px-4 py-2 text-sm font-semibold tracking-[-0.01em] transition',
         active
-          ? 'border-[color:var(--color-border-strong)] bg-[color:var(--color-surface-strong)] text-[color:var(--color-text)] shadow-[0_12px_30px_rgba(0,0,0,0.35)]'
-          : 'text-[color:var(--color-text-muted)] hover:border-[color:var(--color-border)] hover:bg-white/5 hover:text-[color:var(--color-text)]',
+          ? 'border-[color:var(--color-border-strong)] bg-[color:var(--color-surface-strong)] text-[color:var(--color-text)] shadow-[0_12px_30px_rgba(42,30,18,0.08)]'
+          : 'text-[color:var(--color-text-muted)] hover:border-[color:var(--color-border)] hover:bg-white/70 hover:text-[color:var(--color-text)]',
       )}
       aria-current={active ? 'page' : undefined}
     >
@@ -36,7 +36,7 @@ export default function NavBar() {
     <nav className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center">
       <div className="flex items-center gap-3">
         <Link href="/discover" className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--color-accent)] text-sm font-bold text-white shadow-[0_14px_30px_rgba(242,92,84,0.30)]">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--color-accent)] text-sm font-bold text-white shadow-[0_14px_30px_rgba(191,90,60,0.28)]">
             O
           </span>
           <div>
@@ -51,7 +51,7 @@ export default function NavBar() {
           </span>
         ) : session ? (
           <div className="ml-auto flex items-center gap-2 lg:hidden">
-            <span className="rounded-full border border-[color:var(--color-border)] bg-white/5 px-3 py-1 text-xs text-[color:var(--color-text-muted)]">
+            <span className="rounded-full border border-[color:var(--color-border)] bg-white/70 px-3 py-1 text-xs text-[color:var(--color-text-muted)]">
               {userName}
             </span>
             <LogoutButton />
@@ -85,7 +85,7 @@ export default function NavBar() {
               Chargement
             </span>
           ) : session ? (
-            <div className="flex items-center gap-3 rounded-full border border-[color:var(--color-border)] bg-white/5 px-3 py-2">
+            <div className="flex items-center gap-3 rounded-full border border-[color:var(--color-border)] bg-white/70 px-3 py-2">
               <span className="text-xs font-medium text-[color:var(--color-text-muted)]">Connecté en tant que {userName}</span>
               <LogoutButton />
             </div>
