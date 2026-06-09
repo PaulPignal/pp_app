@@ -199,6 +199,19 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
   return (
     <>
       <h1 className="sr-only">Mes likes</h1>
+
+      {/* Barre d'univers défilante (même modèle que Discover) : filtre par thématique. */}
+      <SegmentedControl
+        ariaLabel="Filtrer par univers"
+        value={section}
+        scroll
+        onChange={(value) => setSection(value as 'all' | WorkSection)}
+        items={[
+          { label: 'Tous', value: 'all' },
+          ...WORK_SECTION_VALUES.map((s) => ({ label: WORK_SECTION_LABELS[s], value: s })),
+        ]}
+      />
+
       <SegmentedControl
         ariaLabel="Filtrer les likes"
         value={view}
@@ -226,8 +239,6 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
           <Toolbar
             query={query}
             onQuery={setQuery}
-            section={section}
-            onSection={setSection}
             bookableOnly={bookableOnly}
             onBookable={setBookableOnly}
             sort={sort}
@@ -287,8 +298,6 @@ function bucketOf(item: LikedItem, active: LikedItem[], archive: LikedItem[]): S
 function Toolbar({
   query,
   onQuery,
-  section,
-  onSection,
   bookableOnly,
   onBookable,
   sort,
@@ -296,8 +305,6 @@ function Toolbar({
 }: {
   query: string
   onQuery: (v: string) => void
-  section: 'all' | WorkSection
-  onSection: (v: 'all' | WorkSection) => void
   bookableOnly: boolean
   onBookable: (v: boolean) => void
   sort: SortKey
@@ -314,19 +321,6 @@ function Toolbar({
         aria-label="Rechercher dans mes likes"
       />
       <div className="flex flex-wrap items-center gap-2">
-        <select
-          className="input w-auto py-1.5 text-sm"
-          value={section}
-          onChange={(e) => onSection(e.target.value as 'all' | WorkSection)}
-          aria-label="Filtrer par type"
-        >
-          <option value="all">Tout</option>
-          {WORK_SECTION_VALUES.map((s) => (
-            <option key={s} value={s}>
-              {WORK_SECTION_LABELS[s]}
-            </option>
-          ))}
-        </select>
         <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 py-1.5 text-xs font-medium">
           <input type="checkbox" checked={bookableOnly} onChange={(e) => onBookable(e.target.checked)} />
           Réservable
