@@ -66,7 +66,7 @@ describe('/likes page', () => {
     vi.useRealTimers()
   })
 
-  it('affiche les likes courants et archivés dans l’onglet « Tous »', async () => {
+  it('par défaut (« À l’affiche ») montre les courants, pas les archivés', async () => {
     listLibraryWorksMock.mockResolvedValue({
       likes: [
         { workId: 'work-current', work: work('work-current', 'Hamlet', '2026-03-30T00:00:00.000Z') },
@@ -78,7 +78,8 @@ describe('/likes page', () => {
     render(await LikesPage())
 
     expect(screen.getByRole('button', { name: /Voir le détail de Hamlet/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Voir le détail de La Lecon/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Voir le détail de La Lecon/ })).not.toBeInTheDocument()
+    // friendsWhoLiked est calculé sur tous les workIds (avant filtrage d'affichage).
     expect(friendsWhoLikedMock).toHaveBeenCalledWith('user-1', ['work-current', 'work-archived'])
   })
 

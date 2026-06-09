@@ -13,10 +13,11 @@ type LikesView = 'all' | 'active' | 'archived' | 'seen'
 
 function resolveLikesView(value: string | string[] | undefined): LikesView {
   const candidate = Array.isArray(value) ? value[0] : value
-  if (candidate === 'active' || candidate === 'archived' || candidate === 'seen') {
+  if (candidate === 'archived' || candidate === 'seen') {
     return candidate
   }
-  return 'all'
+  // Plus de vue « Tous » : par défaut, on montre ce qui est encore à l'affiche.
+  return 'active'
 }
 
 export default async function LikesPage({ searchParams }: LikesPageProps = {}) {

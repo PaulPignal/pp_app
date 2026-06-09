@@ -1,12 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import type { FriendSummaryDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
 import CompactLikeCard from '@/features/reactions/ui/CompactLikeCard'
 import LikeDetailModal, { type LikeBucket } from '@/features/reactions/ui/LikeDetailModal'
 import { WORK_SECTION_LABELS, WORK_SECTION_VALUES, type WorkSection } from '@/features/works/section'
 import { fetchJson } from '@/shared/lib/fetch-json'
+import { cn } from '@/shared/lib/cn'
 import SegmentedControl from '@/shared/ui/SegmentedControl'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
 
@@ -63,7 +65,6 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
   // Filtres / tri (côté client).
   const [query, setQuery] = useState('')
   const [section, setSection] = useState<'all' | WorkSection>('all')
-  const [bookableOnly, setBookableOnly] = useState(false)
   const [sort, setSort] = useState<SortKey>('recent')
 
   useEffect(() => {
@@ -167,7 +168,6 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
     let list = baseItems.items.filter((item) => {
       const w = item.work
       if (section !== 'all' && w?.section !== section) return false
-      if (bookableOnly && w?.availability !== 'InStock') return false
       if (q) {
         const hay = [w?.title, w?.venue, w?.director, w?.arrondissement].filter(Boolean).join(' ').toLowerCase()
         if (!hay.includes(q)) return false
@@ -184,7 +184,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
       list = [...list].sort((a, b) => (a.work?.priceMin ?? Infinity) - (b.work?.priceMin ?? Infinity))
     }
     return list
-  }, [baseItems, query, section, bookableOnly, sort])
+  }, [baseItems, query, section, sort])
 
   const selectedItem = useMemo(() => {
     if (!selected) return null
@@ -199,15 +199,16 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
   return (
     <>
       <h1 className="sr-only">Mes likes</h1>
+
+      {/* Barre d'univers défilante (même modèle que Discover) : filtre par thématique. */}
       <SegmentedControl
-        ariaLabel="Filtrer les likes"
-        value={view}
-        fullWidth
+        ariaLabel="Filtrer par univers"
+        value={section}
+        scroll
+        onChange={(value) => setSection(value as 'all' | WorkSection)}
         items={[
-          { label: 'Tous', value: 'all', href: '/likes', count: totalLikes },
-          { label: 'À l’affiche', value: 'active', href: '/likes?view=active', count: active.length },
-          { label: 'Archivées', value: 'archived', href: '/likes?view=archived', count: archive.length },
-          { label: 'Déjà vus', value: 'seen', href: '/likes?view=seen', count: seenList.length },
+          { label: 'Tous', value: 'all' },
+          ...WORK_SECTION_VALUES.map((s) => ({ label: WORK_SECTION_LABELS[s], value: s })),
         ]}
       />
 
@@ -223,16 +224,21 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
         </SurfaceCard>
       ) : (
         <div className="space-y-4">
-          <Toolbar
-            query={query}
-            onQuery={setQuery}
-            section={section}
-            onSection={setSection}
-            bookableOnly={bookableOnly}
-            onBookable={setBookableOnly}
-            sort={sort}
-            onSort={setSort}
-          />
+          {/* Contrôles : états (onglets texte discrets, hiérarchie ≠ des univers) + recherche + tri. */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-b border-[color:var(--color-border)] pb-2">
+              <StateTabs active={active.length} archived={archive.length} seen={seenList.length} view={view} />
+              <SortMenu sort={sort} onSort={setSort} />
+            </div>
+            <input
+              type="search"
+              className="input py-2 text-sm"
+              placeholder="Rechercher (titre, lieu, metteur en scène…)"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Rechercher dans mes likes"
+            />
+          </div>
 
           {items.length === 0 ? (
             <div className="empty-state rounded-[var(--radius-lg)] border border-dashed border-[color:var(--color-border)] bg-[color:var(--color-surface)]">
@@ -284,64 +290,118 @@ function bucketOf(item: LikedItem, active: LikedItem[], archive: LikedItem[]): S
   return 'active'
 }
 
-function Toolbar({
-  query,
-  onQuery,
-  section,
-  onSection,
-  bookableOnly,
-  onBookable,
-  sort,
-  onSort,
-}: {
-  query: string
-  onQuery: (v: string) => void
-  section: 'all' | WorkSection
-  onSection: (v: 'all' | WorkSection) => void
-  bookableOnly: boolean
-  onBookable: (v: boolean) => void
-  sort: SortKey
-  onSort: (v: SortKey) => void
-}) {
+// États du like : onglets TEXTE discrets (hiérarchie ≠ des pastilles d'univers,
+// pour éviter l'effet « deux barres en doublon »). Pas de « Tous » → défaut À l'affiche.
+const STATE_TABS: { value: LikesView; label: string; href: string }[] = [
+  { value: 'active', label: 'À l’affiche', href: '/likes?view=active' },
+  { value: 'archived', label: 'Archivées', href: '/likes?view=archived' },
+  { value: 'seen', label: 'Déjà vus', href: '/likes?view=seen' },
+]
+
+function StateTabs({ active, archived, seen, view }: { active: number; archived: number; seen: number; view: LikesView }) {
+  const counts: Record<string, number> = { active, archived, seen }
+  const current: LikesView = view === 'archived' || view === 'seen' ? view : 'active'
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <input
-        type="search"
-        className="input lg:max-w-xs"
-        placeholder="Rechercher (titre, lieu, metteur en scène…)"
-        value={query}
-        onChange={(e) => onQuery(e.target.value)}
-        aria-label="Rechercher dans mes likes"
-      />
-      <div className="flex flex-wrap items-center gap-2">
-        <select
-          className="input w-auto py-1.5 text-sm"
-          value={section}
-          onChange={(e) => onSection(e.target.value as 'all' | WorkSection)}
-          aria-label="Filtrer par type"
+    <nav className="flex flex-wrap items-center gap-x-5 gap-y-1" aria-label="État des likes">
+      {STATE_TABS.map((t) => {
+        const on = current === t.value
+        return (
+          <Link
+            key={t.value}
+            href={t.href}
+            aria-current={on ? 'page' : undefined}
+            className={cn(
+              'inline-flex items-center gap-1.5 text-sm transition',
+              on
+                ? 'font-semibold text-[color:var(--color-text)]'
+                : 'font-medium text-[color:var(--color-text-muted)] hover:text-[color:var(--color-text)]',
+            )}
+          >
+            {t.label}
+            <span className={cn('text-xs tabular-nums', on ? 'text-[color:var(--color-accent)]' : 'text-[color:var(--color-text-muted)]')}>
+              {counts[t.value]}
+            </span>
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
+const SORT_OPTIONS: { k: SortKey; l: string }[] = [
+  { k: 'recent', l: 'Récents' },
+  { k: 'ending', l: 'Fin proche' },
+  { k: 'price', l: 'Prix croissant' },
+]
+
+// Vrai bouton « Trier par » avec menu (au lieu d'un <select> natif).
+function SortMenu({ sort, onSort }: { sort: SortKey; onSort: (v: SortKey) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDoc(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+
+  const current = SORT_OPTIONS.find((o) => o.k === sort) ?? SORT_OPTIONS[0]
+
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="inline-flex items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-control-bg)] px-3.5 py-2 text-sm font-semibold text-[color:var(--color-text)] transition hover:border-[color:var(--color-border-strong)]"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M7 5v14M7 19l-3-3M7 5l3 3M17 19V5M17 5l-3 3M17 19l3-3" />
+        </svg>
+        Trier : {current.l}
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={cn('transition', open && 'rotate-180')}>
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[color:var(--color-surface-strong)] p-1 shadow-[var(--shadow-lg)]"
         >
-          <option value="all">Tout</option>
-          {WORK_SECTION_VALUES.map((s) => (
-            <option key={s} value={s}>
-              {WORK_SECTION_LABELS[s]}
-            </option>
-          ))}
-        </select>
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 py-1.5 text-xs font-medium">
-          <input type="checkbox" checked={bookableOnly} onChange={(e) => onBookable(e.target.checked)} />
-          Réservable
-        </label>
-        <select
-          className="input w-auto py-1.5 text-sm"
-          value={sort}
-          onChange={(e) => onSort(e.target.value as SortKey)}
-          aria-label="Trier"
-        >
-          <option value="recent">Récents</option>
-          <option value="ending">Fin proche</option>
-          <option value="price">Prix croissant</option>
-        </select>
-      </div>
+          {SORT_OPTIONS.map((o) => {
+            const on = o.k === sort
+            return (
+              <button
+                key={o.k}
+                type="button"
+                role="menuitemradio"
+                aria-checked={on}
+                onClick={() => {
+                  onSort(o.k)
+                  setOpen(false)
+                }}
+                className={cn(
+                  'flex w-full items-center justify-between gap-2 rounded-[var(--radius-control)] px-3 py-2 text-left text-sm transition',
+                  on
+                    ? 'bg-[color:var(--color-fill)] font-semibold text-[color:var(--color-text)]'
+                    : 'text-[color:var(--color-text-muted)] hover:bg-[color:var(--color-fill)] hover:text-[color:var(--color-text)]',
+                )}
+              >
+                {o.l}
+                {on ? (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                ) : null}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
     </div>
   )
 }
