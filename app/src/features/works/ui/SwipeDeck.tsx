@@ -304,17 +304,17 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           <div className="pointer-events-none absolute inset-x-6 top-6 flex items-start justify-between">
             <span
               aria-hidden
-              className="rounded-full border border-[rgba(35,100,75,0.35)] bg-[rgba(232,244,237,0.9)] px-4 py-2 text-sm font-semibold text-[color:var(--color-success)] opacity-0 shadow-[0_14px_30px_rgba(35,100,75,0.16)]"
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(35,100,75,0.35)] bg-[rgba(232,244,237,0.9)] text-2xl text-[color:var(--color-success)] opacity-0 shadow-[0_14px_30px_rgba(35,100,75,0.16)]"
               style={{ opacity: Math.max(0, Math.min(1, dragX / 120)) }}
             >
-              Aimer
+              ♥
             </span>
             <span
               aria-hidden
-              className="rounded-full border border-[rgba(160,74,65,0.3)] bg-[rgba(249,236,233,0.92)] px-4 py-2 text-sm font-semibold text-[color:var(--color-danger)] opacity-0 shadow-[0_14px_30px_rgba(160,74,65,0.14)]"
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(160,74,65,0.3)] bg-[rgba(249,236,233,0.92)] text-2xl text-[color:var(--color-danger)] opacity-0 shadow-[0_14px_30px_rgba(160,74,65,0.14)]"
               style={{ opacity: Math.max(0, Math.min(1, -dragX / 120)) }}
             >
-              Passer
+              ✕
             </span>
           </div>
         </div>
@@ -334,20 +334,22 @@ export default function SwipeDeck({ items, totalCount }: Props) {
         <button
           type="button"
           onClick={() => void advance(false)}
-          className="btn btn-secondary min-w-[8.5rem] px-7 py-3 text-base"
+          className="btn btn-secondary h-16 w-16 rounded-full p-0 text-2xl leading-none disabled:opacity-40"
           disabled={pending}
           aria-label="Passer"
+          title="Passer"
         >
-          Passer
+          ✕
         </button>
         <button
           type="button"
           onClick={() => void advance(true)}
-          className="btn btn-primary min-w-[8.5rem] px-7 py-3 text-base"
+          className="btn btn-primary h-16 w-16 rounded-full p-0 text-2xl leading-none disabled:opacity-60"
           disabled={pending}
           aria-label="Aimer"
+          title="Aimer"
         >
-          {pending ? 'Envoi…' : 'Aimer'}
+          {pending ? '…' : '♥'}
         </button>
       </div>
 
