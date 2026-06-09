@@ -215,7 +215,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
       <SegmentedControl
         ariaLabel="Filtrer les likes"
         value={view}
-        fullWidth
+        scroll
         items={[
           { label: 'Tous', value: 'all', href: '/likes', count: totalLikes },
           { label: 'À l’affiche', value: 'active', href: '/likes?view=active', count: active.length },
@@ -311,31 +311,29 @@ function Toolbar({
   onSort: (v: SortKey) => void
 }) {
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex flex-wrap items-center gap-2">
       <input
         type="search"
-        className="input lg:max-w-xs"
+        className="input min-w-[12rem] flex-1 py-2 text-sm"
         placeholder="Rechercher (titre, lieu, metteur en scène…)"
         value={query}
         onChange={(e) => onQuery(e.target.value)}
         aria-label="Rechercher dans mes likes"
       />
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 py-1.5 text-xs font-medium">
-          <input type="checkbox" checked={bookableOnly} onChange={(e) => onBookable(e.target.checked)} />
-          Réservable
-        </label>
-        <select
-          className="input w-auto py-1.5 text-sm"
-          value={sort}
-          onChange={(e) => onSort(e.target.value as SortKey)}
-          aria-label="Trier"
-        >
-          <option value="recent">Récents</option>
-          <option value="ending">Fin proche</option>
-          <option value="price">Prix croissant</option>
-        </select>
-      </div>
+      <label className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 py-2 text-xs font-medium">
+        <input type="checkbox" checked={bookableOnly} onChange={(e) => onBookable(e.target.checked)} />
+        Réservable
+      </label>
+      <select
+        className="input w-auto shrink-0 py-2 text-sm"
+        value={sort}
+        onChange={(e) => onSort(e.target.value as SortKey)}
+        aria-label="Trier"
+      >
+        <option value="recent">Récents</option>
+        <option value="ending">Fin proche</option>
+        <option value="price">Prix croissant</option>
+      </select>
     </div>
   )
 }
