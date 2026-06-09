@@ -31,6 +31,7 @@ const base: WorkCardDto = {
   availability: null,
   currency: null,
   sourceUrl: 'https://www.offi.fr/x',
+  venueInfo: null,
 }
 
 describe('CardWork', () => {
@@ -82,6 +83,20 @@ describe('CardWork', () => {
   it('affiche « Complet » quand availability=SoldOut', () => {
     render(<CardWork work={{ ...base, availability: 'SoldOut' }} />)
     expect(screen.getByText('Complet')).toBeInTheDocument()
+  })
+
+  it('affiche les infos pratiques du lieu (métro + accès)', () => {
+    render(
+      <CardWork
+        work={{
+          ...base,
+          section: 'theatre',
+          venueInfo: { name: 'Théâtre de la Huchette', metro: 'Cluny - La Sorbonne', access: 'Accès PMR', phone: null, city: 'Paris 5e' },
+        }}
+      />,
+    )
+    expect(screen.getByText(/Cluny - La Sorbonne/)).toBeInTheDocument()
+    expect(screen.getByText(/Accès PMR/)).toBeInTheDocument()
   })
 
   it('théâtre : affiche le lieu avec l’arrondissement', () => {

@@ -169,5 +169,63 @@ class ExtractOffersTests(unittest.TestCase):
         self.assertEqual(o, {"availability": None, "currency": None, "price_min": None, "price_max": None})
 
 
+class VenueTests(unittest.TestCase):
+    def test_offi_id_from_url(self):
+        self.assertEqual(parsers.offi_id_from_url("https://www.offi.fr/cinema/le-chaplin-3113.html"), 3113)
+        self.assertEqual(parsers.offi_id_from_url("https://www.offi.fr/theatre/x-2490.html"), 2490)
+        self.assertIsNone(parsers.offi_id_from_url("https://www.offi.fr/theatre/"))
+
+    def test_theatre_venue_url_from_show(self):
+        url = "https://www.offi.fr/theatre/theatre-de-la-huchette-2490/crime-et-chatiment-105182.html"
+        self.assertEqual(
+            parsers.theatre_venue_url_from_show(url),
+            "https://www.offi.fr/theatre/theatre-de-la-huchette-2490.html",
+        )
+        self.assertIsNone(parsers.theatre_venue_url_from_show("https://www.offi.fr/theatre/x-2490.html"))
+
+    def test_cinema_venue_links(self):
+        html = (
+            '<a href="/cinema/le-chaplin-3113.html">Le Chaplin</a>'
+            '<a href="/cinema/le-chaplin-3113.html#onglet-acces">accès</a>'
+            '<a href="https://www.offi.fr/cinema/ugc-velizy-3340.html">UGC</a>'
+            '<a href="/cinema/evenement/film-104603.html">un film</a>'
+        )
+        links = sorted(parsers.cinema_venue_links(_soup(html)))
+        self.assertEqual(
+            links,
+            [
+                ("https://www.offi.fr/cinema/le-chaplin-3113.html", 3113),
+                ("https://www.offi.fr/cinema/ugc-velizy-3340.html", 3340),
+            ],
+        )
+
+    def test_extract_venue(self):
+        html = (
+            '<h1>Le Chaplin - Saint-Lambert</h1>'
+            '<span itemprop="streetAddress">6 rue Péclet</span>'
+            '<span itemprop="postalCode">75015</span>'
+            '<span itemprop="addressLocality">Paris 15e</span>'
+            '<span itemprop="addressCountry">FR</span>'
+            '<meta itemprop="Latitude" content="48.8432">'
+            '<meta itemprop="Longitude" content="2.2985">'
+            '<span itemprop="telephone">01.42.50.23.32 (tlj 13h30-21h)</span>'
+            '<p>Métro : Commerce Accès PMR, salle climatisée</p>'
+            '<meta property="og:image" content="https://files.offi.fr/lieu/3113/images/1000/x.jpg">'
+        )
+        v = parsers.extract_venue(_soup(html), "https://www.offi.fr/cinema/le-chaplin-3113.html", "cinema")
+        self.assertEqual(v["offi_id"], 3113)
+        self.assertEqual(v["name"], "Le Chaplin - Saint-Lambert")
+        self.assertEqual(v["postal_code"], "75015")
+        self.assertEqual(v["city"], "Paris 15e")
+        self.assertEqual(v["latitude"], 48.8432)
+        self.assertEqual(v["phone"], "01.42.50.23.32")
+        self.assertEqual(v["metro"], "Commerce")  # coupé à la rubrique suivante
+        self.assertEqual(v["access"], "Accès PMR, Espace climatisé")
+        self.assertTrue(v["image"].endswith("x.jpg"))
+
+    def test_extract_venue_requires_name(self):
+        self.assertIsNone(parsers.extract_venue(_soup("<div>no h1</div>"), "https://www.offi.fr/cinema/x-1.html", "cinema"))
+
+
 if __name__ == "__main__":
     unittest.main()

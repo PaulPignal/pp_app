@@ -23,6 +23,9 @@ export const workCardSelect = {
   availability: true,
   currency: true,
   sourceUrl: true,
+  venue_ref: {
+    select: { name: true, metro: true, access: true, phone: true, city: true },
+  },
 } satisfies Prisma.WorkSelect
 
 type WorkCardRecord = Prisma.WorkGetPayload<{ select: typeof workCardSelect }>
@@ -49,6 +52,13 @@ export type WorkCardDto = {
   availability: string | null
   currency: string | null
   sourceUrl: string | null
+  venueInfo: {
+    name: string
+    metro: string | null
+    access: string | null
+    phone: string | null
+    city: string | null
+  } | null
 }
 
 export function mapWorkToCardDto(work: WorkCardRecord): WorkCardDto {
@@ -74,5 +84,14 @@ export function mapWorkToCardDto(work: WorkCardRecord): WorkCardDto {
     availability: work.availability,
     currency: work.currency,
     sourceUrl: work.sourceUrl,
+    venueInfo: work.venue_ref
+      ? {
+          name: work.venue_ref.name,
+          metro: work.venue_ref.metro,
+          access: work.venue_ref.access,
+          phone: work.venue_ref.phone,
+          city: work.venue_ref.city,
+        }
+      : null,
   }
 }
