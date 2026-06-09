@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { requireSessionUserOrRedirect } from '@/features/auth/server/session'
-import { DEFAULT_WORK_SECTION, WORK_SECTION_VALUES, type WorkSection } from '@/features/works/section'
+import { DEFAULT_WORK_SECTION, WORK_SECTION_LABELS, WORK_SECTION_VALUES, type WorkSection } from '@/features/works/section'
 import { listDiscoverWorks } from '@/features/works/server/queries'
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
 import SegmentedControl from '@/shared/ui/SegmentedControl'
@@ -39,10 +39,11 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
         ariaLabel="Sections culturelles"
         value={section}
         fullWidth
-        items={[
-          { label: 'Théâtre', value: 'theatre', href: '/discover?section=theatre' },
-          { label: 'Cinéma', value: 'cinema', href: '/discover?section=cinema' },
-        ]}
+        items={WORK_SECTION_VALUES.map((s) => ({
+          label: WORK_SECTION_LABELS[s],
+          value: s,
+          href: `/discover?section=${s}`,
+        }))}
       />
 
       <SwipeDeck items={works.items} totalCount={works.total} />

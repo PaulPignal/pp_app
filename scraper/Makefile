@@ -3,7 +3,7 @@
 PYTHON ?= ../.venv/bin/python
 OUT ?= ../data/offi.jsonl
 MAX_PAGES ?= 150
-SECTIONS ?= theatre,cinema
+SECTIONS ?= theatre,cinema,exposition,concert,visite,enfants
 REFRESH_AFTER_HOURS ?= 72
 CACHE ?= ../data/offi.jsonl
 

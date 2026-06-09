@@ -2,6 +2,7 @@
 
 import type { FriendSummaryDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
+import { workSectionLabel } from '@/features/works/section'
 import WorkImage from '@/features/works/ui/WorkImage'
 import { formatAvailability, formatEndsIn, formatPriceRange } from '@/features/works/ui/work-formatters'
 
@@ -20,7 +21,7 @@ type Props = {
 // gauche, titre + signaux d'action à droite (urgence, dispo, prix, amis).
 export default function CompactLikeCard({ work, fallbackTitle, friends, onOpen }: Props) {
   const title = work?.title ?? fallbackTitle
-  const sectionLabel = work?.section === 'cinema' ? 'Cinéma' : 'Théâtre'
+  const sectionLabel = workSectionLabel(work?.section)
   const ends = formatEndsIn(work?.endDate ?? null)
   const availability = formatAvailability(work?.availability ?? null)
   const priceLabel = formatPriceRange(work?.priceMin ?? null, work?.priceMax ?? null)

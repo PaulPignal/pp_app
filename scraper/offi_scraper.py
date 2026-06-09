@@ -40,6 +40,10 @@ CINEMA_PROGRAMME_URL = (
     f"{BASE_URL}/cinema/programme.html"
     "?rubrique=cinema&origine=homepage_rubrique&DateDebut=&DateFin=&NbDay=&arrondissment=&arrondissment=&GenreCinema="
 )
+EXPOSITION_PROGRAMME_URL = f"{BASE_URL}/expositions-musees/programme.html"
+CONCERT_PROGRAMME_URL = f"{BASE_URL}/concerts/programme.html"
+VISITE_PROGRAMME_URL = f"{BASE_URL}/visites-conferences/programme.html"
+ENFANTS_PROGRAMME_URL = f"{BASE_URL}/enfants/programme.html"
 USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
@@ -59,7 +63,7 @@ ADDRESS_RE = re.compile(
     r"\b\d{1,4}\s+(?:bis\s+|ter\s+)?[A-Za-zÀ-ÖØ-öø-ÿ'’\-. ]+?\b\d{5}\s+[A-Za-zÀ-ÖØ-öø-ÿ'’\-. ]+"
 )
 RUBRIC_RE = re.compile(r"rubrique\s+([^\.]+)\.", re.IGNORECASE)
-SECTION_VALUES = {"theatre", "cinema"}
+SECTION_VALUES = {"theatre", "cinema", "exposition", "concert", "visite", "enfants"}
 
 # Mois FR (longs + abréviations, avec ou sans point)
 MONTHS = {
@@ -150,6 +154,32 @@ SECTION_CONFIGS = {
         programme_url=CINEMA_PROGRAMME_URL,
         show_path_re=re.compile(r"^/cinema/evenement/[^/]+-\d+\.html$"),
         venue_path_re=None,
+        default_category=None,
+    ),
+    # Expositions, concerts, visites-conférences et jeune public : même structure
+    # d'URL que le théâtre (/<section>/<lieu>-<id>/<show>-<id>.html), listings statiques.
+    "exposition": SectionConfig(
+        programme_url=EXPOSITION_PROGRAMME_URL,
+        show_path_re=re.compile(r"^/expositions-musees/[^/]+-\d+/[^/]+-\d+\.html$"),
+        venue_path_re=re.compile(r"^/expositions-musees/[^/]+-\d+(?:\.html)?$"),
+        default_category=None,
+    ),
+    "concert": SectionConfig(
+        programme_url=CONCERT_PROGRAMME_URL,
+        show_path_re=re.compile(r"^/concerts/[^/]+-\d+/[^/]+-\d+\.html$"),
+        venue_path_re=re.compile(r"^/concerts/[^/]+-\d+(?:\.html)?$"),
+        default_category=None,
+    ),
+    "visite": SectionConfig(
+        programme_url=VISITE_PROGRAMME_URL,
+        show_path_re=re.compile(r"^/visites-conferences/[^/]+-\d+/[^/]+-\d+\.html$"),
+        venue_path_re=re.compile(r"^/visites-conferences/[^/]+-\d+(?:\.html)?$"),
+        default_category=None,
+    ),
+    "enfants": SectionConfig(
+        programme_url=ENFANTS_PROGRAMME_URL,
+        show_path_re=re.compile(r"^/enfants/[^/]+-\d+/[^/]+-\d+\.html$"),
+        venue_path_re=re.compile(r"^/enfants/[^/]+-\d+(?:\.html)?$"),
         default_category=None,
     ),
 }
@@ -402,6 +432,14 @@ class OffiScraper:
             return "theatre"
         if path.startswith("/cinema/"):
             return "cinema"
+        if path.startswith("/expositions-musees/"):
+            return "exposition"
+        if path.startswith("/concerts/"):
+            return "concert"
+        if path.startswith("/visites-conferences/"):
+            return "visite"
+        if path.startswith("/enfants/"):
+            return "enfants"
         return None
 
     def _get_section_config(self, section: Optional[str]) -> Optional[SectionConfig]:
@@ -413,7 +451,10 @@ class OffiScraper:
         section = show.section or self._infer_section_from_url(show.url)
         if section == "cinema":
             return bool(show.title and show.description)
-        return bool(show.title and show.category and show.venue and show.description)
+        if section == "theatre":
+            return bool(show.title and show.category and show.venue and show.description)
+        # expo/concert/visite/enfants : pas de catégorie fiable → titre + lieu + description.
+        return bool(show.title and show.venue and show.description)
 
     def _should_refresh_detail(self, cached_show: Optional[Show]) -> bool:
         if cached_show is None:
@@ -581,14 +622,17 @@ class OffiScraper:
         except Exception:
             return None
 
+    # Sections « lieu » dont l'URL est /<section>/<lieu>-<id>/<show>-<id>.html.
+    _VENUE_BASED_SECTIONS = {"theatre", "expositions-musees", "concerts", "visites-conferences", "enfants"}
+
     def _venue_from_show_url(self, show_url: str) -> Optional[str]:
-        """Extrait le théâtre depuis l’URL de la fiche (1er segment)."""
+        """Déduit le nom du lieu depuis l'URL de la fiche (2e segment), toutes
+        sections « lieu » confondues (théâtre, expo, concert, visite, enfants)."""
         try:
             path = urlparse(show_url).path
             parts = path.strip("/").split("/")
-            if len(parts) >= 2 and parts[0] == "theatre":
-                first = parts[1]  # ex: theatre-montparnasse-2825
-                base = re.sub(r"-\d+$", "", first)
+            if len(parts) >= 3 and parts[0] in self._VENUE_BASED_SECTIONS:
+                base = re.sub(r"-\d+$", "", parts[1])  # ex: cafe-de-la-danse-1598 → cafe-de-la-danse
                 if base:
                     name = base.replace("-", " ").strip()
                     return " ".join(w.capitalize() for w in name.split())
@@ -830,7 +874,9 @@ class OffiScraper:
             if venue:
                 show.venue = venue
 
-        config = self._get_section_config("theatre")
+        # Config de la section courante (et non "theatre" en dur) pour reconnaître le
+        # lien du lieu dans le fil d'ariane (/<section>/<lieu>-<id>...).
+        config = self._get_section_config(show.section) or self._get_section_config("theatre")
         breadcrumbs = soup.select("nav.breadcrumb a, .breadcrumb a, ol.breadcrumb a") or []
         for bc in reversed(breadcrumbs):
             href = bc.get("href", "")
@@ -1086,7 +1132,7 @@ def main():
     parser = argparse.ArgumentParser(description="Scraper Offi.fr - fiches 2 segments, venue fiable, dates robustes")
     parser.add_argument("--out", default="spectacles.jsonl", help="Fichier de sortie")
     parser.add_argument("--max-pages", type=int, default=150, help="Nombre max de pages de programme")
-    parser.add_argument("--sections", default="theatre,cinema", help="Sections à crawler (liste séparée par des virgules)")
+    parser.add_argument("--sections", default="theatre,cinema,exposition,concert,visite,enfants", help="Sections à crawler (liste séparée par des virgules)")
     parser.add_argument("--min-delay", type=float, default=0.7, help="Délai min entre requêtes")
     parser.add_argument("--max-delay", type=float, default=1.6, help="Délai max entre requêtes")
     parser.add_argument("--retries", type=int, default=4, help="Nombre de retries HTTP")
