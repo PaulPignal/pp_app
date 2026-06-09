@@ -44,6 +44,28 @@ export function formatPriceRange(min: number | null, max: number | null) {
   return null
 }
 
+// Disponibilité billetterie (valeurs schema.org) → libellé + tonalité d'affichage.
+export type AvailabilityBadge = { label: string; tone: 'success' | 'danger' | 'warning' }
+
+export function formatAvailability(availability: string | null): AvailabilityBadge | null {
+  switch (availability) {
+    case 'InStock':
+    case 'OnlineOnly':
+    case 'InStoreOnly':
+      return { label: 'Billets dispo', tone: 'success' }
+    case 'LimitedAvailability':
+    case 'PreOrder':
+    case 'PreSale':
+    case 'BackOrder':
+      return { label: 'Dernières places', tone: 'warning' }
+    case 'SoldOut':
+    case 'OutOfStock':
+      return { label: 'Complet', tone: 'danger' }
+    default:
+      return null
+  }
+}
+
 export function formatDuration(durationMin: number | null) {
   if (!durationMin) {
     return null

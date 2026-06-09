@@ -135,5 +135,39 @@ class ExtractArrondissementTests(unittest.TestCase):
         self.assertIsNone(parsers.extract_arrondissement(_soup("<div>rien</div>")))
 
 
+class ExtractOffersTests(unittest.TestCase):
+    def test_full_offer(self):
+        html = (
+            '<div itemprop="offers">'
+            '<link itemprop="availability" href="https://schema.org/InStock">'
+            '<span itemprop="priceCurrency">EUR</span>'
+            '<span itemprop="lowPrice">18,50</span><span itemprop="highPrice">42</span>'
+            '</div>'
+        )
+        o = parsers.extract_offers(_soup(html))
+        self.assertEqual(o["availability"], "InStock")
+        self.assertEqual(o["currency"], "EUR")
+        self.assertEqual(o["price_min"], 18.5)
+        self.assertEqual(o["price_max"], 42.0)
+
+    def test_single_price(self):
+        html = (
+            '<meta itemprop="availability" content="https://schema.org/SoldOut">'
+            '<span itemprop="price">24.50</span><span itemprop="priceCurrency">EUR</span>'
+        )
+        o = parsers.extract_offers(_soup(html))
+        self.assertEqual(o["availability"], "SoldOut")
+        self.assertEqual(o["price_min"], 24.5)
+        self.assertEqual(o["price_max"], 24.5)
+
+    def test_unknown_availability_dropped(self):
+        o = parsers.extract_offers(_soup('<link itemprop="availability" href="https://schema.org/Bogus">'))
+        self.assertIsNone(o["availability"])
+
+    def test_empty(self):
+        o = parsers.extract_offers(_soup("<div>rien</div>"))
+        self.assertEqual(o, {"availability": None, "currency": None, "price_min": None, "price_max": None})
+
+
 if __name__ == "__main__":
     unittest.main()
