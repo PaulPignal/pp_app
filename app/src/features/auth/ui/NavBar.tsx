@@ -97,19 +97,6 @@ export default function NavBar() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 lg:hidden">
-        <a
-          className="text-xs font-medium text-[color:var(--color-text-muted)] transition hover:text-[color:var(--color-text)]"
-          href="https://www.offi.fr"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Source: offi.fr
-        </a>
-        {status === 'loading' ? (
-          <span className="text-xs text-[color:var(--color-text-muted)]">Chargement</span>
-        ) : null}
-      </div>
     </nav>
   )
 }

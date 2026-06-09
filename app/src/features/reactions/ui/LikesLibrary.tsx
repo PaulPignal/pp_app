@@ -201,6 +201,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
       <SegmentedControl
         ariaLabel="Filtrer les likes"
         value={view}
+        fullWidth
         items={[
           { label: 'Tous', value: 'all', href: '/likes', count: totalLikes },
           { label: 'À l’affiche', value: 'active', href: '/likes?view=active', count: active.length },
