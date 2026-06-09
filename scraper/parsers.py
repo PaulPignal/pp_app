@@ -431,3 +431,17 @@ def extract_description(soup) -> Optional[str]:
         return _clean_text(meta_desc["content"])
 
     return None
+
+
+# --- Cinéma : salles où le film est programmé -----------------------------------
+# Un film passe dans de nombreuses salles (.nomSalle, répétées par horaire). On
+# dédoublonne et on renvoie (nombre de salles uniques, échantillon de noms).
+def extract_cinema_venues(soup, sample_size: int = 8) -> tuple[int, list[str]]:
+    seen: list[str] = []
+    keys: set[str] = set()
+    for el in soup.select(".nomSalle"):
+        name = _clean_text(el.get_text(" ", strip=True))
+        if name and name.lower() not in keys:
+            keys.add(name.lower())
+            seen.append(name)
+    return len(seen), seen[:sample_size]

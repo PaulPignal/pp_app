@@ -27,6 +27,13 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
     .filter(Boolean)
     .join(' · ')
   const cinemaMeta = work.section === 'cinema' ? [work.country, work.year].filter(Boolean).join(' · ') : ''
+  // Cinéma : « N salles — quelques noms » (un film passe dans plusieurs cinémas).
+  const cinemaVenuesLine =
+    work.section === 'cinema' && work.cinemaVenueCount
+      ? `${work.cinemaVenueCount} salle${work.cinemaVenueCount > 1 ? 's' : ''}${
+          work.cinemaVenues.length ? ' · ' + work.cinemaVenues.slice(0, 2).join(', ') : ''
+        }`
+      : ''
   // Infos pratiques du lieu (théâtre relié) : métro + accès.
   const venueMetro = work.venueInfo?.metro?.trim()
   const venueAccess = work.venueInfo?.access?.trim()
@@ -98,6 +105,10 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
             {venueMetro ? <span>🚇 {venueMetro}</span> : null}
             {venueAccess ? <span>♿ {venueAccess}</span> : null}
           </p>
+        ) : null}
+
+        {cinemaVenuesLine ? (
+          <p className="text-xs text-[color:var(--color-text-muted)]">🎬 {cinemaVenuesLine}</p>
         ) : null}
 
         {hasFacts ? (

@@ -253,5 +253,21 @@ class ExtractDescriptionTests(unittest.TestCase):
         self.assertIsNone(parsers.extract_description(_soup('<div>rien</div>')))
 
 
+class ExtractCinemaVenuesTests(unittest.TestCase):
+    def test_dedup_and_count(self):
+        html = (
+            '<span class="nomSalle">Le Chaplin</span>'
+            '<span class="nomSalle">UGC Les Halles</span>'
+            '<span class="nomSalle">Le Chaplin</span>'  # doublon (autre horaire)
+            '<span class="nomSalle">Le Balzac</span>'
+        )
+        count, sample = parsers.extract_cinema_venues(_soup(html))
+        self.assertEqual(count, 3)
+        self.assertEqual(sample, ['Le Chaplin', 'UGC Les Halles', 'Le Balzac'])
+
+    def test_empty(self):
+        self.assertEqual(parsers.extract_cinema_venues(_soup('<div>rien</div>')), (0, []))
+
+
 if __name__ == "__main__":
     unittest.main()

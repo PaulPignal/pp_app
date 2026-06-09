@@ -77,6 +77,14 @@ export const offiWorkSchema = z
     year: nullableYear,
     availability: nullableString(40),
     currency: nullableString(8),
+    cinema_venue_count: z.preprocess(
+      (value) => (value === undefined || value === null || value === '' ? null : value),
+      z.number().int().min(0).max(5000).nullable(),
+    ),
+    cinema_venues: z.preprocess(
+      (value) => (Array.isArray(value) ? value : []),
+      z.array(z.string().trim().min(1).max(160)).max(20),
+    ),
     date_start: nullableIsoDate,
     date_end: nullableIsoDate,
     duration_min: nullableInt,
