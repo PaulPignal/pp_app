@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
-import NavBar from '@/features/auth/ui/NavBar'
+import { BottomNav, MobileTopBar, Sidebar } from '@/features/auth/ui/AppNav'
 import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
 type AppShellProps = {
@@ -15,42 +15,23 @@ export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname()
   const isAuthRoute = pathname ? AUTH_PATHS.has(pathname) : false
 
+  // Connexion / inscription : carte unique centrée, sans panneau marketing.
   if (isAuthRoute) {
     return (
       <div className="app-auth-shell">
-        <div className="app-auth-frame">
-          <section className="auth-aside">
-            <p className="page-eyebrow">Offi Premium</p>
-            <div className="space-y-4">
-              <h1 className="auth-title">Découvrir Paris comme une collection, pas comme une liste.</h1>
-              <p className="auth-copy">
-                Garde le rythme d&apos;une interface de productivité, avec une lecture plus éditoriale pour le théâtre et
-                le cinéma.
-              </p>
-            </div>
-            <div className="auth-highlight-grid">
-              <div className="auth-highlight-card">
-                <span className="auth-highlight-label">Découverte</span>
-                <strong>Swipe clair, cartes lisibles, contexte utile.</strong>
-              </div>
-              <div className="auth-highlight-card">
-                <span className="auth-highlight-label">Bibliothèque</span>
-                <strong>Likes, amis et œuvres communes dans un même langage visuel.</strong>
-              </div>
-            </div>
-          </section>
-          <div className="auth-main">{children}</div>
-        </div>
+        <div className="auth-main w-full max-w-md">{children}</div>
       </div>
     )
   }
 
   return (
-    <div className="app-shell">
-      <header className="app-topbar">
-        <NavBar />
-      </header>
-      <main className="app-content">{children}</main>
+    <div className="lg:flex">
+      <Sidebar />
+      <div className="flex min-h-screen flex-1 flex-col">
+        <MobileTopBar />
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-5 sm:px-6 lg:px-8 lg:pb-12">{children}</main>
+      </div>
+      <BottomNav />
     </div>
   )
 }

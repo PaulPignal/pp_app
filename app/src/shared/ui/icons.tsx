@@ -109,6 +109,19 @@ export const IconCopy = (p: IconProps) => (
   </Svg>
 )
 
+export const IconCompass = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z" />
+  </Svg>
+)
+
+export const IconHeart = ({ filled = false, size = 16, ...props }: IconProps & { filled?: boolean }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...props}>
+    <path d="M12 20s-7-4.6-9.1-9C1.4 7.7 3.1 4.6 6.2 4.6c1.9 0 3.1 1 3.8 2 .7-1 1.9-2 3.8-2 3.1 0 4.8 3.1 3.3 6.4C19 15.4 12 20 12 20z" />
+  </svg>
+)
+
 export const IconSun = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="4" />
