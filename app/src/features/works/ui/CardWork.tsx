@@ -25,6 +25,9 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
     .filter(Boolean)
     .join(' · ')
   const cinemaMeta = work.section === 'cinema' ? [work.country, work.year].filter(Boolean).join(' · ') : ''
+  // Infos pratiques du lieu (théâtre relié) : métro + accès.
+  const venueMetro = work.venueInfo?.metro?.trim()
+  const venueAccess = work.venueInfo?.access?.trim()
 
   return (
     <article
@@ -88,6 +91,13 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
               </p>
             ) : null}
           </div>
+        ) : null}
+
+        {venueMetro || venueAccess ? (
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[color:var(--color-text-muted)]">
+            {venueMetro ? <span>🚇 {venueMetro}</span> : null}
+            {venueAccess ? <span>♿ {venueAccess}</span> : null}
+          </p>
         ) : null}
 
         {hasFacts ? (

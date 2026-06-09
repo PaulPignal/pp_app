@@ -277,3 +277,118 @@ def extract_offers(soup) -> dict:
         "price_min": price_min,
         "price_max": price_max,
     }
+
+
+# --- Lieux (théâtres / cinémas) -------------------------------------------------
+# Pages lieu : /theatre/<slug>-<id>.html et /cinema/<slug>-<id>.html. Même forme
+# (nom, adresse structurée, géo, téléphone, métro, accès, image HD /lieu/<id>/).
+
+_OFFI_ID_RE = re.compile(r"-(\d+)(?:\.html)?(?:[?#].*)?$")
+_PHONE_RE = re.compile(r"\+?\d[\d .]{7,}\d")
+_METRO_RE = re.compile(r"M[ée]tro\s*:?\s*([A-Za-zÀ-ÿ0-9 '’\-]{3,60})", re.IGNORECASE)
+
+
+def offi_id_from_url(url: Optional[str]) -> Optional[int]:
+    if not url:
+        return None
+    match = _OFFI_ID_RE.search(url.strip())
+    return int(match.group(1)) if match else None
+
+
+def theatre_venue_url_from_show(url: Optional[str]) -> Optional[str]:
+    """Déduit l'URL de la page lieu depuis l'URL d'un spectacle de théâtre.
+    /theatre/<venue>-<vid>/<show>-<sid>.html -> /theatre/<venue>-<vid>.html"""
+    m = re.match(r"^(https?://[^/]+/theatre/[^/]+-\d+)/[^/]+-\d+(?:\.html)?$", (url or "").strip())
+    return f"{m.group(1)}.html" if m else None
+
+
+def cinema_venue_links(soup) -> list[tuple[str, int]]:
+    """Liste (url, offi_id) des salles de cinéma référencées sur une fiche film."""
+    seen: dict[int, str] = {}
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        m = re.search(r"/cinema/(?!evenement/)[a-z0-9\-]+-(\d+)\.html", href)
+        if not m:
+            continue
+        vid = int(m.group(1))
+        url = href if href.startswith("http") else f"https://www.offi.fr{href}"
+        url = url.split("#", 1)[0]
+        seen.setdefault(vid, url)
+    return [(url, vid) for vid, url in seen.items()]
+
+
+def _venue_access_features(text: str) -> Optional[str]:
+    features: list[str] = []
+    if re.search(r"\bPMR\b", text):
+        features.append("Accès PMR")
+    if re.search(r"climatis", text, re.IGNORECASE):
+        features.append("Espace climatisé")
+    return ", ".join(features) or None
+
+
+def extract_venue(soup, source_url: str, kind: str) -> Optional[dict]:
+    """Extrait les infos d'une page lieu (BeautifulSoup) → dict, ou None si pas de nom."""
+    offi_id = offi_id_from_url(source_url)
+    if offi_id is None:
+        return None
+
+    h1 = soup.select_one("h1")
+    name = _clean_credit(h1.get_text(" ", strip=True)) if h1 else None
+    if not name:
+        return None
+
+    def ip(n: str) -> Optional[str]:
+        return _itemprop_value(soup, n)
+
+    street = _clean_credit(ip("streetAddress") or "") or None
+    postal = _clean_credit(ip("postalCode") or "") or None
+    city = _clean_credit(ip("addressLocality") or "") or None
+    country = _clean_credit(ip("addressCountry") or "") or None
+
+    def to_float(v: Optional[str]) -> Optional[float]:
+        try:
+            return float(v) if v else None
+        except ValueError:
+            return None
+
+    # itemprops géo capitalisés sur offi ("Latitude"/"Longitude").
+    latitude = to_float(ip("Latitude") or ip("latitude"))
+    longitude = to_float(ip("Longitude") or ip("longitude"))
+
+    phone = None
+    raw_phone = ip("telephone")
+    if raw_phone:
+        pm = _PHONE_RE.search(raw_phone)
+        if pm:
+            phone = re.sub(r"\s+", " ", pm.group(0)).strip()
+
+    text = soup.get_text(" ", strip=True)
+    metro = None
+    mm = _METRO_RE.search(text)
+    if mm:
+        # On coupe à la rubrique suivante (Accès, Bus, Parking, RER…).
+        metro = re.split(r"\s+(?:Acc[èe]s|Bus|Parking|Voiture|RER|Horaires|T[ée]l)\b", mm.group(1))[0]
+        metro = _clean_credit(metro) or None
+    access = _venue_access_features(text)
+
+    image = None
+    og = soup.find("meta", property="og:image")
+    if og and og.get("content"):
+        image = og["content"].strip()
+
+    return {
+        "offi_id": offi_id,
+        "kind": kind,
+        "name": name,
+        "street_address": street,
+        "postal_code": postal,
+        "city": city,
+        "country": country,
+        "latitude": latitude,
+        "longitude": longitude,
+        "phone": phone,
+        "metro": metro,
+        "access": access,
+        "image": image,
+        "source_url": source_url,
+    }

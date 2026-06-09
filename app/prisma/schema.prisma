@@ -92,6 +92,11 @@ model Work {
   currency  String?        // devise du prix : "EUR"
   sourceUrl String    @unique
 
+  // Lien vers le lieu (pertinent surtout pour le théâtre : un spectacle = un lieu ;
+  // un film joue dans plusieurs cinémas, donc les œuvres ciné restent non liées).
+  venue_ref Venue?  @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  venueId   String?
+
   // ✅ Réactions (remplace l'ancien Work.likes)
   reactions Reaction[] @relation("WorkReactions")
 
@@ -99,6 +104,37 @@ model Work {
   updatedAt DateTime @updatedAt
 
   @@index([section, createdAt])
+  @@index([venueId])
+}
+
+// Lieu (théâtre ou cinéma) — catalogue avec infos pratiques scrapées sur offi.
+// Même forme pour les deux segments → un seul modèle discriminé par `kind`.
+model Venue {
+  id     String @id @default(cuid())
+  offiId Int    @unique          // identifiant offi (ex. 2490)
+  kind   String                   // 'theatre' | 'cinema'
+  name   String
+
+  streetAddress String?
+  postalCode    String?
+  city          String?           // addressLocality, ex. "Paris 5e"
+  country       String?           // addressCountry, ex. "FR"
+  latitude      Float?
+  longitude     Float?
+
+  phone  String?
+  metro  String?
+  access String?                  // "Accès PMR, Espace climatisé"
+
+  imageUrl  String?
+  sourceUrl String @unique
+
+  works Work[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind])
 }
 
 // ✅ Enum de statut : un seul état par (user, work)
