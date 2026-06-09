@@ -41,14 +41,7 @@ function SignInInner() {
   return (
     <div className="flex h-full items-center">
       <SurfaceCard tone="accent" className="mx-auto w-full max-w-xl space-y-6 p-6 sm:p-8">
-        <div className="space-y-3">
-          <p className="page-eyebrow">Connexion</p>
-          <h1 className="page-title text-[clamp(1.9rem,4vw,2.7rem)]">Se connecter</h1>
-          <p className="page-description">
-            Retrouve ta pile de découvertes, tes likes et tes amis dans une interface plus calme et lisible.
-          </p>
-        </div>
-
+        <h1 className="sr-only">Se connecter</h1>
         <form onSubmit={onSubmit} className="space-y-5">
           <div className="space-y-2">
             <label className="label">Email</label>
