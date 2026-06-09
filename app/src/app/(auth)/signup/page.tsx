@@ -65,15 +65,7 @@ export default function SignUpPage() {
   return (
     <div className="flex h-full items-center">
       <SurfaceCard tone="accent" className="mx-auto w-full max-w-xl space-y-6 p-6 sm:p-8">
-        <div className="space-y-3">
-          <p className="page-eyebrow">Inscription</p>
-          <h1 className="page-title text-[clamp(1.9rem,4vw,2.7rem)]">Créer un compte</h1>
-          <p className="page-description">
-            Ouvre ton espace personnel pour construire une collection de sorties, partager des invitations et retrouver
-            plus vite les oeuvres qui comptent.
-          </p>
-        </div>
-
+        <h1 className="sr-only">Créer un compte</h1>
         <form onSubmit={onSubmit} className="space-y-5">
           <div className="space-y-2">
             <label className="label" htmlFor="signup-email">
