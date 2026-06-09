@@ -13,14 +13,27 @@ export async function readOffiFile(file: string) {
   })
 
   let lineNumber = 0
+  let skipped = 0
   for await (const rawLine of rl) {
     lineNumber += 1
     const line = rawLine.trim()
     if (!line) continue
 
-    const record = parseOffiJsonLine(line, lineNumber)
+    // Tolérant : une ligne invalide (ou en doublon) est ignorée et journalisée,
+    // sans interrompre l'ingestion entière (un job nocturne ne doit pas mourir
+    // pour un enregistrement aberrant parmi des milliers).
+    let record: OffiWorkRecord
+    try {
+      record = parseOffiJsonLine(line, lineNumber)
+    } catch (error) {
+      skipped += 1
+      console.warn(`[ingest:offi] ${error instanceof Error ? error.message : `Line ${lineNumber}: invalid`} — ignorée`)
+      continue
+    }
+
     if (seenUrls.has(record.url)) {
-      throw new Error(`Line ${lineNumber}: duplicate url ${record.url}`)
+      skipped += 1
+      continue
     }
 
     seenUrls.add(record.url)
@@ -29,6 +42,10 @@ export async function readOffiFile(file: string) {
 
   if (records.length === 0) {
     throw new Error(`No records found in ${file}`)
+  }
+
+  if (skipped > 0) {
+    console.warn(`[ingest:offi] ${skipped} ligne(s) ignorée(s) sur ${lineNumber}`)
   }
 
   return records

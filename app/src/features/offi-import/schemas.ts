@@ -54,8 +54,14 @@ const nullableYear = z.preprocess(
 )
 
 const nullableMoney = z.preprocess(
-  (value) => (value === undefined || value === null || value === '' ? null : value),
-  z.number().nonnegative().max(500).nullable(),
+  (value) => {
+    if (value === undefined || value === null || value === '') return null
+    // Prix aberrant (artefact de parsing, ex. 1170) → on ignore le prix plutôt
+    // que d'invalider toute l'œuvre. Plafond relevé à 1000 pour les places premium.
+    if (typeof value === 'number' && (value < 0 || value > 1000)) return null
+    return value
+  },
+  z.number().nonnegative().max(1000).nullable(),
 )
 
 export const offiWorkSchema = z
