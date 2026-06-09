@@ -25,6 +25,9 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
     imageUrl: record.image ?? null,
     director: record.director ?? null,
     cast: record.cast ?? [],
+    arrondissement: record.arrondissement ?? null,
+    country: record.country ?? null,
+    year: record.year ?? null,
     sourceUrl: record.url,
   }
 
@@ -45,6 +48,9 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
   if (record.image != null) update.imageUrl = record.image
   if (record.director != null) update.director = record.director
   if (record.cast.length > 0) update.cast = record.cast
+  if (record.arrondissement != null) update.arrondissement = record.arrondissement
+  if (record.country != null) update.country = record.country
+  if (record.year != null) update.year = record.year
 
   return { create, update }
 }

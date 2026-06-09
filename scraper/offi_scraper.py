@@ -172,6 +172,9 @@ class Show:
     description: Optional[str] = None
     director: Optional[str] = None
     cast: list[str] = field(default_factory=list)
+    arrondissement: Optional[str] = None  # ville/arrondissement (théâtre) : "Paris 10e"
+    country: Optional[str] = None          # nationalité (cinéma) : "États-Unis"
+    year: Optional[int] = None             # année de production (cinéma)
     crawled_at: Optional[str] = None
 
     def is_empty(self) -> bool:
@@ -373,6 +376,9 @@ class OffiScraper:
             description=payload.get("description"),
             director=payload.get("director"),
             cast=payload.get("cast") or [],
+            arrondissement=payload.get("arrondissement"),
+            country=payload.get("country"),
+            year=payload.get("year"),
             crawled_at=payload.get("crawled_at"),
         )
 
@@ -763,6 +769,12 @@ class OffiScraper:
         show.address = self._clean_text(show.address)
         show.image = self._clean_text(show.image)
         show.description = self._clean_text(show.description)
+        show.arrondissement = self._clean_text(show.arrondissement)
+        show.country = self._clean_text(show.country)
+
+        if show.year is not None and not (1880 <= show.year <= 2100):
+            logging.warning("Année de production invalide pour %s: %s", show.url, show.year)
+            show.year = None
 
         if not show.title:
             logging.warning("Show ignoré sans titre: %s", show.url)
@@ -842,6 +854,9 @@ class OffiScraper:
         if not show.address:
             show.address = self._extract_address(soup)
 
+        if not show.arrondissement:
+            show.arrondissement = parsers.extract_arrondissement(soup)
+
         if not (show.date_start and show.date_end):
             date_bins: List[str] = []
             for sel in [
@@ -907,6 +922,13 @@ class OffiScraper:
 
         if not show.duration_min:
             show.duration_min = self._extract_cinema_duration(soup)
+
+        if not (show.country and show.year):
+            country, year = parsers.extract_cinema_meta(soup)
+            if not show.country and country:
+                show.country = country
+            if not show.year and year:
+                show.year = year
 
         return show
 

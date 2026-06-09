@@ -25,6 +25,9 @@ const base: WorkCardDto = {
   priceMax: null,
   director: 'Kelly Reichardt',
   cast: ['Michelle Williams', 'Will Oldham'],
+  arrondissement: null,
+  country: 'États-Unis',
+  year: 2008,
   sourceUrl: 'https://www.offi.fr/x',
 }
 
@@ -62,5 +65,26 @@ describe('CardWork', () => {
     render(<CardWork work={{ ...base, durationMin: null, priceMin: null, priceMax: null, category: null }} />)
     expect(screen.queryByText(/Tarifs non communiqués/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Dates à venir/)).not.toBeInTheDocument()
+  })
+
+  it('cinéma : affiche la nationalité et l’année', () => {
+    render(<CardWork work={{ ...base, venue: null }} />)
+    expect(screen.getByText('États-Unis · 2008')).toBeInTheDocument()
+  })
+
+  it('théâtre : affiche le lieu avec l’arrondissement', () => {
+    render(
+      <CardWork
+        work={{
+          ...base,
+          section: 'theatre',
+          venue: 'Théâtre de la Huchette',
+          arrondissement: 'Paris 5e',
+          country: null,
+          year: null,
+        }}
+      />,
+    )
+    expect(screen.getByText(/Théâtre de la Huchette · Paris 5e/)).toBeInTheDocument()
   })
 })

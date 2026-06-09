@@ -85,6 +85,9 @@ model Work {
   imageUrl  String?
   director  String?
   cast      String[]
+  arrondissement String?  // ville/arrondissement (théâtre) : "Paris 10e"
+  country   String?        // nationalité (cinéma) : "États-Unis"
+  year      Int?           // année de production (cinéma)
   sourceUrl String    @unique
 
   // ✅ Réactions (remplace l'ancien Work.likes)

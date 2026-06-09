@@ -90,5 +90,50 @@ class ParsersTests(unittest.TestCase):
         self.assertFalse(parsers.is_valid_iso_date(None))
 
 
+class ExtractCinemaMetaTests(unittest.TestCase):
+    def test_nationality_and_year(self):
+        html = (
+            "<div>Genre : Horreur Nationalité : France Durée : 1h22 "
+            "Année de production : 1959 Date de sortie</div>"
+        )
+        country, year = parsers.extract_cinema_meta(_soup(html))
+        self.assertEqual(country, "France")
+        self.assertEqual(year, 1959)
+
+    def test_multiword_nationality_stops_at_next_label(self):
+        html = "<div>Nationalité : Etats-Unis Langue : anglais Année de production : 1978</div>"
+        country, year = parsers.extract_cinema_meta(_soup(html))
+        self.assertEqual(country, "Etats-Unis")
+        self.assertEqual(year, 1978)
+
+    def test_missing_fields(self):
+        country, year = parsers.extract_cinema_meta(_soup("<div>Aucune fiche technique</div>"))
+        self.assertIsNone(country)
+        self.assertIsNone(year)
+
+    def test_year_out_of_range_ignored(self):
+        country, year = parsers.extract_cinema_meta(_soup("<div>Année de production : 1700</div>"))
+        self.assertIsNone(year)
+
+
+class ExtractArrondissementTests(unittest.TestCase):
+    def test_from_address_locality(self):
+        html = '<span itemprop="addressLocality">Paris 5e</span>'
+        self.assertEqual(parsers.extract_arrondissement(_soup(html)), "Paris 5e")
+
+    def test_fallback_from_postal_code(self):
+        html = '<span itemprop="postalCode">75010</span>'
+        self.assertEqual(parsers.extract_arrondissement(_soup(html)), "Paris 10e")
+
+    def test_postal_code_first_arrondissement(self):
+        self.assertEqual(parsers.arrondissement_from_postal("75001"), "Paris 1er")
+
+    def test_non_paris_postal_code(self):
+        self.assertIsNone(parsers.arrondissement_from_postal("92100"))
+
+    def test_missing(self):
+        self.assertIsNone(parsers.extract_arrondissement(_soup("<div>rien</div>")))
+
+
 if __name__ == "__main__":
     unittest.main()

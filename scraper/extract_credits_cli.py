@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Lit le HTML d'une fiche Offi sur stdin, imprime {"director","cast"} en JSON.
-Réutilise parsers.extract_credits (même logique que le scraper) — utilisé par le
-backfill one-off app/scripts/backfill-credits.ts."""
+"""Lit le HTML d'une fiche Offi sur stdin, imprime en JSON les champs extraits
+({"director","cast","arrondissement","country","year"}). Réutilise les parsers
+du scraper (même logique) — utilisé par les backfills one-off de app/scripts/."""
 import sys
 import json
 
@@ -14,9 +14,22 @@ except ImportError:  # exécuté depuis le dossier scraper/
 
 
 def main() -> None:
-    html = sys.stdin.read()
-    director, cast = parsers.extract_credits(BeautifulSoup(html, "html.parser"))
-    print(json.dumps({"director": director, "cast": cast}, ensure_ascii=False))
+    soup = BeautifulSoup(sys.stdin.read(), "html.parser")
+    director, cast = parsers.extract_credits(soup)
+    country, year = parsers.extract_cinema_meta(soup)
+    arrondissement = parsers.extract_arrondissement(soup)
+    print(
+        json.dumps(
+            {
+                "director": director,
+                "cast": cast,
+                "arrondissement": arrondissement,
+                "country": country,
+                "year": year,
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 if __name__ == "__main__":

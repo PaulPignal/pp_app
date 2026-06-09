@@ -17,6 +17,9 @@ export const workCardSelect = {
   priceMax: true,
   director: true,
   cast: true,
+  arrondissement: true,
+  country: true,
+  year: true,
   sourceUrl: true,
 } satisfies Prisma.WorkSelect
 
@@ -38,6 +41,9 @@ export type WorkCardDto = {
   priceMax: number | null
   director: string | null
   cast: string[]
+  arrondissement: string | null
+  country: string | null
+  year: number | null
   sourceUrl: string | null
 }
 
@@ -58,6 +64,9 @@ export function mapWorkToCardDto(work: WorkCardRecord): WorkCardDto {
     priceMax: work.priceMax,
     director: work.director,
     cast: work.cast,
+    arrondissement: work.arrondissement,
+    country: work.country,
+    year: work.year,
     sourceUrl: work.sourceUrl,
   }
 }
