@@ -61,9 +61,10 @@ jobs:
         working-directory: app
         run: pnpm install --frozen-lockfile
 
-      # Persiste data/offi.jsonl entre les runs (clé unique par run, restaure le plus récent).
+      # Restaure data/offi.jsonl du run précédent (restore seul : la sauvegarde se
+      # fait en fin de job même en cas d'échec → les retries sont incrémentaux).
       - name: Restore JSONL cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: data/offi.jsonl
           key: offi-jsonl-${{ github.run_id }}
@@ -91,13 +92,29 @@ jobs:
             esac
           fi
 
-      - name: Refresh works (scrape → migrate → ingest)
+      # Fail-fast : valide DB + migrations + Node/pnpm en ~10 s AVANT le scrape de
+      # ~40 min. Les pannes d'env (node:sqlite, version pnpm…) échouent ici, vite.
+      - name: Preflight — migrations (fail-fast avant le scrape)
+        working-directory: app
+        run: pnpm exec prisma migrate deploy --schema prisma/schema.prisma
+
+      - name: Refresh works (scrape → ingest)
         if: steps.plan.outputs.do_works == 'true'
+        # Migrations déjà faites au préflight → on saute celles du pipeline.
+        env:
+          OFFI_SKIP_DB_DEPLOY: '1'
         run: ./scripts/offi-pipeline.sh
 
       - name: Refresh venues catalog + relink
         if: steps.plan.outputs.do_venues == 'true'
         working-directory: app
-        run: |
-          pnpm exec prisma migrate deploy --schema prisma/schema.prisma
-          pnpm exec tsx scripts/backfill-venues.ts all 2000
+        run: pnpm exec tsx scripts/backfill-venues.ts all 2000
+
+      # Sauvegarde le cache JSONL même si une étape précédente a échoué : le scrape
+      # déjà fait n'est pas perdu, le prochain run repart de là (incrémental).
+      - name: Save JSONL cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/offi.jsonl
+          key: offi-jsonl-${{ github.run_id }}
