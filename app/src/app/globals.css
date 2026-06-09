@@ -367,6 +367,36 @@ a {
   width: 100%;
 }
 
+/* Variante « bande défilable » : 1 rangée de pills, sans le panneau/track, scroll
+   horizontal discret. Compact pour beaucoup d'items (ex. les 6 sections). */
+.segmented-control--scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  width: 100%;
+  overflow-x: auto;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.segmented-control--scroll::-webkit-scrollbar {
+  display: none;
+}
+.segmented-control--scroll .segmented-control__item {
+  flex: 0 0 auto;
+  min-height: 2.4rem;
+  white-space: nowrap;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.72);
+}
+.segmented-control--scroll .segmented-control__item--active {
+  border-color: var(--color-accent);
+  background: var(--color-surface-strong);
+  color: var(--color-text);
+}
+
 .segmented-control__item {
   display: inline-flex;
   align-items: center;
