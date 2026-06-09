@@ -77,6 +77,32 @@ describe('listDiscoverWorks', () => {
     )
   })
 
+  it('streaming : ne montre que les films dispo (platforms non vide)', async () => {
+    prisma.work.count.mockResolvedValue(0)
+    prisma.work.findMany.mockResolvedValue([])
+
+    await listDiscoverWorks({ per: 10, section: 'streaming' })
+
+    expect(prisma.work.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ section: 'streaming', platforms: { isEmpty: false } }),
+      }),
+    )
+  })
+
+  it('streaming : applique le filtre plateformes (hasSome)', async () => {
+    prisma.work.count.mockResolvedValue(0)
+    prisma.work.findMany.mockResolvedValue([])
+
+    await listDiscoverWorks({ per: 10, section: 'streaming', platforms: ['Netflix', 'Disney+'] })
+
+    expect(prisma.work.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ platforms: { hasSome: ['Netflix', 'Disney+'] } }),
+      }),
+    )
+  })
+
   it('excludes works whose end date is before today', async () => {
     prisma.work.count.mockResolvedValue(0)
     prisma.work.findMany.mockResolvedValue([])

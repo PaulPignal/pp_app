@@ -11,7 +11,7 @@ type ListDiscoverWorksInput = Partial<ListDiscoverWorksParams> & {
 }
 
 export async function listDiscoverWorks(input: ListDiscoverWorksInput = {}) {
-  const { per, since, category, section } = listDiscoverWorksParamsSchema.parse(input)
+  const { per, since, category, section, platforms } = listDiscoverWorksParamsSchema.parse(input)
   const where: Prisma.WorkWhereInput = {
     OR: [{ endDate: null }, { endDate: { gte: getParisTodayStart() } }],
   }
@@ -26,6 +26,14 @@ export async function listDiscoverWorks(input: ListDiscoverWorksInput = {}) {
 
   if (section) {
     where.section = section
+  }
+
+  // Streaming : ne montrer que les films réellement dispo (≥ 1 plateforme) et
+  // appliquer le filtre plateformes éventuel (sinon le filtre s'applique tel quel).
+  if (section === 'streaming') {
+    where.platforms = platforms ? { hasSome: platforms } : { isEmpty: false }
+  } else if (platforms) {
+    where.platforms = { hasSome: platforms }
   }
 
   if (input.userId) {
@@ -46,4 +54,14 @@ export async function listDiscoverWorks(input: ListDiscoverWorksInput = {}) {
     total,
     items: works.map(mapWorkToCardDto),
   }
+}
+
+// Plateformes de streaming présentes dans le catalogue (options du filtre Découverte).
+export async function listStreamingPlatforms(): Promise<string[]> {
+  const rows = await prisma.$queryRaw<{ p: string }[]>`
+    SELECT DISTINCT unnest(platforms) AS p
+    FROM "Work"
+    WHERE section = 'streaming'
+    ORDER BY p`
+  return rows.map((r) => r.p)
 }

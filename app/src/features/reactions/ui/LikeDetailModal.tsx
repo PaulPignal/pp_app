@@ -39,6 +39,16 @@ export default function LikeDetailModal({ work, fallbackTitle, friends, bucket, 
   const title = work?.title ?? fallbackTitle
   const availability = formatAvailability(work?.availability ?? null)
   const soldOut = work?.availability === 'SoldOut' || work?.availability === 'OutOfStock'
+  const isStreaming = work?.section === 'streaming'
+  // CTA : « Où regarder » (streaming, vers la page where-to-watch) sinon réservation Offi.
+  const ctaHref = isStreaming ? work?.officialUrl ?? work?.sourceUrl ?? null : work?.sourceUrl ?? null
+  const ctaLabel = isStreaming
+    ? 'Où regarder ↗'
+    : soldOut
+      ? 'Complet — voir sur Offi.fr ↗'
+      : availability
+        ? 'Réserver des billets ↗'
+        : 'Voir sur Offi.fr ↗'
   const venueMetro = work?.venueInfo?.metro?.trim()
   const venueAccess = work?.venueInfo?.access?.trim()
   const venuePhone = work?.venueInfo?.phone?.trim()
@@ -93,16 +103,16 @@ export default function LikeDetailModal({ work, fallbackTitle, friends, bucket, 
                 </p>
               ) : null}
 
-              {/* Réserver */}
-              {work?.sourceUrl ? (
+              {/* Réserver / Où regarder */}
+              {ctaHref ? (
                 <a
-                  href={work.sourceUrl}
+                  href={ctaHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`btn ${soldOut ? 'btn-secondary' : 'btn-primary'} w-full justify-center`}
-                  aria-disabled={soldOut || undefined}
+                  className={`btn ${soldOut && !isStreaming ? 'btn-secondary' : 'btn-primary'} w-full justify-center`}
+                  aria-disabled={(soldOut && !isStreaming) || undefined}
                 >
-                  {soldOut ? 'Complet — voir sur Offi.fr ↗' : availability ? 'Réserver des billets ↗' : 'Voir sur Offi.fr ↗'}
+                  {ctaLabel}
                 </a>
               ) : null}
 

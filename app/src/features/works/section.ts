@@ -1,4 +1,4 @@
-export const WORK_SECTION_VALUES = ['theatre', 'cinema', 'exposition', 'concert', 'visite', 'enfants'] as const
+export const WORK_SECTION_VALUES = ['theatre', 'cinema', 'streaming', 'exposition', 'concert', 'visite', 'enfants'] as const
 
 export type WorkSection = (typeof WORK_SECTION_VALUES)[number]
 
@@ -8,6 +8,7 @@ export const DEFAULT_WORK_SECTION: WorkSection = 'theatre'
 export const WORK_SECTION_LABELS: Record<WorkSection, string> = {
   theatre: 'Théâtre',
   cinema: 'Cinéma',
+  streaming: 'Streaming',
   exposition: 'Exposition',
   concert: 'Concert',
   visite: 'Visite',
@@ -41,6 +42,7 @@ export function inferWorkSectionFromUrl(url: string | null | undefined): WorkSec
 export function workDirectorLabel(section: string | null | undefined): string {
   switch (section) {
     case 'cinema':
+    case 'streaming':
     case 'exposition':
       return 'De'
     case 'concert':

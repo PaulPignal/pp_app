@@ -32,6 +32,7 @@ const base: WorkCardDto = {
   currency: null,
   cinemaVenueCount: null,
   cinemaVenues: [],
+  platforms: [],
   officialUrl: null,
   sourceUrl: 'https://www.offi.fr/x',
   venueInfo: null,

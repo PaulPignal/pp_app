@@ -7,8 +7,13 @@ import {
 } from '@/features/works/section'
 
 describe('sections', () => {
-  it('inclut les 6 sections', () => {
-    expect(WORK_SECTION_VALUES).toEqual(['theatre', 'cinema', 'exposition', 'concert', 'visite', 'enfants'])
+  it('inclut les 7 sections (dont streaming)', () => {
+    expect(WORK_SECTION_VALUES).toEqual(['theatre', 'cinema', 'streaming', 'exposition', 'concert', 'visite', 'enfants'])
+  })
+
+  it('streaming : libellé et crédit', () => {
+    expect(workSectionLabel('streaming')).toBe('Streaming')
+    expect(workDirectorLabel('streaming')).toBe('De')
   })
 
   it('infère la section depuis l’URL offi', () => {

@@ -83,6 +83,16 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
           ) : null}
           {cinemaMeta ? <p className="text-sm font-medium text-muted-foreground">{cinemaMeta}</p> : null}
           {cinemaVenuesLine ? <p className="text-sm text-muted-foreground">{cinemaVenuesLine}</p> : null}
+          {work?.platforms && work.platforms.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">📺 Dispo sur</span>
+              {work.platforms.map((p) => (
+                <span key={p} className="rounded-full bg-[rgba(54,39,24,0.06)] px-2.5 py-0.5 text-xs font-medium text-[color:var(--color-text)]">
+                  {p}
+                </span>
+              ))}
+            </div>
+          ) : null}
           {director || castNames.length > 0 ? (
             <div className="space-y-0.5 text-sm leading-6">
               {director ? (

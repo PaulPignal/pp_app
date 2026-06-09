@@ -92,6 +92,7 @@ model Work {
   currency  String?        // devise du prix : "EUR"
   cinemaVenueCount Int?    // nb de salles où le film est programmé (cinéma)
   cinemaVenues String[]    // échantillon de noms de salles (cinéma)
+  platforms String[]       // plateformes de streaming (abonnement) où le film est dispo : "Netflix", "Disney+"…
   officialUrl String?      // lien externe dédié de la fiche (rel="external") : site de l'expo, page du concert…
   sourceUrl String    @unique
 
@@ -108,6 +109,7 @@ model Work {
 
   @@index([section, createdAt])
   @@index([venueId])
+  @@index([platforms], type: Gin) // filtre streaming par plateforme (hasSome)
 }
 
 // Lieu (théâtre ou cinéma) — catalogue avec infos pratiques scrapées sur offi.
