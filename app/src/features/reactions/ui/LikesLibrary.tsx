@@ -235,7 +235,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
           />
 
           {items.length === 0 ? (
-            <div className="empty-state rounded-[var(--radius-lg)] border border-dashed border-[color:var(--color-border)] bg-white/50">
+            <div className="empty-state rounded-[var(--radius-lg)] border border-dashed border-[color:var(--color-border)] bg-white/5">
               <strong>Rien ne correspond à ce filtre.</strong>
             </div>
           ) : (
@@ -327,7 +327,7 @@ function Toolbar({
             </option>
           ))}
         </select>
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-white/70 px-3 py-1.5 text-xs font-medium">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-white/5 px-3 py-1.5 text-xs font-medium">
           <input type="checkbox" checked={bookableOnly} onChange={(e) => onBookable(e.target.checked)} />
           Réservable
         </label>

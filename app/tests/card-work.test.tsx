@@ -92,12 +92,12 @@ describe('CardWork', () => {
     expect(screen.getByText('États-Unis · 2008')).toBeInTheDocument()
   })
 
-  it('affiche la note (⭐) quand elle a assez de votes, pas en dessous du seuil', () => {
+  it('affiche la note quand elle a assez de votes, pas en dessous du seuil', () => {
     const { rerender } = render(<CardWork work={{ ...base, rating: 8.44, ratingCount: 320 }} />)
-    expect(screen.getByText(/⭐ 8,4/)).toBeInTheDocument()
+    expect(screen.getByText(/8,4/)).toBeInTheDocument()
     // sous le seuil de votes → pas de note (trop bruitée)
     rerender(<CardWork work={{ ...base, id: 'w-low', rating: 9.5, ratingCount: 3 }} />)
-    expect(screen.queryByText(/⭐/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/9,5/)).not.toBeInTheDocument()
   })
 
   it('affiche un badge « Billets dispo » quand availability=InStock', () => {

@@ -5,6 +5,7 @@ import type { WorkCardDto } from '@/features/works/dto'
 import { workSectionLabel } from '@/features/works/section'
 import WorkImage from '@/features/works/ui/WorkImage'
 import { formatAvailability, formatEndsIn, formatPriceRange } from '@/features/works/ui/work-formatters'
+import { IconUsers } from '@/shared/ui/icons'
 
 function initials(email: string) {
   return (email.split('@')[0] ?? email).slice(0, 2).toUpperCase()
@@ -67,7 +68,7 @@ export default function CompactLikeCard({ work, fallbackTitle, friends, onOpen }
               className={`rounded-full px-2 py-0.5 text-[0.62rem] font-semibold ${
                 ends.urgent
                   ? 'bg-[color:var(--color-danger-soft)] text-[color:var(--color-danger)]'
-                  : 'bg-[rgba(54,39,24,0.06)] text-[color:var(--color-text)]'
+                  : 'bg-[rgba(255,255,255,0.07)] text-[color:var(--color-text)]'
               }`}
             >
               ⏳ {ends.label}
@@ -85,8 +86,8 @@ export default function CompactLikeCard({ work, fallbackTitle, friends, onOpen }
             </span>
           ) : null}
           {friends.length > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(15,93,94,0.10)] px-2 py-0.5 text-[0.62rem] font-semibold text-[color:var(--color-accent)]">
-              <span aria-hidden>👥</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(242,92,84,0.16)] px-2 py-0.5 text-[0.62rem] font-semibold text-[color:var(--color-accent)]">
+              <IconUsers size={11} />
               {friends.length === 1 ? initials(friends[0].email) : `${friends.length} amis`}
             </span>
           ) : null}

@@ -4,6 +4,7 @@ import { workDirectorLabel, workSectionLabel } from '@/features/works/section'
 import BadgeCategory from '@/features/works/ui/BadgeCategory'
 import WorkImage from '@/features/works/ui/WorkImage'
 import SourceLink from '@/features/works/ui/SourceLink'
+import { IconTv } from '@/shared/ui/icons'
 import { formatDateRange, formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
 import { cn } from '@/shared/lib/cn'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
@@ -37,7 +38,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
   const venueWebsite = work?.venueInfo?.website ?? null
   const cinemaVenuesLine =
     work?.section === 'cinema' && work.cinemaVenueCount
-      ? `🎬 ${work.cinemaVenueCount} salle${work.cinemaVenueCount > 1 ? 's' : ''}${
+      ? `${work.cinemaVenueCount} salle${work.cinemaVenueCount > 1 ? 's' : ''}${
           work.cinemaVenues.length ? ' · ' + work.cinemaVenues.slice(0, 3).join(', ') : ''
         }`
       : ''
@@ -89,9 +90,11 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
           {cinemaVenuesLine ? <p className="text-sm text-muted-foreground">{cinemaVenuesLine}</p> : null}
           {work?.platforms && work.platforms.length > 0 ? (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">📺 Dispo sur</span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                <IconTv size={14} /> Dispo sur
+              </span>
               {work.platforms.map((p) => (
-                <span key={p} className="rounded-full bg-[rgba(54,39,24,0.06)] px-2.5 py-0.5 text-xs font-medium text-[color:var(--color-text)]">
+                <span key={p} className="rounded-full bg-[rgba(255,255,255,0.07)] px-2.5 py-0.5 text-xs font-medium text-[color:var(--color-text)]">
                   {p}
                 </span>
               ))}
@@ -117,7 +120,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
         </div>
 
         <div className="grid gap-2 text-sm text-[color:var(--color-text)]">
-          {ratingLabel ? <SummaryRow label="Note" value={`⭐ ${ratingLabel}/10`} /> : null}
+          {ratingLabel ? <SummaryRow label="Note" value={`${ratingLabel} / 10`} /> : null}
           {dateLabel ? <SummaryRow label="Dates" value={dateLabel} /> : null}
           {priceLabel ? <SummaryRow label="Budget" value={priceLabel} /> : null}
           {durationLabel ? <SummaryRow label="Durée" value={durationLabel} /> : null}
@@ -147,7 +150,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-[var(--radius-panel)] border border-[color:var(--color-border)] bg-white/60 px-3 py-2">
+    <div className="flex items-start justify-between gap-3 rounded-[var(--radius-panel)] border border-[color:var(--color-border)] bg-white/5 px-3 py-2">
       <span className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</span>
       <span className="text-right font-medium leading-6">{value}</span>
     </div>
