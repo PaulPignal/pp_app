@@ -161,7 +161,10 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
           </div>
         ) : null}
 
-        {description ? <ExpandableDescription text={description} /> : null}
+        {/* key={work.id} : le deck réutilise l'instance de carte d'un swipe à l'autre ;
+            on remonte la description à chaque fiche pour repartir replié (« Voir plus »)
+            et ne pas conserver l'état déplié de la fiche précédente. */}
+        {description ? <ExpandableDescription key={work.id} text={description} /> : null}
 
         {/* Fallback Offi : seulement quand aucune source (lien dédié de la fiche ni site
             du lieu) n'est disponible — ex. cinéma, ou lieu non encore relié. */}

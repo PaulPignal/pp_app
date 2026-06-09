@@ -68,6 +68,17 @@ describe('CardWork', () => {
     expect(screen.getByRole('button', { name: /voir moins/i })).toBeInTheDocument()
   })
 
+  it('réinitialise « Voir plus » (replié) quand la fiche change', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<CardWork work={base} />)
+    await user.click(screen.getByRole('button', { name: /voir plus/i }))
+    expect(screen.getByRole('button', { name: /voir moins/i })).toBeInTheDocument()
+    // Nouvelle fiche (id différent) : le deck réutilise l'instance → doit repartir replié.
+    rerender(<CardWork work={{ ...base, id: 'w2', title: 'Autre', description: 'B'.repeat(200) }} />)
+    expect(screen.getByRole('button', { name: /voir plus/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /voir moins/i })).not.toBeInTheDocument()
+  })
+
   it('n’affiche pas de fait quand la donnée est absente (pas de placeholder)', () => {
     render(<CardWork work={{ ...base, durationMin: null, priceMin: null, priceMax: null, category: null }} />)
     expect(screen.queryByText(/Tarifs non communiqués/)).not.toBeInTheDocument()
