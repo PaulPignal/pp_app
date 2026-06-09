@@ -44,6 +44,23 @@ export function formatPriceRange(min: number | null, max: number | null) {
   return null
 }
 
+// Urgence : à combien de jours se termine la programmation. null si pas de date
+// ou échéance lointaine (> 21 j). `urgent` déclenche l'accent visuel.
+export function formatEndsIn(endDate: string | null, now: Date = new Date()): { label: string; urgent: boolean; days: number } | null {
+  if (!endDate) return null
+  const end = new Date(endDate)
+  if (Number.isNaN(end.getTime())) return null
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+  const days = Math.round((endDay.getTime() - startOfToday.getTime()) / 86_400_000)
+  if (days < 0) return null
+  if (days === 0) return { label: 'Dernier jour', urgent: true, days }
+  if (days === 1) return { label: 'Se termine demain', urgent: true, days }
+  if (days <= 7) return { label: `Plus que ${days} jours`, urgent: true, days }
+  if (days <= 21) return { label: `Encore ${days} jours`, urgent: false, days }
+  return null
+}
+
 // Disponibilité billetterie (valeurs schema.org) → libellé + tonalité d'affichage.
 export type AvailabilityBadge = { label: string; tone: 'success' | 'danger' | 'warning' }
 

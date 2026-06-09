@@ -1,5 +1,5 @@
 import { requireSessionUserOrRedirect } from '@/features/auth/server/session'
-import { listLikedWorks } from '@/features/reactions/server/queries'
+import { friendsWhoLiked, listLibraryWorks } from '@/features/reactions/server/queries'
 import LikesLibrary from '@/features/reactions/ui/LikesLibrary'
 import { isWorkCurrentlyShowing } from '@/features/works/availability'
 
@@ -9,11 +9,11 @@ type LikesPageProps = {
   }>
 }
 
-type LikesView = 'all' | 'active' | 'archived'
+type LikesView = 'all' | 'active' | 'archived' | 'seen'
 
 function resolveLikesView(value: string | string[] | undefined): LikesView {
   const candidate = Array.isArray(value) ? value[0] : value
-  if (candidate === 'active' || candidate === 'archived') {
+  if (candidate === 'active' || candidate === 'archived' || candidate === 'seen') {
     return candidate
   }
   return 'all'
@@ -24,13 +24,17 @@ export default async function LikesPage({ searchParams }: LikesPageProps = {}) {
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const view = resolveLikesView(resolvedSearchParams?.view)
-  const likes = await listLikedWorks(sessionUser.id)
-  const currentLikes = likes.filter((like) => isWorkCurrentlyShowing(like.work?.endDate))
-  const archivedLikes = likes.filter((like) => !isWorkCurrentlyShowing(like.work?.endDate))
+
+  const { likes, seen } = await listLibraryWorks(sessionUser.id)
+  const current = likes.filter((like) => isWorkCurrentlyShowing(like.work?.endDate))
+  const archived = likes.filter((like) => !isWorkCurrentlyShowing(like.work?.endDate))
+
+  const allWorkIds = [...likes, ...seen].map((item) => item.workId)
+  const friendsByWork = await friendsWhoLiked(sessionUser.id, allWorkIds)
 
   return (
     <div className="page-shell">
-      <LikesLibrary current={currentLikes} archived={archivedLikes} view={view} />
+      <LikesLibrary current={current} archived={archived} seen={seen} friendsByWork={friendsByWork} view={view} />
     </div>
   )
 }
