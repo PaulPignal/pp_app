@@ -1,6 +1,10 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+
+// Utilisateur connecté : le like persiste (sinon, anonyme, ouverture de la modale).
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: { user: { email: 'a@b.c' } }, status: 'authenticated' }) }))
+
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
 
 test("avance à la carte suivante et appelle POST /api/reactions quand on clique Like", async () => {

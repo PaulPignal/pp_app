@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { requireSessionUserOrRedirect } from '@/features/auth/server/session'
+import { getSessionUser } from '@/features/auth/server/session'
 import { DEFAULT_WORK_SECTION, WORK_SECTION_LABELS, WORK_SECTION_VALUES, type WorkSection } from '@/features/works/section'
 import { listDiscoverWorks, listStreamingPlatforms } from '@/features/works/server/queries'
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
@@ -36,7 +36,9 @@ function resolvePlatforms(value: string | string[] | undefined): string[] {
 }
 
 export default async function DiscoverPage({ searchParams }: DiscoverPageProps = {}) {
-  const sessionUser = await requireSessionUserOrRedirect()
+  // Découverte est PUBLIQUE : on peut swiper sans compte. Le 1er like déclenche la
+  // création de compte (géré dans SwipeDeck). userId nul = aucun filtre « déjà réagi ».
+  const sessionUser = await getSessionUser()
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const section = resolveSection(resolvedSearchParams?.section)
@@ -46,7 +48,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
 
   const [works, availablePlatforms] = await Promise.all([
     listDiscoverWorks({
-      userId: sessionUser.id,
+      userId: sessionUser?.id ?? null,
       per: 200,
       section,
       platforms: selectedPlatforms.length ? selectedPlatforms : undefined,

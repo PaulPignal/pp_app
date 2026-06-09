@@ -1,6 +1,11 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+
+// Utilisateur connecté : les swipes persistent (sinon, anonyme, le like ouvrirait
+// la modale d'inscription au lieu de POSTer).
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: { user: { email: 'a@b.c' } }, status: 'authenticated' }) }))
+
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
 
 const items = [

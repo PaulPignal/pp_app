@@ -1,9 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import type { WorkCardDto } from '@/features/works/dto'
 import CardWork from '@/features/works/ui/CardWork'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
+import { SIGN_IN_PATH } from '@/shared/lib/routes'
+
+// Like mémorisé pendant le swipe anonyme : rejoué après création de compte.
+const PENDING_LIKE_KEY = 'offi:pendingLike'
 
 // Icônes d'action (style épuré, façon apps de swipe). aria-hidden : le libellé
 // accessible est porté par le bouton.
@@ -69,6 +75,10 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<{ workId: string; status: 'LIKE' | 'DISLIKE' }[]>([])
+  const [showSignup, setShowSignup] = useState(false)
+
+  const { status: authStatus } = useSession()
+  const authed = authStatus === 'authenticated'
 
   const dragging = useRef(false)
   const startX = useRef(0)
@@ -137,6 +147,17 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   const advance = useCallback(
     async (didLike: boolean) => {
       if (!current || pending) return
+      // Anonyme + like : on mémorise le like et on propose la création de compte
+      // (sans avancer ni appeler le serveur). Les dislikes anonymes ne font qu'avancer.
+      if (!authed && didLike) {
+        try {
+          localStorage.setItem(PENDING_LIKE_KEY, current.id)
+        } catch {
+          /* stockage indisponible */
+        }
+        setShowSignup(true)
+        return
+      }
       setPending(true)
       setError(null)
       const currentId = current.id
@@ -172,19 +193,22 @@ export default function SwipeDeck({ items, totalCount }: Props) {
         setDragX(0)
         setDragStartTs(null)
 
-        // …puis confirmation serveur. En cas d'échec : rollback explicite de la carte.
-        const ok = await react(currentId, didLike ? 'LIKE' : 'DISLIKE')
-        if (!ok) {
-          setIndex(fromIndex)
-          setError('Action non enregistrée. Réessaie.')
-        } else {
-          setHistory((value) => [...value, { workId: currentId, status: didLike ? 'LIKE' : 'DISLIKE' }])
+        // …puis confirmation serveur (utilisateur connecté uniquement). Un dislike
+        // anonyme ne fait qu'avancer (rien à persister). Rollback si l'écriture échoue.
+        if (authed) {
+          const ok = await react(currentId, didLike ? 'LIKE' : 'DISLIKE')
+          if (!ok) {
+            setIndex(fromIndex)
+            setError('Action non enregistrée. Réessaie.')
+          } else {
+            setHistory((value) => [...value, { workId: currentId, status: didLike ? 'LIKE' : 'DISLIKE' }])
+          }
         }
       } finally {
         setPending(false)
       }
     },
-    [current, dragX, index, pending, react],
+    [authed, current, dragX, index, pending, react],
   )
 
   const undo = useCallback(async () => {
@@ -212,6 +236,20 @@ export default function SwipeDeck({ items, totalCount }: Props) {
       setPending(false)
     }
   }, [clearReaction, history, index, pending])
+
+  // Après création de compte / connexion : on rejoue le like mémorisé pendant le
+  // swipe anonyme (une seule fois), puis on nettoie.
+  useEffect(() => {
+    if (!authed) return
+    let pendingId: string | null = null
+    try {
+      pendingId = localStorage.getItem(PENDING_LIKE_KEY)
+      if (pendingId) localStorage.removeItem(PENDING_LIKE_KEY)
+    } catch {
+      /* stockage indisponible */
+    }
+    if (pendingId) void react(pendingId, 'LIKE')
+  }, [authed, react])
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -383,6 +421,53 @@ export default function SwipeDeck({ items, totalCount }: Props) {
       </div>
 
       {error ? <p role="status" className="text-center text-sm font-medium text-[color:var(--color-danger)]">{error}</p> : null}
+
+      {/* Onboarding : au 1er like en anonyme, on propose la création de compte. */}
+      {showSignup ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShowSignup(false)
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Créer un compte"
+            className="w-full max-w-sm rounded-t-[var(--radius-2xl)] bg-[color:var(--color-surface-strong)] p-6 text-center shadow-[var(--shadow-lg)] sm:rounded-[var(--radius-2xl)]"
+          >
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-[color:var(--color-text)]">Garde ce coup de cœur</h2>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--color-text-muted)]">
+              Crée ton compte pour enregistrer tes likes, les retrouver et voir ce que tes amis aiment.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <Link href="/signup" className="btn btn-primary w-full justify-center">
+                Créer un compte
+              </Link>
+              <Link href={SIGN_IN_PATH} className="btn btn-secondary w-full justify-center">
+                J&apos;ai déjà un compte
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    localStorage.removeItem(PENDING_LIKE_KEY)
+                  } catch {
+                    /* stockage indisponible */
+                  }
+                  setShowSignup(false)
+                  setIndex((value) => value + 1)
+                  setDragX(0)
+                }}
+                className="btn btn-ghost w-full justify-center text-sm"
+              >
+                Plus tard
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }
