@@ -43,6 +43,12 @@ function theatreVenueUrlFromShow(url: string): string | null {
   return m ? `${m[1]}.html` : null
 }
 
+function offiIdFromUrl(url: string | null): number | null {
+  if (!url) return null
+  const m = url.match(/-(\d+)(?:\.html)?(?:[?#].*)?$/)
+  return m ? Number(m[1]) : null
+}
+
 function cinemaVenueLinks(html: string): string[] {
   const out = new Set<string>()
   const re = /\/cinema\/(?!evenement\/)[a-z0-9-]+-\d+\.html/g
@@ -133,7 +139,31 @@ async function backfillTheatre() {
     linked += res.count
     await sleep(350)
   }
-  console.log(JSON.stringify({ segment: 'theatre', venues, linkedWorks: linked, candidates: urls.length }))
+
+  // Relink (sans fetch) : spectacles encore non liés dont le lieu est déjà en base.
+  // Couvre les nouveaux spectacles ajoutés dans un lieu déjà connu.
+  const knownVenues = await prisma.venue.findMany({ where: { kind: 'theatre' }, select: { id: true, offiId: true } })
+  const venueIdByOffiId = new Map(knownVenues.map((v) => [v.offiId, v.id]))
+  const unlinked = await prisma.work.findMany({
+    where: { section: 'theatre', venueId: null },
+    select: { id: true, sourceUrl: true },
+  })
+  const relinkGroups = new Map<string, string[]>()
+  for (const w of unlinked) {
+    const offiId = offiIdFromUrl(theatreVenueUrlFromShow(w.sourceUrl))
+    const vid = offiId != null ? venueIdByOffiId.get(offiId) : undefined
+    if (!vid) continue
+    const list = relinkGroups.get(vid) ?? []
+    list.push(w.id)
+    relinkGroups.set(vid, list)
+  }
+  let relinked = 0
+  for (const [vid, ids] of relinkGroups) {
+    const res = await prisma.work.updateMany({ where: { id: { in: ids } }, data: { venueId: vid } })
+    relinked += res.count
+  }
+
+  console.log(JSON.stringify({ segment: 'theatre', venues, linkedWorks: linked, relinked, candidates: urls.length }))
 }
 
 async function backfillCinema() {

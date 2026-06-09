@@ -1,0 +1,97 @@
+name: Offi refresh
+
+# Rafraîchit les données offi → Neon, automatiquement.
+#   - Quotidien 05:30 UTC (07:30 Paris l'été / 06:30 l'hiver) : pipeline œuvres
+#     (scrape → migrations Prisma → ingestion). Capte les sorties ciné du mercredi,
+#     les nouveaux spectacles et la dispo billetterie.
+#   - Hebdomadaire (dimanche) : rafraîchit le catalogue des lieux + relie les œuvres.
+#
+# Pré-requis : secret de dépôt DATABASE_URL (chaîne de connexion Neon).
+# Le cache JSONL est persisté entre les runs (actions/cache) pour profiter du
+# rafraîchissement incrémental à 72 h du scraper (poli envers offi.fr).
+
+on:
+  schedule:
+    - cron: '30 5 * * *'      # tous les jours — œuvres
+    - cron: '0 6 * * 0'       # dimanche — lieux
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'works | venues | all'
+        required: false
+        default: 'works'
+
+concurrency:
+  group: offi-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # env.ts exige NEXTAUTH_SECRET ; l'ingestion ne l'utilise pas → placeholder
+      # si le secret n'est pas défini, pour ne dépendre que de DATABASE_URL.
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-ingestion-placeholder' }}
+      OFFI_PYTHON_BIN: python3
+      OFFI_MAX_PAGES: '150'
+      OFFI_REFRESH_AFTER_HOURS: '72'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          package-manager-cache: false
+      - run: corepack enable
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r scraper/requirements.txt
+
+      - name: Install app deps (postinstall → prisma generate)
+        working-directory: app
+        run: pnpm install --frozen-lockfile
+
+      # Persiste data/offi.jsonl entre les runs (clé unique par run, restaure le plus récent).
+      - name: Restore JSONL cache
+        uses: actions/cache@v4
+        with:
+          path: data/offi.jsonl
+          key: offi-jsonl-${{ github.run_id }}
+          restore-keys: |
+            offi-jsonl-
+
+      - name: Decide targets
+        id: plan
+        run: |
+          # cron quotidien → works ; cron hebdo (dimanche 06:00) → venues ;
+          # déclenchement manuel → input.target.
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            if [ "${{ github.event.schedule }}" = "0 6 * * 0" ]; then
+              echo "do_works=false" >> "$GITHUB_OUTPUT"
+              echo "do_venues=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "do_works=true" >> "$GITHUB_OUTPUT"
+              echo "do_venues=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            case "${{ github.event.inputs.target }}" in
+              venues) echo "do_works=false" >> "$GITHUB_OUTPUT"; echo "do_venues=true" >> "$GITHUB_OUTPUT" ;;
+              all)    echo "do_works=true"  >> "$GITHUB_OUTPUT"; echo "do_venues=true" >> "$GITHUB_OUTPUT" ;;
+              *)      echo "do_works=true"  >> "$GITHUB_OUTPUT"; echo "do_venues=false" >> "$GITHUB_OUTPUT" ;;
+            esac
+          fi
+
+      - name: Refresh works (scrape → migrate → ingest)
+        if: steps.plan.outputs.do_works == 'true'
+        run: ./scripts/offi-pipeline.sh
+
+      - name: Refresh venues catalog + relink
+        if: steps.plan.outputs.do_venues == 'true'
+        working-directory: app
+        run: |
+          pnpm exec prisma migrate deploy --schema prisma/schema.prisma
+          pnpm exec tsx scripts/backfill-venues.ts all 2000
