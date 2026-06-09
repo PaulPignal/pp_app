@@ -1,8 +1,8 @@
 'use client'
 
-import Image from 'next/image'
 import type { FriendSummaryDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
+import WorkImage from '@/features/works/ui/WorkImage'
 import { formatAvailability, formatEndsIn, formatPriceRange } from '@/features/works/ui/work-formatters'
 
 function initials(email: string) {
@@ -37,11 +37,13 @@ export default function CompactLikeCard({ work, fallbackTitle, friends, onOpen }
       aria-label={`Voir le détail de ${title}`}
     >
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-muted">
-        {work?.imageUrl ? (
-          <Image src={work.imageUrl} alt="" fill sizes="80px" className="object-cover" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-[0.65rem] text-muted-foreground">—</div>
-        )}
+        <WorkImage
+          src={work?.imageUrl}
+          alt=""
+          sizes="80px"
+          className="object-cover"
+          fallback={<div className="flex h-full items-center justify-center text-[0.65rem] text-muted-foreground">—</div>}
+        />
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5 pr-1">

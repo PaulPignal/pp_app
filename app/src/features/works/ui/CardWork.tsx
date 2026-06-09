@@ -1,5 +1,5 @@
-import Image from 'next/image'
 import { splitGenres } from '@/features/works/category'
+import WorkImage from '@/features/works/ui/WorkImage'
 import type { WorkCardDto } from '@/features/works/dto'
 import ExpandableDescription from '@/features/works/ui/ExpandableDescription'
 import { formatAvailability, formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
@@ -36,20 +36,18 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
       aria-describedby={`work-${work.id}-title`}
     >
       <div className="relative min-h-[14rem] flex-1 overflow-hidden rounded-[var(--radius-xl)] bg-muted">
-        {work.imageUrl ? (
-          <Image
-            src={work.imageUrl}
-            alt={work.title}
-            fill
-            sizes="(max-width: 768px) 100vw, 480px"
-            className="object-cover"
-            priority
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top,#fff3,transparent_55%)] text-sm text-muted-foreground">
-            Aucune image
-          </div>
-        )}
+        <WorkImage
+          src={work.imageUrl}
+          alt={work.title}
+          sizes="(max-width: 768px) 100vw, 480px"
+          className="object-cover"
+          priority
+          fallback={
+            <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top,#fff3,transparent_55%)] text-sm text-muted-foreground">
+              Aucune image
+            </div>
+          }
+        />
 
         <span className="absolute right-3 top-3 rounded-full border border-white/35 bg-black/35 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-white backdrop-blur-sm">
           {sectionLabel}
