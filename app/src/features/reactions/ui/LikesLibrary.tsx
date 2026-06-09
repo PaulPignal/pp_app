@@ -220,7 +220,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
           </div>
         </SurfaceCard>
       ) : (
-        <SurfaceCard className="space-y-4">
+        <div className="space-y-4">
           <Toolbar
             query={query}
             onQuery={setQuery}
@@ -250,7 +250,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
               ))}
             </ul>
           )}
-        </SurfaceCard>
+        </div>
       )}
 
       {error ? (

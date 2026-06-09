@@ -43,14 +43,14 @@ describe('FriendsClient', () => {
       <FriendsClient initialFriends={[]} initialRequests={[{ id: 'req-1', email: 'req@example.com' }]} inviteToken="token-1" />,
     )
 
-    expect(screen.getByText('Demandes reçues')).toBeInTheDocument()
+    expect(screen.getByText(/Demandes reçues/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Accepter' }))
 
     expect(fetch).toHaveBeenCalledWith(
       '/api/friends/requests',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ requesterId: 'req-1', action: 'accept' }) }),
     )
-    await waitFor(() => expect(screen.queryByText('Demandes reçues')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText(/Demandes reçues/)).not.toBeInTheDocument())
     expect(screen.getByText('req@example.com')).toBeInTheDocument()
   }, 15000)
 
@@ -102,7 +102,7 @@ describe('FriendsClient', () => {
       <FriendsClient initialFriends={[{ id: 'friend-1', email: 'friend@example.com' }]} initialRequests={[]} inviteToken="token-1" />,
     )
 
-    await user.click(screen.getByRole('button', { name: /œuvres en commun/i }))
+    await user.click(screen.getByRole('button', { name: /en commun/i }))
 
     expect(fetch).toHaveBeenCalledWith('/api/common?friendId=friend-1', undefined)
     expect(await screen.findByText('Hamlet')).toBeInTheDocument()
