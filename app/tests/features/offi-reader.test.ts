@@ -29,21 +29,26 @@ describe('readOffiFile (lecture JSONL réelle)', () => {
     expect(records[0].url).toContain('/1.html')
   })
 
-  it('rejette un doublon d’URL dans le fichier', async () => {
-    const file = writeJsonl([validLine(1), validLine(1)])
-    await expect(readOffiFile(file)).rejects.toThrow(/duplicate url/)
+  it('ignore un doublon d’URL (dédoublonnage, sans interrompre)', async () => {
+    const records = await readOffiFile(writeJsonl([validLine(1), validLine(1)]))
+    expect(records).toHaveLength(1)
   })
 
-  it('rejette un fichier sans aucun enregistrement', async () => {
+  it('rejette un fichier sans aucun enregistrement valide', async () => {
     await expect(readOffiFile(writeJsonl(['', '   ']))).rejects.toThrow(/No records found/)
+    const evilOnly = JSON.stringify({ url: 'https://evil.com/x.html', title: 'X', section: 'theatre' })
+    await expect(readOffiFile(writeJsonl([evilOnly]))).rejects.toThrow(/No records found/)
   })
 
-  it('rejette une ligne JSON invalide avec le numéro de ligne', async () => {
-    await expect(readOffiFile(writeJsonl([validLine(1), '{not json']))).rejects.toThrow(/Line 2/)
+  it('ignore une ligne JSON invalide et garde les lignes valides', async () => {
+    const records = await readOffiFile(writeJsonl([validLine(1), '{not json', validLine(2)]))
+    expect(records).toHaveLength(2)
   })
 
-  it('rejette une URL hors du domaine offi.fr (allowlist)', async () => {
+  it('ignore une URL hors du domaine offi.fr (allowlist) sans tout abandonner', async () => {
     const evil = JSON.stringify({ url: 'https://evil.com/x.html', title: 'X', section: 'theatre' })
-    await expect(readOffiFile(writeJsonl([evil]))).rejects.toThrow(/Expected an Offi URL/)
+    const records = await readOffiFile(writeJsonl([validLine(1), evil, validLine(2)]))
+    expect(records).toHaveLength(2)
+    expect(records.every((r) => r.url.includes('offi.fr'))).toBe(true)
   })
 })
