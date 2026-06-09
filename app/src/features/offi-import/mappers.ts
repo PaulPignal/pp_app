@@ -32,6 +32,7 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
     currency: record.currency ?? null,
     cinemaVenueCount: record.cinema_venue_count ?? null,
     cinemaVenues: record.cinema_venues ?? [],
+    officialUrl: record.official_url ?? null,
     sourceUrl: record.url,
   }
 
@@ -59,6 +60,7 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
   if (record.currency != null) update.currency = record.currency
   if (record.cinema_venue_count != null) update.cinemaVenueCount = record.cinema_venue_count
   if (record.cinema_venues.length > 0) update.cinemaVenues = record.cinema_venues
+  if (record.official_url != null) update.officialUrl = record.official_url
 
   return { create, update }
 }

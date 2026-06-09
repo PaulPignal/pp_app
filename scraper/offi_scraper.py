@@ -209,6 +209,7 @@ class Show:
     currency: Optional[str] = None         # devise du prix : "EUR"
     cinema_venue_count: Optional[int] = None  # nb de salles où le film passe (cinéma)
     cinema_venues: list[str] = field(default_factory=list)  # échantillon de noms de salles
+    official_url: Optional[str] = None  # lien externe dédié de la fiche (expo/concert) : rel="external"
     crawled_at: Optional[str] = None
 
     def is_empty(self) -> bool:
@@ -417,6 +418,7 @@ class OffiScraper:
             currency=payload.get("currency"),
             cinema_venue_count=payload.get("cinema_venue_count"),
             cinema_venues=payload.get("cinema_venues") or [],
+            official_url=payload.get("official_url"),
             crawled_at=payload.get("crawled_at"),
         )
 
@@ -808,6 +810,9 @@ class OffiScraper:
         show.country = self._clean_text(show.country)
         show.availability = self._clean_text(show.availability)
         show.currency = self._clean_text(show.currency)
+        show.official_url = self._clean_text(show.official_url)
+        if show.official_url and not show.official_url.startswith(("http://", "https://")):
+            show.official_url = None
 
         if show.year is not None and not (1880 <= show.year <= 2100):
             logging.warning("Année de production invalide pour %s: %s", show.url, show.year)
@@ -995,6 +1000,11 @@ class OffiScraper:
 
         if not show.description:
             show.description = self._extract_description(soup)
+
+        # Lien externe dédié de la fiche (site de l'expo, page du concert…). Marqué
+        # rel="external" sur la fiche (présent expo/concert ; absent en théâtre).
+        if not show.official_url:
+            show.official_url = parsers.extract_official_website(soup)
 
         director, cast = parsers.extract_credits(soup)
         if not show.director:

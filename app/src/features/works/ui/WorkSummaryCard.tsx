@@ -3,7 +3,7 @@ import type { WorkCardDto } from '@/features/works/dto'
 import { workDirectorLabel, workSectionLabel } from '@/features/works/section'
 import BadgeCategory from '@/features/works/ui/BadgeCategory'
 import WorkImage from '@/features/works/ui/WorkImage'
-import VenueSource from '@/features/works/ui/VenueSource'
+import SourceLink from '@/features/works/ui/SourceLink'
 import { formatDateRange, formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
 import { cn } from '@/shared/lib/cn'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
@@ -28,6 +28,9 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
     ? [work.venue, work.section !== 'cinema' ? work.arrondissement : null].filter(Boolean).join(' · ')
     : ''
   const cinemaMeta = work?.section === 'cinema' ? [work.country, work.year].filter(Boolean).join(' · ') : ''
+  // Sources : lien dédié de la fiche (sur le titre) > site du lieu (sur le nom du lieu).
+  const officialUrl = work?.officialUrl ?? null
+  const venueWebsite = work?.venueInfo?.website ?? null
   const cinemaVenuesLine =
     work?.section === 'cinema' && work.cinemaVenueCount
       ? `🎬 ${work.cinemaVenueCount} salle${work.cinemaVenueCount > 1 ? 's' : ''}${
@@ -63,11 +66,18 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
 
       <div className="flex flex-1 flex-col gap-4 p-4">
         <div className="space-y-2">
-          <h3 className="line-clamp-2 text-lg font-semibold tracking-[-0.03em] text-[color:var(--color-text)]">{title}</h3>
+          <h3 className="line-clamp-2 text-lg font-semibold tracking-[-0.03em] text-[color:var(--color-text)]">
+            {officialUrl ? (
+              <SourceLink label={title} href={officialUrl} textClassName="text-[color:var(--color-text)]" />
+            ) : (
+              title
+            )}
+          </h3>
           {venueLine ? (
-            <VenueSource
+            <SourceLink
               label={venueLine}
-              website={work?.venueInfo?.website ?? null}
+              href={venueWebsite}
+              copy={!officialUrl}
               textClassName="text-sm font-medium text-muted-foreground"
             />
           ) : null}
@@ -100,9 +110,9 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
         </div>
 
         <div className="mt-auto flex flex-col gap-3 border-t border-[color:var(--color-border)] pt-4">
-          {/* Fallback Offi : uniquement si le lieu n'a pas de site officiel (sinon la
-              source est portée par le nom du lieu ci-dessus). */}
-          {work?.sourceUrl && !work.venueInfo?.website ? (
+          {/* Fallback Offi : uniquement si aucune source (lien dédié de la fiche ni site
+              du lieu) n'est disponible. */}
+          {work?.sourceUrl && !officialUrl && !venueWebsite ? (
             <a
               href={work.sourceUrl}
               target="_blank"
