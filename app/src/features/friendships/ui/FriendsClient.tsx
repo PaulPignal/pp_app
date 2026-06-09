@@ -243,72 +243,47 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
         <div className="space-y-5">
-          <SurfaceCard tone="accent" className="space-y-5">
-            <div className="space-y-2">
-              <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[color:var(--color-accent)]">
-                Ajouter un ami
-              </p>
-              <h2 className="text-2xl font-semibold tracking-[-0.03em]">Avec son consentement</h2>
-              <p className="text-sm leading-7 text-muted-foreground">
-                Par email, la personne reçoit une demande à accepter. Par lien, elle confirme en l&apos;ouvrant.
-              </p>
+          <SurfaceCard tone="accent" className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold tracking-[-0.02em]">➕ Ajouter un ami</h2>
+              <SegmentedControl
+                ariaLabel="Choisir un mode d'ajout"
+                value={addMode}
+                onChange={(value) => setAddMode(value as 'email' | 'link')}
+                items={[
+                  { label: '✉️ Email', value: 'email' },
+                  { label: '🔗 Lien', value: 'link' },
+                ]}
+              />
             </div>
 
-            <SegmentedControl
-              ariaLabel="Choisir un mode d'ajout"
-              value={addMode}
-              onChange={(value) => setAddMode(value as 'email' | 'link')}
-              fullWidth
-              items={[
-                { label: 'Par email', value: 'email' },
-                { label: 'Par lien', value: 'link' },
-              ]}
-            />
-
             {addMode === 'email' ? (
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="label">Inviter par email</label>
-                  <p className="field-hint">La personne devra accepter ta demande pour devenir ton amie.</p>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input
-                    className="input flex-1"
-                    placeholder="email@exemple.com"
-                    type="email"
-                    value={emailInput}
-                    onChange={(event) => setEmailInput(event.target.value)}
-                  />
-                  <button className="btn btn-primary" onClick={() => void addFriendByEmail()} disabled={!emailInput || pending !== null}>
-                    {pending === 'email' ? 'Envoi…' : 'Inviter'}
-                  </button>
-                </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input
+                  className="input flex-1"
+                  placeholder="email@exemple.com"
+                  type="email"
+                  value={emailInput}
+                  onChange={(event) => setEmailInput(event.target.value)}
+                />
+                <button className="btn btn-primary" onClick={() => void addFriendByEmail()} disabled={!emailInput || pending !== null}>
+                  {pending === 'email' ? 'Envoi…' : 'Inviter'}
+                </button>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="label">Mon lien d&apos;invitation</label>
-                  <p className="field-hint">
-                    Partage ce lien : la personne devient ton amie en l&apos;ouvrant (le lien expire au bout de 24&nbsp;h).
-                  </p>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input className="input flex-1" readOnly value={inviteUrl} />
-                  <button className="btn btn-secondary" onClick={() => void copyInviteUrl()} disabled={!inviteUrl || pending !== null}>
-                    {pending === 'copy' ? 'Copie…' : 'Copier'}
-                  </button>
-                </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input className="input flex-1" readOnly value={inviteUrl} aria-label="Mon lien d'invitation" />
+                <button className="btn btn-secondary" onClick={() => void copyInviteUrl()} disabled={!inviteUrl || pending !== null}>
+                  {pending === 'copy' ? 'Copie…' : 'Copier'}
+                </button>
               </div>
             )}
           </SurfaceCard>
 
           {requests.length > 0 ? (
             <SurfaceCard tone="muted" className="space-y-4">
-              <div className="space-y-1">
-                <h2 className="text-xl font-semibold tracking-[-0.03em]">Demandes reçues</h2>
-                <p className="text-sm leading-7 text-muted-foreground">Ces personnes souhaitent t&apos;ajouter en ami.</p>
-              </div>
-              <ul className="space-y-3">
+              <h2 className="text-base font-semibold tracking-[-0.02em]">📨 Demandes reçues</h2>
+              <ul className="space-y-2">
                 {requests.map((request) => {
                   const isAccepting = pending === `accept:${request.id}`
                   const isDeclining = pending === `decline:${request.id}`
@@ -347,15 +322,10 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
           ) : null}
         </div>
 
-        <SurfaceCard className="space-y-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-[-0.03em]">Mes amis</h2>
-              <p className="text-sm leading-7 text-muted-foreground">
-                Ouvre la liste commune quand tu veux comparer rapidement vos prochaines idées de sortie.
-              </p>
-            </div>
-            <span className="chip">{friends.length} profil{friends.length > 1 ? 's' : ''}</span>
+        <SurfaceCard className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold tracking-[-0.02em]">👥 Mes amis</h2>
+            <span className="chip">{friends.length}</span>
           </div>
 
           {friends.length === 0 ? (
@@ -380,19 +350,16 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[rgba(15,93,94,0.12)] text-sm font-semibold text-[color:var(--color-accent)]">
                           {initialsFromEmail(friend.email)}
                         </div>
-                        <div>
-                          <div className="text-base font-semibold tracking-[-0.02em]">{friend.email}</div>
-                          <div className="text-sm text-muted-foreground">Découvre vos œuvres communes sans quitter cette ligne.</div>
-                        </div>
+                        <div className="min-w-0 truncate text-sm font-semibold tracking-[-0.02em]">{friend.email}</div>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <button
-                          className={`btn ${isExpanded ? 'btn-primary' : 'btn-secondary'}`}
+                          className={`btn ${isExpanded ? 'btn-primary' : 'btn-secondary'} px-3 py-1.5 text-sm`}
                           onClick={() => void loadCommon(friend.id)}
                           disabled={pending !== null && !isLoadingCommon}
                         >
-                          {isLoadingCommon ? 'Chargement…' : isExpanded ? 'Masquer les œuvres en commun' : 'Œuvres en commun'}
+                          {isLoadingCommon ? '…' : isExpanded ? 'Masquer' : '🎭 En commun'}
                         </button>
                         <button
                           className="btn btn-ghost px-3 py-1.5 text-xs"
