@@ -38,7 +38,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
       <SegmentedControl
         ariaLabel="Sections culturelles"
         value={section}
-        fullWidth
+        scroll
         items={WORK_SECTION_VALUES.map((s) => ({
           label: WORK_SECTION_LABELS[s],
           value: s,

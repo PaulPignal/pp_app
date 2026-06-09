@@ -17,6 +17,9 @@ type SegmentedControlProps = {
   ariaLabel: string
   onChange?: (value: string) => void
   fullWidth?: boolean
+  // Bande horizontale défilable (pills) au lieu du panneau qui passe à la ligne :
+  // compact (1 rangée), idéal quand il y a beaucoup d'items (ex. 6 sections).
+  scroll?: boolean
 }
 
 export default function SegmentedControl({
@@ -25,10 +28,15 @@ export default function SegmentedControl({
   ariaLabel,
   onChange,
   fullWidth = false,
+  scroll = false,
 }: SegmentedControlProps) {
   return (
     <div
-      className={cn('segmented-control', fullWidth && 'segmented-control--full')}
+      className={cn(
+        'segmented-control',
+        fullWidth && 'segmented-control--full',
+        scroll && 'segmented-control--scroll',
+      )}
       role="tablist"
       aria-label={ariaLabel}
     >
