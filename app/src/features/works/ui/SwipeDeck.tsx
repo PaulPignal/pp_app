@@ -339,7 +339,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   return (
     <section
       aria-label="Sélection de découvertes à balayer"
-      className="mx-auto flex w-full max-w-5xl flex-col gap-3 select-none"
+      className="mx-auto flex w-full max-w-xl flex-col gap-3 select-none"
     >
       <div className="relative flex min-h-[30rem] items-center justify-center pb-2">
         {nextItems.map((item, previewIndex) => (
