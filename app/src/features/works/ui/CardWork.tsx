@@ -1,6 +1,6 @@
 import { workDirectorLabel, workSectionLabel } from '@/features/works/section'
 import WorkImage from '@/features/works/ui/WorkImage'
-import VenueSource from '@/features/works/ui/VenueSource'
+import SourceLink from '@/features/works/ui/SourceLink'
 import type { WorkCardDto } from '@/features/works/dto'
 import ExpandableDescription from '@/features/works/ui/ExpandableDescription'
 import { formatAvailability, formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
@@ -35,6 +35,10 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
   // Infos pratiques du lieu (théâtre relié) : métro + accès.
   const venueMetro = work.venueInfo?.metro?.trim()
   const venueAccess = work.venueInfo?.access?.trim()
+  // Sources : lien dédié de la fiche (porté par le titre) > site du lieu (porté par
+  // le nom du lieu). Le bouton copier accompagne la source primaire disponible.
+  const officialUrl = work.officialUrl
+  const venueWebsite = work.venueInfo?.website ?? null
 
   return (
     <article
@@ -69,9 +73,10 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
       <div className="flex flex-col gap-2 p-4">
         <div className="space-y-1">
           {venueLine ? (
-            <VenueSource
-              label={`📍 ${venueLine}`}
-              website={work.venueInfo?.website ?? null}
+            <SourceLink
+              label={venueLine}
+              href={venueWebsite}
+              copy={!officialUrl}
               textClassName="text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]"
             />
           ) : null}
@@ -84,7 +89,11 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
             id={`work-${work.id}-title`}
             className="text-[1.4rem] font-semibold leading-[1.05] tracking-[-0.04em] text-[color:var(--color-text)]"
           >
-            {work.title}
+            {officialUrl ? (
+              <SourceLink label={work.title} href={officialUrl} textClassName="text-[color:var(--color-text)]" />
+            ) : (
+              work.title
+            )}
           </h2>
         </div>
 
@@ -138,9 +147,9 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
 
         {description ? <ExpandableDescription text={description} /> : null}
 
-        {/* Fallback Offi : seulement quand le lieu n'a pas de site officiel (ex. cinéma,
-            ou lieu non encore relié). Sinon, la source est portée par le nom du lieu. */}
-        {work.sourceUrl && !work.venueInfo?.website ? (
+        {/* Fallback Offi : seulement quand aucune source (lien dédié de la fiche ni site
+            du lieu) n'est disponible — ex. cinéma, ou lieu non encore relié. */}
+        {work.sourceUrl && !officialUrl && !venueWebsite ? (
           <a
             href={work.sourceUrl}
             target="_blank"

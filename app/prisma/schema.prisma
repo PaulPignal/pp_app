@@ -92,6 +92,7 @@ model Work {
   currency  String?        // devise du prix : "EUR"
   cinemaVenueCount Int?    // nb de salles où le film est programmé (cinéma)
   cinemaVenues String[]    // échantillon de noms de salles (cinéma)
+  officialUrl String?      // lien externe dédié de la fiche (rel="external") : site de l'expo, page du concert…
   sourceUrl String    @unique
 
   // Lien vers le lieu (pertinent surtout pour le théâtre : un spectacle = un lieu ;

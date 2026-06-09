@@ -21,11 +21,13 @@ def main() -> None:
     offers = parsers.extract_offers(soup)
     description = parsers.extract_description(soup)
     cinema_venue_count, cinema_venues = parsers.extract_cinema_venues(soup)
+    official_url = parsers.extract_official_website(soup)
     print(
         json.dumps(
             {
                 "director": director,
                 "cast": cast,
+                "official_url": official_url,
                 "arrondissement": arrondissement,
                 "country": country,
                 "year": year,

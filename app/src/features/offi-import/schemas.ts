@@ -91,6 +91,7 @@ export const offiWorkSchema = z
     price_min_eur: nullableMoney,
     price_max_eur: nullableMoney,
     image: nullableHttpUrl(500),
+    official_url: nullableHttpUrl(500),
     description: nullableString(20_000),
     director: nullableString(160),
     cast: z.preprocess(

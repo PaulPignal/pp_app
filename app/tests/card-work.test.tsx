@@ -30,6 +30,9 @@ const base: WorkCardDto = {
   year: 2008,
   availability: null,
   currency: null,
+  cinemaVenueCount: null,
+  cinemaVenues: [],
+  officialUrl: null,
   sourceUrl: 'https://www.offi.fr/x',
   venueInfo: null,
 }
@@ -124,6 +127,36 @@ describe('CardWork', () => {
     expect(link).toHaveAttribute('href', 'https://www.theatremontparnasse.com')
     expect(screen.getByRole('button', { name: /copier le lien/i })).toBeInTheDocument()
     // le lien Offi générique disparaît au profit de la source
+    expect(screen.queryByText(/Voir sur Offi\.fr/)).not.toBeInTheDocument()
+  })
+
+  it('quand la fiche a un lien dédié : le titre devient le lien (vers officialUrl) + bouton copier', () => {
+    render(
+      <CardWork
+        work={{
+          ...base,
+          section: 'exposition',
+          title: 'Gianni Versace Retrospective',
+          venue: 'Musée Maillol',
+          officialUrl: 'https://gianniversaceretrospective.fr',
+          venueInfo: {
+            name: 'Musée Maillol',
+            metro: null,
+            access: null,
+            phone: null,
+            city: 'Paris 7e',
+            website: 'https://www.museemaillol.com',
+          },
+        }}
+      />,
+    )
+    // le titre pointe vers la page dédiée de l'expo
+    const titleLink = screen.getByRole('link', { name: /Gianni Versace Retrospective/ })
+    expect(titleLink).toHaveAttribute('href', 'https://gianniversaceretrospective.fr')
+    // le nom du lieu reste un lien vers le site du lieu
+    expect(screen.getByRole('link', { name: /Musée Maillol/ })).toHaveAttribute('href', 'https://www.museemaillol.com')
+    // un seul bouton copier (sur la source primaire = le titre)
+    expect(screen.getAllByRole('button', { name: /copier le lien/i })).toHaveLength(1)
     expect(screen.queryByText(/Voir sur Offi\.fr/)).not.toBeInTheDocument()
   })
 
