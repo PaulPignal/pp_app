@@ -125,6 +125,22 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
           <p className="text-xs text-[color:var(--color-text-muted)]">🎬 {cinemaVenuesLine}</p>
         ) : null}
 
+        {work.platforms && work.platforms.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
+              📺 Dispo sur
+            </span>
+            {work.platforms.map((p) => (
+              <span
+                key={p}
+                className="rounded-full bg-[rgba(54,39,24,0.06)] px-2.5 py-0.5 text-xs font-medium text-[color:var(--color-text)]"
+              >
+                {p}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
         {hasFacts ? (
           <div className="flex flex-wrap items-center gap-2">
             {durationLabel ? (

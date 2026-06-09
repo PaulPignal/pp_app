@@ -10,6 +10,18 @@ export const listDiscoverWorksParamsSchema = z.object({
       .transform((value) => (value ? new Date(value) : undefined)),
   category: z.string().trim().min(1).optional(),
   section: z.enum(WORK_SECTION_VALUES).optional(),
+  // Filtre plateformes streaming (CSV "Netflix,Disney+" ou tableau).
+  platforms: z
+    .preprocess(
+      (value) =>
+        Array.isArray(value)
+          ? value
+          : typeof value === 'string'
+            ? value.split(',').map((s) => s.trim()).filter(Boolean)
+            : undefined,
+      z.array(z.string().min(1)).max(40).optional(),
+    )
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
 })
 
 export type ListDiscoverWorksParams = z.infer<typeof listDiscoverWorksParamsSchema>
