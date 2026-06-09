@@ -216,3 +216,64 @@ def extract_arrondissement(soup) -> Optional[str]:
         return arrondissement_from_postal(code)
 
     return None
+
+
+# --- Offre billetterie : disponibilité, devise, prix structurés ----------------
+# Offi expose un bloc `offers` (microdata schema.org) sur les fiches avec billetterie
+# (surtout théâtre) : availability ("https://schema.org/InStock"), priceCurrency,
+# lowPrice/highPrice (ou price). Plus fiable que le regex texte sur "tarif".
+_KNOWN_AVAILABILITY = {
+    "InStock", "SoldOut", "PreOrder", "OutOfStock", "LimitedAvailability",
+    "PreSale", "Discontinued", "InStoreOnly", "OnlineOnly", "BackOrder",
+}
+
+
+def _itemprop_value(soup, name: str) -> Optional[str]:
+    el = soup.select_one(f'[itemprop="{name}"]')
+    if not el:
+        return None
+    value = el.get("content") or el.get("href") or el.get_text(" ", strip=True)
+    return value.strip() if value else None
+
+
+def _to_price(value: Optional[str]) -> Optional[float]:
+    if not value:
+        return None
+    match = re.search(r"\d+(?:[.,]\d+)?", value)
+    if not match:
+        return None
+    try:
+        price = float(match.group(0).replace(",", "."))
+    except ValueError:
+        return None
+    return price if 0 <= price <= 1000 else None
+
+
+def extract_offers(soup) -> dict:
+    """Retourne {availability, currency, price_min, price_max} depuis le bloc offers."""
+    availability = _itemprop_value(soup, "availability")
+    if availability:
+        # "https://schema.org/InStock" -> "InStock"
+        availability = availability.rstrip("/").rsplit("/", 1)[-1]
+        if availability not in _KNOWN_AVAILABILITY:
+            availability = None
+
+    currency = _itemprop_value(soup, "priceCurrency")
+    if currency:
+        currency = currency.upper()[:3] if re.fullmatch(r"[A-Za-z]{3}", currency) else None
+
+    low = _to_price(_itemprop_value(soup, "lowPrice"))
+    high = _to_price(_itemprop_value(soup, "highPrice"))
+    single = _to_price(_itemprop_value(soup, "price"))
+
+    price_min = low if low is not None else single
+    price_max = high if high is not None else single
+    if price_min is not None and price_max is not None and price_min > price_max:
+        price_min, price_max = price_max, price_min
+
+    return {
+        "availability": availability,
+        "currency": currency,
+        "price_min": price_min,
+        "price_max": price_max,
+    }

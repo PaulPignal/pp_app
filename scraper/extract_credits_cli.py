@@ -18,6 +18,7 @@ def main() -> None:
     director, cast = parsers.extract_credits(soup)
     country, year = parsers.extract_cinema_meta(soup)
     arrondissement = parsers.extract_arrondissement(soup)
+    offers = parsers.extract_offers(soup)
     print(
         json.dumps(
             {
@@ -26,6 +27,10 @@ def main() -> None:
                 "arrondissement": arrondissement,
                 "country": country,
                 "year": year,
+                "availability": offers["availability"],
+                "currency": offers["currency"],
+                "price_min": offers["price_min"],
+                "price_max": offers["price_max"],
             },
             ensure_ascii=False,
         )

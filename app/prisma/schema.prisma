@@ -88,6 +88,8 @@ model Work {
   arrondissement String?  // ville/arrondissement (théâtre) : "Paris 10e"
   country   String?        // nationalité (cinéma) : "États-Unis"
   year      Int?           // année de production (cinéma)
+  availability String?     // dispo billetterie (schema.org) : "InStock", "SoldOut"…
+  currency  String?        // devise du prix : "EUR"
   sourceUrl String    @unique
 
   // ✅ Réactions (remplace l'ancien Work.likes)

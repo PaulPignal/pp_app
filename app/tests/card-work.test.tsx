@@ -28,6 +28,8 @@ const base: WorkCardDto = {
   arrondissement: null,
   country: 'États-Unis',
   year: 2008,
+  availability: null,
+  currency: null,
   sourceUrl: 'https://www.offi.fr/x',
 }
 
@@ -70,6 +72,16 @@ describe('CardWork', () => {
   it('cinéma : affiche la nationalité et l’année', () => {
     render(<CardWork work={{ ...base, venue: null }} />)
     expect(screen.getByText('États-Unis · 2008')).toBeInTheDocument()
+  })
+
+  it('affiche un badge « Billets dispo » quand availability=InStock', () => {
+    render(<CardWork work={{ ...base, availability: 'InStock' }} />)
+    expect(screen.getByText('Billets dispo')).toBeInTheDocument()
+  })
+
+  it('affiche « Complet » quand availability=SoldOut', () => {
+    render(<CardWork work={{ ...base, availability: 'SoldOut' }} />)
+    expect(screen.getByText('Complet')).toBeInTheDocument()
   })
 
   it('théâtre : affiche le lieu avec l’arrondissement', () => {

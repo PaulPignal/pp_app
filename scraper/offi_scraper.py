@@ -175,6 +175,8 @@ class Show:
     arrondissement: Optional[str] = None  # ville/arrondissement (théâtre) : "Paris 10e"
     country: Optional[str] = None          # nationalité (cinéma) : "États-Unis"
     year: Optional[int] = None             # année de production (cinéma)
+    availability: Optional[str] = None     # dispo billetterie : "InStock", "SoldOut"…
+    currency: Optional[str] = None         # devise du prix : "EUR"
     crawled_at: Optional[str] = None
 
     def is_empty(self) -> bool:
@@ -379,6 +381,8 @@ class OffiScraper:
             arrondissement=payload.get("arrondissement"),
             country=payload.get("country"),
             year=payload.get("year"),
+            availability=payload.get("availability"),
+            currency=payload.get("currency"),
             crawled_at=payload.get("crawled_at"),
         )
 
@@ -771,6 +775,8 @@ class OffiScraper:
         show.description = self._clean_text(show.description)
         show.arrondissement = self._clean_text(show.arrondissement)
         show.country = self._clean_text(show.country)
+        show.availability = self._clean_text(show.availability)
+        show.currency = self._clean_text(show.currency)
 
         if show.year is not None and not (1880 <= show.year <= 2100):
             logging.warning("Année de production invalide pour %s: %s", show.url, show.year)
@@ -957,6 +963,18 @@ class OffiScraper:
             show.director = director
         if not show.cast and cast:
             show.cast = cast
+
+        # Offre billetterie structurée (surtout théâtre) : plus fiable que le regex.
+        offers = parsers.extract_offers(soup)
+        if not show.availability and offers["availability"]:
+            show.availability = offers["availability"]
+        if not show.currency and offers["currency"]:
+            show.currency = offers["currency"]
+        if offers["price_min"] is not None:
+            show.price_min_eur = offers["price_min"]
+            show.price_max_eur = (
+                offers["price_max"] if offers["price_max"] is not None else offers["price_min"]
+            )
 
         if show.section == "cinema":
             return self._complete_cinema_show_from_detail_page(show, soup)

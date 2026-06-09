@@ -2,16 +2,24 @@ import Image from 'next/image'
 import { splitGenres } from '@/features/works/category'
 import type { WorkCardDto } from '@/features/works/dto'
 import ExpandableDescription from '@/features/works/ui/ExpandableDescription'
-import { formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
+import { formatAvailability, formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
+
+const AVAILABILITY_CHIP_CLASS: Record<'success' | 'danger' | 'warning', string> = {
+  success: 'bg-[color:var(--color-success-soft)] text-[color:var(--color-success)]',
+  warning: 'bg-[rgba(160,74,65,0.10)] text-[color:var(--color-danger)]',
+  danger: 'bg-[color:var(--color-danger-soft)] text-[color:var(--color-danger)]',
+}
 
 export default function CardWork({ work }: { work: WorkCardDto }) {
   const durationLabel = formatDuration(work.durationMin)
   const priceLabel = formatPriceRange(work.priceMin, work.priceMax)
+  const availability = formatAvailability(work.availability)
   const description = work.description?.trim()
   const genres = splitGenres(work.category).slice(0, 3)
   const sectionLabel = work.section === 'cinema' ? 'Cinéma' : 'Théâtre'
   const directorLabel = work.section === 'cinema' ? 'De' : 'Mise en scène'
-  const hasFacts = genres.length > 0 || Boolean(durationLabel) || Boolean(priceLabel)
+  const hasFacts =
+    genres.length > 0 || Boolean(durationLabel) || Boolean(priceLabel) || Boolean(availability)
   // Ligne d'eyebrow : lieu (théâtre, avec arrondissement) ou nationalité·année (cinéma).
   const venueLine = [work.venue, work.section === 'theatre' ? work.arrondissement : null]
     .filter(Boolean)
@@ -100,6 +108,11 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
             {priceLabel ? (
               <span className="rounded-full bg-[rgba(54,39,24,0.06)] px-3 py-1 text-xs font-medium text-[color:var(--color-text)]">
                 💶 {priceLabel}
+              </span>
+            ) : null}
+            {availability ? (
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${AVAILABILITY_CHIP_CLASS[availability.tone]}`}>
+                {availability.label}
               </span>
             ) : null}
           </div>

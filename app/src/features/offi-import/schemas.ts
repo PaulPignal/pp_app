@@ -69,6 +69,8 @@ export const offiWorkSchema = z
     arrondissement: nullableString(80),
     country: nullableString(80),
     year: nullableYear,
+    availability: nullableString(40),
+    currency: nullableString(8),
     date_start: nullableIsoDate,
     date_end: nullableIsoDate,
     duration_min: nullableInt,

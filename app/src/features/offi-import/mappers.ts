@@ -28,6 +28,8 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
     arrondissement: record.arrondissement ?? null,
     country: record.country ?? null,
     year: record.year ?? null,
+    availability: record.availability ?? null,
+    currency: record.currency ?? null,
     sourceUrl: record.url,
   }
 
@@ -51,6 +53,8 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
   if (record.arrondissement != null) update.arrondissement = record.arrondissement
   if (record.country != null) update.country = record.country
   if (record.year != null) update.year = record.year
+  if (record.availability != null) update.availability = record.availability
+  if (record.currency != null) update.currency = record.currency
 
   return { create, update }
 }
