@@ -1,4 +1,5 @@
 import { splitGenres } from '@/features/works/category'
+import { workDirectorLabel, workSectionLabel } from '@/features/works/section'
 import WorkImage from '@/features/works/ui/WorkImage'
 import type { WorkCardDto } from '@/features/works/dto'
 import ExpandableDescription from '@/features/works/ui/ExpandableDescription'
@@ -16,12 +17,13 @@ export default function CardWork({ work }: { work: WorkCardDto }) {
   const availability = formatAvailability(work.availability)
   const description = work.description?.trim()
   const genres = splitGenres(work.category).slice(0, 3)
-  const sectionLabel = work.section === 'cinema' ? 'Cinéma' : 'Théâtre'
-  const directorLabel = work.section === 'cinema' ? 'De' : 'Mise en scène'
+  const sectionLabel = workSectionLabel(work.section)
+  const directorLabel = workDirectorLabel(work.section)
   const hasFacts =
     genres.length > 0 || Boolean(durationLabel) || Boolean(priceLabel) || Boolean(availability)
-  // Ligne d'eyebrow : lieu (théâtre, avec arrondissement) ou nationalité·année (cinéma).
-  const venueLine = [work.venue, work.section === 'theatre' ? work.arrondissement : null]
+  // Ligne d'eyebrow : lieu + arrondissement (toutes sections « lieu » sauf le cinéma,
+  // qui affiche plutôt nationalité·année).
+  const venueLine = [work.venue, work.section !== 'cinema' ? work.arrondissement : null]
     .filter(Boolean)
     .join(' · ')
   const cinemaMeta = work.section === 'cinema' ? [work.country, work.year].filter(Boolean).join(' · ') : ''

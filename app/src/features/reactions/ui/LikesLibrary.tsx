@@ -5,6 +5,7 @@ import type { FriendSummaryDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
 import CompactLikeCard from '@/features/reactions/ui/CompactLikeCard'
 import LikeDetailModal, { type LikeBucket } from '@/features/reactions/ui/LikeDetailModal'
+import { WORK_SECTION_LABELS, WORK_SECTION_VALUES, type WorkSection } from '@/features/works/section'
 import { fetchJson } from '@/shared/lib/fetch-json'
 import SegmentedControl from '@/shared/ui/SegmentedControl'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
@@ -61,7 +62,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
 
   // Filtres / tri (côté client).
   const [query, setQuery] = useState('')
-  const [section, setSection] = useState<'all' | 'theatre' | 'cinema'>('all')
+  const [section, setSection] = useState<'all' | WorkSection>('all')
   const [bookableOnly, setBookableOnly] = useState(false)
   const [sort, setSort] = useState<SortKey>('recent')
 
@@ -295,8 +296,8 @@ function Toolbar({
 }: {
   query: string
   onQuery: (v: string) => void
-  section: 'all' | 'theatre' | 'cinema'
-  onSection: (v: 'all' | 'theatre' | 'cinema') => void
+  section: 'all' | WorkSection
+  onSection: (v: 'all' | WorkSection) => void
   bookableOnly: boolean
   onBookable: (v: boolean) => void
   sort: SortKey
@@ -313,16 +314,19 @@ function Toolbar({
         aria-label="Rechercher dans mes likes"
       />
       <div className="flex flex-wrap items-center gap-2">
-        <SegmentedControl
-          ariaLabel="Filtrer par type"
+        <select
+          className="input w-auto py-1.5 text-sm"
           value={section}
-          onChange={(v) => onSection(v as 'all' | 'theatre' | 'cinema')}
-          items={[
-            { label: 'Tout', value: 'all' },
-            { label: 'Théâtre', value: 'theatre' },
-            { label: 'Cinéma', value: 'cinema' },
-          ]}
-        />
+          onChange={(e) => onSection(e.target.value as 'all' | WorkSection)}
+          aria-label="Filtrer par type"
+        >
+          <option value="all">Tout</option>
+          {WORK_SECTION_VALUES.map((s) => (
+            <option key={s} value={s}>
+              {WORK_SECTION_LABELS[s]}
+            </option>
+          ))}
+        </select>
         <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-white/70 px-3 py-1.5 text-xs font-medium">
           <input type="checkbox" checked={bookableOnly} onChange={(e) => onBookable(e.target.checked)} />
           Réservable

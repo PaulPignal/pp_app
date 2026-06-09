@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { WorkCardDto } from '@/features/works/dto'
+import { workDirectorLabel, workSectionLabel } from '@/features/works/section'
 import BadgeCategory from '@/features/works/ui/BadgeCategory'
 import WorkImage from '@/features/works/ui/WorkImage'
 import { formatDateRange, formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
@@ -21,9 +22,9 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
   const description = work?.description?.trim()
   const director = work?.director?.trim()
   const castNames = work?.cast?.slice(0, 5) ?? []
-  const directorLabel = work?.section === 'cinema' ? 'De' : 'Mise en scène'
+  const directorLabel = workDirectorLabel(work?.section)
   const venueLine = work
-    ? [work.venue, work.section === 'theatre' ? work.arrondissement : null].filter(Boolean).join(' · ')
+    ? [work.venue, work.section !== 'cinema' ? work.arrondissement : null].filter(Boolean).join(' · ')
     : ''
   const cinemaMeta = work?.section === 'cinema' ? [work.country, work.year].filter(Boolean).join(' · ') : ''
 
@@ -48,7 +49,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
 
         {work?.section ? (
           <span className="absolute bottom-4 right-4 rounded-full border border-white/35 bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-white backdrop-blur-sm">
-            {work.section === 'cinema' ? 'Cinéma' : 'Théâtre'}
+            {workSectionLabel(work.section)}
           </span>
         ) : null}
       </div>
