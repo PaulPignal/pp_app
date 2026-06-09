@@ -118,6 +118,23 @@ describe('Offi ingestion helpers', () => {
     expect(update).toHaveProperty('year', 1978)
   })
 
+  it('ignore un prix aberrant (>1000) sans rejeter l’œuvre', () => {
+    const record = parseOffiJsonLine(
+      JSON.stringify({
+        url: 'https://www.offi.fr/theatre/x-1/show-2.html',
+        title: 'Spectacle',
+        section: 'theatre',
+        price_min_eur: 20,
+        price_max_eur: 1170,
+        description: 'desc',
+        date_start: '2026-03-12',
+      }),
+      604,
+    )
+    expect(record.price_min_eur).toBe(20)
+    expect(record.price_max_eur).toBeNull() // aberrant → ignoré, œuvre conservée
+  })
+
   it('rejette une année hors plage', () => {
     expect(() =>
       parseOffiJsonLine(
