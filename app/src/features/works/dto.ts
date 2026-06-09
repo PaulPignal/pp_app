@@ -25,6 +25,8 @@ export const workCardSelect = {
   cinemaVenueCount: true,
   cinemaVenues: true,
   platforms: true,
+  rating: true,
+  ratingCount: true,
   officialUrl: true,
   sourceUrl: true,
   venue_ref: {
@@ -58,6 +60,8 @@ export type WorkCardDto = {
   cinemaVenueCount: number | null
   cinemaVenues: string[]
   platforms: string[]
+  rating: number | null
+  ratingCount: number | null
   officialUrl: string | null
   sourceUrl: string | null
   venueInfo: {
@@ -95,6 +99,8 @@ export function mapWorkToCardDto(work: WorkCardRecord): WorkCardDto {
     cinemaVenueCount: work.cinemaVenueCount,
     cinemaVenues: work.cinemaVenues,
     platforms: work.platforms,
+    rating: work.rating,
+    ratingCount: work.ratingCount,
     officialUrl: work.officialUrl,
     sourceUrl: work.sourceUrl,
     venueInfo: work.venue_ref

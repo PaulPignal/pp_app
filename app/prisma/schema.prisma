@@ -93,6 +93,8 @@ model Work {
   cinemaVenueCount Int?    // nb de salles où le film est programmé (cinéma)
   cinemaVenues String[]    // échantillon de noms de salles (cinéma)
   platforms String[]       // plateformes de streaming (abonnement) où le film est dispo : "Netflix", "Disney+"…
+  rating      Float?       // note publique du film (TMDB /10) — films (ciné + streaming)
+  ratingCount Int?         // nombre de votes derrière la note
   officialUrl String?      // lien externe dédié de la fiche (rel="external") : site de l'expo, page du concert…
   sourceUrl String    @unique
 
