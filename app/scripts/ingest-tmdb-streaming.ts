@@ -37,7 +37,16 @@ const TARGETS: { canonical: string; aliases: string[] }[] = [
   { canonical: 'M6+', aliases: ['m6+', '6play', 'm6 plus'] },
 ]
 
-type Movie = { id: number; title: string; overview: string; poster_path: string | null; release_date: string; genre_ids: number[] }
+type Movie = {
+  id: number
+  title: string
+  overview: string
+  poster_path: string | null
+  release_date: string
+  genre_ids: number[]
+  vote_average?: number
+  vote_count?: number
+}
 
 async function tmdb(path: string, params: Record<string, string> = {}): Promise<any> {
   const qs = new URLSearchParams({ api_key: KEY!, language: LANG, ...params })
@@ -115,6 +124,8 @@ async function main() {
           imageUrl: movie.poster_path ? `${IMG}${movie.poster_path}` : null,
           year: year && year >= 1880 && year <= 2100 ? year : null,
           platforms: [...platforms].sort(),
+          rating: typeof movie.vote_average === 'number' && movie.vote_average > 0 ? movie.vote_average : null,
+          ratingCount: typeof movie.vote_count === 'number' ? movie.vote_count : null,
           officialUrl: `https://www.themoviedb.org/movie/${movie.id}/watch?locale=${REGION}`,
         }
         const sourceUrl = `https://www.themoviedb.org/movie/${movie.id}`

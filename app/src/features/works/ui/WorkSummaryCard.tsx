@@ -20,6 +20,10 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
   const dateLabel = work ? formatDateRange(work.startDate, work.endDate) : null
   const priceLabel = work ? formatPriceRange(work.priceMin, work.priceMax) : null
   const durationLabel = work ? formatDuration(work.durationMin) : null
+  const ratingLabel =
+    work?.rating != null && work.rating > 0 && (work.ratingCount ?? 0) >= 20
+      ? work.rating.toFixed(1).replace('.', ',')
+      : null
   const description = work?.description?.trim()
   const director = work?.director?.trim()
   const castNames = work?.cast?.slice(0, 5) ?? []
@@ -113,6 +117,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
         </div>
 
         <div className="grid gap-2 text-sm text-[color:var(--color-text)]">
+          {ratingLabel ? <SummaryRow label="Note" value={`⭐ ${ratingLabel}/10`} /> : null}
           {dateLabel ? <SummaryRow label="Dates" value={dateLabel} /> : null}
           {priceLabel ? <SummaryRow label="Budget" value={priceLabel} /> : null}
           {durationLabel ? <SummaryRow label="Durée" value={durationLabel} /> : null}

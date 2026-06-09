@@ -18,7 +18,12 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
   const description = work.description?.trim()
   const sectionLabel = workSectionLabel(work.section)
   const directorLabel = workDirectorLabel(work.section)
-  const hasFacts = Boolean(durationLabel) || Boolean(priceLabel) || Boolean(availability)
+  // Note publique (films) : affichée si ≥ 20 votes (sinon trop bruitée).
+  const ratingLabel =
+    work.rating != null && work.rating > 0 && (work.ratingCount ?? 0) >= 20
+      ? work.rating.toFixed(1).replace('.', ',')
+      : null
+  const hasFacts = Boolean(durationLabel) || Boolean(priceLabel) || Boolean(availability) || Boolean(ratingLabel)
   // Ligne d'eyebrow : lieu + arrondissement (toutes sections « lieu » sauf le cinéma,
   // qui affiche plutôt nationalité·année).
   const venueLine = [work.venue, work.section !== 'cinema' ? work.arrondissement : null]
@@ -143,6 +148,11 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
 
         {hasFacts ? (
           <div className="flex flex-wrap items-center gap-2">
+            {ratingLabel ? (
+              <span className="rounded-full bg-[rgba(212,160,23,0.16)] px-3 py-1 text-xs font-semibold text-[#7a5c00]">
+                ⭐ {ratingLabel}
+              </span>
+            ) : null}
             {durationLabel ? (
               <span className="rounded-full bg-[rgba(54,39,24,0.06)] px-3 py-1 text-xs font-medium text-[color:var(--color-text)]">
                 ⏱️ {durationLabel}
