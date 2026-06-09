@@ -5,6 +5,33 @@ import type { WorkCardDto } from '@/features/works/dto'
 import CardWork from '@/features/works/ui/CardWork'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
 
+// Icônes d'action (style épuré, façon apps de swipe). aria-hidden : le libellé
+// accessible est porté par le bouton.
+function IconHeart({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+    </svg>
+  )
+}
+
+function IconX({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" aria-hidden className={className}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  )
+}
+
+function IconRewind({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <polyline points="1 4 1 10 7 10" />
+      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+    </svg>
+  )
+}
+
 type Props = {
   items: WorkCardDto[]
   totalCount?: number
@@ -304,52 +331,52 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           <div className="pointer-events-none absolute inset-x-6 top-6 flex items-start justify-between">
             <span
               aria-hidden
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(35,100,75,0.35)] bg-[rgba(232,244,237,0.9)] text-2xl text-[color:var(--color-success)] opacity-0 shadow-[0_14px_30px_rgba(35,100,75,0.16)]"
+              className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[color:var(--color-success)] bg-[rgba(232,244,237,0.92)] text-[color:var(--color-success)] opacity-0 shadow-[0_14px_30px_rgba(35,100,75,0.16)]"
               style={{ opacity: Math.max(0, Math.min(1, dragX / 120)) }}
             >
-              ♥
+              <IconHeart className="h-6 w-6" />
             </span>
             <span
               aria-hidden
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(160,74,65,0.3)] bg-[rgba(249,236,233,0.92)] text-2xl text-[color:var(--color-danger)] opacity-0 shadow-[0_14px_30px_rgba(160,74,65,0.14)]"
+              className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[color:var(--color-danger)] bg-[rgba(249,236,233,0.94)] text-[color:var(--color-danger)] opacity-0 shadow-[0_14px_30px_rgba(160,74,65,0.14)]"
               style={{ opacity: Math.max(0, Math.min(1, -dragX / 120)) }}
             >
-              ✕
+              <IconX className="h-6 w-6" />
             </span>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-xl items-center justify-center gap-4">
+      <div className="mx-auto flex w-full max-w-xl items-center justify-center gap-5">
         <button
           type="button"
           onClick={() => void undo()}
-          className="btn btn-secondary h-12 w-12 rounded-full p-0 text-xl leading-none disabled:opacity-40"
+          className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#e0a23b] bg-[color:var(--color-surface-strong)] text-[#cf8f24] shadow-[var(--shadow-lg)] transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
           disabled={pending || history.length === 0}
           aria-label="Annuler le dernier swipe"
           title="Annuler le dernier swipe (Cmd/Ctrl+Z)"
         >
-          ↶
+          <IconRewind className="h-5 w-5" />
         </button>
         <button
           type="button"
           onClick={() => void advance(false)}
-          className="btn btn-secondary h-16 w-16 rounded-full p-0 text-2xl leading-none disabled:opacity-40"
+          className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[color:var(--color-danger)] bg-[color:var(--color-surface-strong)] text-[color:var(--color-danger)] shadow-[var(--shadow-lg)] transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
           disabled={pending}
           aria-label="Passer"
           title="Passer"
         >
-          ✕
+          <IconX className="h-7 w-7" />
         </button>
         <button
           type="button"
           onClick={() => void advance(true)}
-          className="btn btn-primary h-16 w-16 rounded-full p-0 text-2xl leading-none disabled:opacity-60"
+          className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[color:var(--color-success)] bg-[color:var(--color-surface-strong)] text-[color:var(--color-success)] shadow-[var(--shadow-lg)] transition hover:scale-105 active:scale-95 disabled:opacity-60 disabled:hover:scale-100"
           disabled={pending}
           aria-label="Aimer"
           title="Aimer"
         >
-          {pending ? '…' : '♥'}
+          <IconHeart className={pending ? 'h-6 w-6 animate-pulse' : 'h-6 w-6'} />
         </button>
       </div>
 
