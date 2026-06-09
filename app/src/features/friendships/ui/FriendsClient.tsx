@@ -7,7 +7,6 @@ import type { WorkCardDto } from '@/features/works/dto'
 import WorkSummaryCard from '@/features/works/ui/WorkSummaryCard'
 import { fetchJson } from '@/shared/lib/fetch-json'
 import type { JsonOk } from '@/shared/lib/http'
-import PageHeader from '@/shared/ui/PageHeader'
 import SegmentedControl from '@/shared/ui/SegmentedControl'
 import StatusBanner from '@/shared/ui/StatusBanner'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
@@ -237,17 +236,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
 
   return (
     <div className="page-shell">
-      <PageHeader
-        eyebrow="Réseau"
-        title="Amis"
-        description="Invite quelqu'un par email ou par lien : la personne doit accepter avant que vous ne deveniez amis. Ouvre ensuite vos œuvres communes directement depuis sa ligne."
-        meta={
-          <>
-            <span className="chip">{friends.length} ami{friends.length > 1 ? 's' : ''}</span>
-            {requests.length > 0 ? <span className="chip">{requests.length} demande{requests.length > 1 ? 's' : ''} en attente</span> : null}
-          </>
-        }
-      />
+      <h1 className="sr-only">Amis</h1>
 
       {error ? <StatusBanner tone="error" floating>{error}</StatusBanner> : null}
       {notice ? <StatusBanner tone="success" floating>{notice}</StatusBanner> : null}

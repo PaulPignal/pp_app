@@ -6,7 +6,6 @@ import type { WorkCardDto } from '@/features/works/dto'
 import CompactLikeCard from '@/features/reactions/ui/CompactLikeCard'
 import LikeDetailModal, { type LikeBucket } from '@/features/reactions/ui/LikeDetailModal'
 import { fetchJson } from '@/shared/lib/fetch-json'
-import PageHeader from '@/shared/ui/PageHeader'
 import SegmentedControl from '@/shared/ui/SegmentedControl'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
 
@@ -198,29 +197,17 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
 
   return (
     <>
-      <PageHeader
-        eyebrow="Bibliothèque"
-        title="Mes likes"
-        description="Ta shortlist de sorties : repère ce qui se termine bientôt, vérifie la dispo et réserve. Clique une carte pour le détail."
-        meta={
-          <>
-            <span className="chip">{totalLikes} à voir</span>
-            <span className="chip">{active.length} à l’affiche</span>
-            <span className="chip">{seenList.length} déjà vus</span>
-          </>
-        }
-      >
-        <SegmentedControl
-          ariaLabel="Filtrer les likes"
-          value={view}
-          items={[
-            { label: 'Tous', value: 'all', href: '/likes', count: totalLikes },
-            { label: 'À l’affiche', value: 'active', href: '/likes?view=active', count: active.length },
-            { label: 'Archivées', value: 'archived', href: '/likes?view=archived', count: archive.length },
-            { label: 'Déjà vus', value: 'seen', href: '/likes?view=seen', count: seenList.length },
-          ]}
-        />
-      </PageHeader>
+      <h1 className="sr-only">Mes likes</h1>
+      <SegmentedControl
+        ariaLabel="Filtrer les likes"
+        value={view}
+        items={[
+          { label: 'Tous', value: 'all', href: '/likes', count: totalLikes },
+          { label: 'À l’affiche', value: 'active', href: '/likes?view=active', count: active.length },
+          { label: 'Archivées', value: 'archived', href: '/likes?view=archived', count: archive.length },
+          { label: 'Déjà vus', value: 'seen', href: '/likes?view=seen', count: seenList.length },
+        ]}
+      />
 
       {totalLikes + seenList.length === 0 ? (
         <SurfaceCard>
