@@ -11,7 +11,13 @@ function normalizeString(value: unknown) {
 }
 
 function nullableString(max: number) {
-  return z.preprocess(normalizeString, z.string().max(max).nullable())
+  // On TRONQUE à `max` plutôt que de rejeter : une fiche au champ trop long (ex.
+  // category 121, director 161) ne doit pas être perdue. Les colonnes Postgres sont
+  // en TEXT (sans limite) → la troncature ne concerne que cette borne applicative.
+  return z.preprocess((value) => {
+    const v = normalizeString(value)
+    return typeof v === 'string' && v.length > max ? v.slice(0, max) : v
+  }, z.string().max(max).nullable())
 }
 
 function nullableHttpUrl(max: number) {

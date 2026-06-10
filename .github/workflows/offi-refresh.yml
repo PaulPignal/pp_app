@@ -118,3 +118,13 @@ jobs:
         with:
           path: data/offi.jsonl
           key: offi-jsonl-${{ github.run_id }}
+
+      # Le JSONL scrapé est aussi exposé en artefact : si l'ingestion échoue, on peut
+      # le télécharger et rejouer l'ingest seul (idempotent) sans relancer le scrape.
+      - name: Upload JSONL artifact
+        if: always() && hashFiles('data/offi.jsonl') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: offi-jsonl-${{ github.run_id }}
+          path: data/offi.jsonl
+          retention-days: 7
