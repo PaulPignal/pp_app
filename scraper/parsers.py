@@ -287,6 +287,24 @@ def extract_offers(soup) -> dict:
 _OFFI_ID_RE = re.compile(r"-(\d+)(?:\.html)?(?:[?#].*)?$")
 _PHONE_RE = re.compile(r"\+?\d[\d .]{7,}\d")
 _METRO_RE = re.compile(r"M[ée]tro\s*:?\s*([A-Za-zÀ-ÿ0-9 '’\-]{3,60})", re.IGNORECASE)
+# Mots qui trahissent un texte happé par erreur (pas un nom de station).
+_METRO_JUNK_RE = re.compile(r"th[ée][âa]tre|mus[ée]e|salle|cin[ée]ma|\bparis\b|spectacle|com[ée]die", re.IGNORECASE)
+_METRO_TRAILING_RE = re.compile(r"\s+(?:le|la|les|en|au|aux|et|à|du|de|des|d'|l')\s*$", re.IGNORECASE)
+
+
+def _clean_metro(raw: str) -> Optional[str]:
+    """Nettoie le nom de station happé après « Métro : » (coupe rubrique suivante,
+    dates/chiffres, connecteur final orphelin) et rejette le bruit (noms de lieux)."""
+    if not raw:
+        return None
+    # Coupe à la rubrique suivante (Accès, Bus, RER…) puis au 1er chiffre (dates/années).
+    value = re.split(r"\s+(?:Acc[èe]s|Bus|Parking|Voiture|RER|Tram\w*|Horaires|T[ée]l)\b", raw)[0]
+    value = re.split(r"\d", value)[0]
+    value = _clean_credit(value)
+    value = _METRO_TRAILING_RE.sub("", value).strip()
+    if not value or len(value) > 32 or _METRO_JUNK_RE.search(value):
+        return None
+    return value or None
 
 
 def offi_id_from_url(url: Optional[str]) -> Optional[int]:
@@ -394,9 +412,7 @@ def extract_venue(soup, source_url: str, kind: str) -> Optional[dict]:
     metro = None
     mm = _METRO_RE.search(text)
     if mm:
-        # On coupe à la rubrique suivante (Accès, Bus, Parking, RER…).
-        metro = re.split(r"\s+(?:Acc[èe]s|Bus|Parking|Voiture|RER|Horaires|T[ée]l)\b", mm.group(1))[0]
-        metro = _clean_credit(metro) or None
+        metro = _clean_metro(mm.group(1))
     access = _venue_access_features(text)
 
     image = None
