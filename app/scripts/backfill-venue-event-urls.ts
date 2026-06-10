@@ -48,15 +48,31 @@ async function fetchPage(url: string): Promise<{ html: string; finalUrl: string 
   }
 }
 
-// Vérifie qu'une URL construite est valable : 200 + pas de redirection vers
-// l'accueil (beaucoup de sites renvoient la home en « soft 404 »).
-async function isRealPage(url: string, homeUrls: Set<string>): Promise<boolean> {
+const deburr = (s: string) => s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const titleTokens = (s: string) => new Set(deburr(s).split(/[^a-z0-9]+/).filter((t) => t.length >= 4))
+
+// Valide qu'une URL pointe VRAIMENT vers la page du spectacle :
+//   - 200 + pas de redirection vers l'accueil,
+//   - pas de marqueur d'erreur (beaucoup de sites « soft-404 » : 200 + « Erreur 404 »),
+//   - le titre du spectacle correspond au <title>/<h1>/og:title de la page.
+async function verifyShowPage(url: string, homeUrls: Set<string>, title: string): Promise<boolean> {
   try {
     const res = await fetch(url, { headers: { 'User-Agent': UA }, redirect: 'follow', signal: AbortSignal.timeout(12_000) })
     if (!res.ok) return false
-    const landed = (res.url || url).replace(/\/+$/, '')
-    if (homeUrls.has(landed)) return false
-    return true
+    if (homeUrls.has((res.url || url).replace(/\/+$/, ''))) return false
+    const html = await res.text()
+    const head = [
+      ...[...html.matchAll(/<title[^>]*>([^<]+)<\/title>/gi)].map((m) => m[1]),
+      ...[...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m) => m[1].replace(/<[^>]+>/g, ' ')),
+      ...[...html.matchAll(/property=["']og:title["'][^>]*content=["']([^"']+)["']/gi)].map((m) => m[1]),
+    ].join(' ')
+    const headD = deburr(head)
+    if (/\b(404|erreur|introuvable|not found|page non trouv|shortlink expired)/.test(headD)) return false
+    const tt = titleTokens(title)
+    if (tt.size === 0) return false
+    const ht = new Set(deburr(head).split(/[^a-z0-9]+/).filter(Boolean))
+    // Au moins un token significatif du titre présent dans l'en-tête de la page.
+    return [...tt].some((t) => ht.has(t))
   } catch {
     return false
   }
@@ -100,6 +116,7 @@ async function main() {
   let venuesFetched = 0
   let templatesLearned = 0
   let urlsSet = 0
+  let cleaned = 0
   const verifyCache = new Map<string, boolean>()
 
   for (const [venueId, group] of venues) {
@@ -129,25 +146,36 @@ async function main() {
     const homeUrls = new Set([home.finalUrl.replace(/\/+$/, ''), group.website.replace(/\/+$/, '')])
 
     for (const item of group.items) {
-      if (item.officialUrl) continue // ne pas écraser un lien dédié déjà connu (ex. rel=external Offi)
+      const existing = item.officialUrl
+      // Liens déjà fiables (rel=external Offi / TMDB) : on n'y touche pas.
+      if (existing && (existing.includes('offi.fr') || existing.includes('themoviedb'))) continue
+
       const matched = matches[item.title]
       const constructed = template ? template.replace('{slug}', slugify(item.title)) : null
-      const url = matched ?? (templateSupport >= 1 ? constructed : null)
-      if (!url) continue
+      const candidate = matched ?? (templateSupport >= 1 ? constructed : null) ?? existing
+      if (!candidate) continue
 
-      let ok = verifyCache.get(url)
+      const key = `${candidate}${item.title}`
+      let ok = verifyCache.get(key)
       if (ok === undefined) {
-        ok = await isRealPage(url, homeUrls)
-        verifyCache.set(url, ok)
+        ok = await verifyShowPage(candidate, homeUrls, item.title)
+        verifyCache.set(key, ok)
       }
-      if (!ok) continue
-      await prisma.work.update({ where: { id: item.id }, data: { officialUrl: url } })
-      urlsSet += 1
+      if (ok) {
+        if (candidate !== existing) {
+          await prisma.work.update({ where: { id: item.id }, data: { officialUrl: candidate } })
+          urlsSet += 1
+        }
+      } else if (existing) {
+        // Lien (domaine lieu) invalide / soft-404 → on le retire.
+        await prisma.work.update({ where: { id: item.id }, data: { officialUrl: null } })
+        cleaned += 1
+      }
     }
     await sleep(350)
   }
 
-  console.log(JSON.stringify({ venuesCandidates: byVenue.size, venuesFetched, templatesLearned, urlsSet }))
+  console.log(JSON.stringify({ venuesCandidates: byVenue.size, venuesFetched, templatesLearned, urlsSet, cleaned }))
 }
 
 main()
