@@ -18,7 +18,8 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
   const durationLabel = formatDuration(work.durationMin)
   const priceLabel = formatPriceRange(work.priceMin, work.priceMax)
   const availability = formatAvailability(work.availability)
-  const description = work.description?.trim()
+  // Description : celle du site du lieu par défaut, sinon celle d'Offi.
+  const description = (work.venueDescription ?? work.description)?.trim()
   const sectionLabel = workSectionLabel(work.section)
   const directorLabel = workDirectorLabel(work.section)
   // Note publique (films) : affichée si ≥ 20 votes (sinon trop bruitée).
@@ -38,8 +39,9 @@ export default function CardWork({ work, counter }: { work: WorkCardDto; counter
       : ''
   const venueMetro = work.venueInfo?.metro?.trim()
   const venueAccess = work.venueInfo?.access?.trim()
-  // Sources : lien dédié de la fiche (sur le titre) > site du lieu (sur le lieu).
-  const officialUrl = work.officialUrl
+  // Titre → page événement du lieu si on l'a, sinon lien rel=external d'Offi.
+  // Nom du lieu → site officiel du lieu.
+  const officialUrl = work.officialUrl ?? work.externalUrl
   const venueWebsite = work.venueInfo?.website ?? null
 
   return (

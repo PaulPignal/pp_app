@@ -96,7 +96,8 @@ model Work {
   platforms String[]       // plateformes de streaming (abonnement) où le film est dispo : "Netflix", "Disney+"…
   rating      Float?       // note publique du film (TMDB /10) — films (ciné + streaming)
   ratingCount Int?         // nombre de votes derrière la note
-  officialUrl String?      // lien externe dédié de la fiche (rel="external") : site de l'expo, page du concert…
+  officialUrl String?      // page ÉVÉNEMENT validée sur le site du lieu (construite via le motif du lieu)
+  externalUrl String?      // lien rel="external" fourni par Offi (site/accueil du lieu, expo, concert…) — source alternative
   sourceUrl String    @unique
 
   // Lien vers le lieu (pertinent surtout pour le théâtre : un spectacle = un lieu ;

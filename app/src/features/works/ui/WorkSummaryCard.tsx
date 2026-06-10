@@ -25,7 +25,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
     work?.rating != null && work.rating > 0 && (work.ratingCount ?? 0) >= 20
       ? work.rating.toFixed(1).replace('.', ',')
       : null
-  const description = work?.description?.trim()
+  const description = (work?.venueDescription ?? work?.description)?.trim()
   const director = work?.director?.trim()
   const castNames = work?.cast?.slice(0, 5) ?? []
   const directorLabel = workDirectorLabel(work?.section)
@@ -33,8 +33,8 @@ export default function WorkSummaryCard({ work, fallbackTitle, actions, classNam
     ? [work.venue, work.section !== 'cinema' ? work.arrondissement : null].filter(Boolean).join(' · ')
     : ''
   const cinemaMeta = work?.section === 'cinema' ? [work.country, work.year].filter(Boolean).join(' · ') : ''
-  // Sources : lien dédié de la fiche (sur le titre) > site du lieu (sur le nom du lieu).
-  const officialUrl = work?.officialUrl ?? null
+  // Titre → page événement du lieu, sinon lien rel=external d'Offi.
+  const officialUrl = work?.officialUrl ?? work?.externalUrl ?? null
   const venueWebsite = work?.venueInfo?.website ?? null
   const cinemaVenuesLine =
     work?.section === 'cinema' && work.cinemaVenueCount

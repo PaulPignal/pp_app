@@ -18,6 +18,7 @@ const base: WorkCardDto = {
   venue: 'Le Champo',
   address: null,
   description: 'A'.repeat(200),
+  venueDescription: null,
   startDate: '2009-04-08T00:00:00.000Z',
   endDate: null,
   durationMin: 80,
@@ -36,6 +37,7 @@ const base: WorkCardDto = {
   rating: null,
   ratingCount: null,
   officialUrl: null,
+  externalUrl: null,
   sourceUrl: 'https://www.offi.fr/x',
   venueInfo: null,
 }
@@ -161,6 +163,7 @@ describe('CardWork', () => {
           title: 'Gianni Versace Retrospective',
           venue: 'Musée Maillol',
           officialUrl: 'https://gianniversaceretrospective.fr',
+          externalUrl: null,
           venueInfo: {
             name: 'Musée Maillol',
             metro: null,
