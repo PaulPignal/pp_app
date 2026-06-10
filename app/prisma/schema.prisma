@@ -135,6 +135,7 @@ model Venue {
 
   imageUrl  String?
   website   String?                  // site officiel du lieu (rel="external" sur offi)
+  eventUrlTemplate String?           // motif d'URL des pages événement du site du lieu, ex. "https://x.com/spectacle/{slug}/"
   sourceUrl String @unique
 
   works Work[]
