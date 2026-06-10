@@ -10,6 +10,7 @@ export const workCardSelect = {
   venue: true,
   address: true,
   description: true,
+  venueDescription: true,
   startDate: true,
   endDate: true,
   durationMin: true,
@@ -28,6 +29,7 @@ export const workCardSelect = {
   rating: true,
   ratingCount: true,
   officialUrl: true,
+  externalUrl: true,
   sourceUrl: true,
   venue_ref: {
     select: { name: true, metro: true, access: true, phone: true, city: true, website: true },
@@ -45,6 +47,7 @@ export type WorkCardDto = {
   venue: string | null
   address: string | null
   description: string | null
+  venueDescription: string | null
   startDate: string | null
   endDate: string | null
   durationMin: number | null
@@ -63,6 +66,7 @@ export type WorkCardDto = {
   rating: number | null
   ratingCount: number | null
   officialUrl: string | null
+  externalUrl: string | null
   sourceUrl: string | null
   venueInfo: {
     name: string
@@ -84,6 +88,7 @@ export function mapWorkToCardDto(work: WorkCardRecord): WorkCardDto {
     venue: work.venue,
     address: work.address,
     description: work.description,
+    venueDescription: work.venueDescription,
     startDate: work.startDate?.toISOString() ?? null,
     endDate: work.endDate?.toISOString() ?? null,
     durationMin: work.durationMin,
@@ -102,6 +107,7 @@ export function mapWorkToCardDto(work: WorkCardRecord): WorkCardDto {
     rating: work.rating,
     ratingCount: work.ratingCount,
     officialUrl: work.officialUrl,
+    externalUrl: work.externalUrl,
     sourceUrl: work.sourceUrl,
     venueInfo: work.venue_ref
       ? {

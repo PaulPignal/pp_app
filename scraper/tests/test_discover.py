@@ -46,5 +46,27 @@ class MatchTitlesTests(unittest.TestCase):
         self.assertEqual(discover.match_titles(HTML, BASE, ["Le Porteur d'histoire"]), {})
 
 
+class InferTemplateTests(unittest.TestCase):
+    def test_slug_only_template(self):
+        pairs = [
+            ("¡Tango!", f"{BASE}/spectacle/tango/"),
+            ("Laponie", f"{BASE}/spectacle/laponie/"),
+        ]
+        tpl, support = discover.infer_template(pairs)
+        self.assertEqual(tpl, f"{BASE}/spectacle/{{slug}}/")
+        self.assertEqual(support, 2)
+        self.assertEqual(discover.build_event_url(tpl, "Laponie"), f"{BASE}/spectacle/laponie/")
+
+    def test_root_slug_template(self):
+        tpl, _ = discover.infer_template([("Tout contre la terre", "https://comediedeparis.com/tout-contre-la-terre")])
+        self.assertEqual(tpl, "https://comediedeparis.com/{slug}")
+
+    def test_rejects_numeric_id_path(self):
+        # /spectacle/79/<slug> : id imprévisible → pas de gabarit reconstructible.
+        tpl, support = discover.infer_template([("Soirée Humour", "https://x.com/spectacle/79/soiree-humour")])
+        self.assertIsNone(tpl)
+        self.assertEqual(support, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

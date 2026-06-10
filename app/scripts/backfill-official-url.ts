@@ -17,7 +17,7 @@ const PY = path.join(scraperDir, '.venv/bin/python')
 const CLI = path.join(scraperDir, 'extract_credits_cli.py')
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
 
-const sections = (process.argv[2] ?? 'exposition,concert').split(',').map((s) => s.trim()).filter(Boolean)
+const sections = (process.argv[2] ?? 'exposition,concert,enfants,visite,theatre').split(',').map((s) => s.trim()).filter(Boolean)
 const limit = Number(process.argv[3] ?? 5000)
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -40,7 +40,7 @@ function extractOfficialUrl(html: string): string | null {
 
 async function main() {
   const works = await prisma.work.findMany({
-    where: { officialUrl: null, section: { in: sections } },
+    where: { externalUrl: null, section: { in: sections } },
     select: { id: true, sourceUrl: true },
     orderBy: { createdAt: 'desc' },
     take: limit,
@@ -55,9 +55,9 @@ async function main() {
         missing += 1
         continue
       }
-      const officialUrl = extractOfficialUrl(await response.text())
-      if (officialUrl) {
-        await prisma.work.update({ where: { id: work.id }, data: { officialUrl } })
+      const externalUrl = extractOfficialUrl(await response.text())
+      if (externalUrl) {
+        await prisma.work.update({ where: { id: work.id }, data: { externalUrl } })
         updated += 1
       } else {
         missing += 1

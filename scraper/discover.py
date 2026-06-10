@@ -109,6 +109,38 @@ def match_titles(html: str, base_url: str, titles: list[str]) -> dict[str, str]:
     return result
 
 
+# --- Motif d'URL des pages événement -------------------------------------------
+# À partir de paires (titre, url) confirmées, on déduit le gabarit du site :
+# si le slug du titre apparaît tel quel dans l'URL, on le remplace par {slug}.
+# Ex. https://x.com/spectacle/tango/  +  titre "Tango"  →  https://x.com/spectacle/{slug}/
+# On ne retient un gabarit que s'il est slug-only (pas d'identifiant numérique
+# imprévisible dans le chemin), donc reconstructible pour les autres spectacles.
+def infer_template(pairs: list[tuple[str, str]]) -> tuple[Optional[str], int]:
+    """(gabarit, support) le plus fréquent parmi les paires (titre, url), ou (None, 0)."""
+    from collections import Counter
+
+    counts: Counter[str] = Counter()
+    for title, url in pairs:
+        slug = slugify(title)
+        if not slug or slug not in url:
+            continue
+        template = url.replace(slug, "{slug}", 1)
+        # On écarte les gabarits avec un id numérique dans le chemin (non reconstructible).
+        path = urlparse(template).path
+        if re.search(r"/\d{2,}(?=/|$)", path):
+            continue
+        counts[template] += 1
+    if not counts:
+        return None, 0
+    template, support = counts.most_common(1)[0]
+    return template, support
+
+
+def build_event_url(template: str, title: str) -> Optional[str]:
+    slug = slugify(title)
+    return template.replace("{slug}", slug) if slug else None
+
+
 def _main() -> None:
     import json
     import sys
@@ -116,7 +148,8 @@ def _main() -> None:
     base_url = sys.argv[1] if len(sys.argv) > 1 else ""
     payload = json.loads(sys.stdin.read() or "{}")
     matches = match_titles(payload.get("html", ""), base_url, payload.get("titles", []))
-    print(json.dumps({"matches": matches}, ensure_ascii=False))
+    template, support = infer_template(list(matches.items()))
+    print(json.dumps({"matches": matches, "template": template, "templateSupport": support}, ensure_ascii=False))
 
 
 if __name__ == "__main__":
