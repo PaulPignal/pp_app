@@ -12,7 +12,12 @@ __pycache__/
 scraper/.venv/
 scraper/__pycache__/
 scraper/logs/
+# Données scrapées (JSONL/JSON) : jamais versionnées — persistées via le cache CI.
+# Un fichier figé dans git devient un cache périmé qui force un re-scrape complet.
 data/*.tmp
+data/*.jsonl
+data/*.json
+scraper/data/
 *.tsbuildinfo
 coverage/
 *.py[cod]

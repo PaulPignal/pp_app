@@ -135,6 +135,23 @@ describe('Offi ingestion helpers', () => {
     expect(record.price_max_eur).toBeNull() // aberrant → ignoré, œuvre conservée
   })
 
+  it('tronque les champs trop longs (category/director) au lieu de rejeter l’œuvre', () => {
+    const record = parseOffiJsonLine(
+      JSON.stringify({
+        url: 'https://www.offi.fr/theatre/x-1/show-2.html',
+        title: 'Spectacle',
+        section: 'theatre',
+        category: 'c'.repeat(200),
+        director: 'd'.repeat(200),
+        description: 'desc',
+        date_start: '2026-03-12',
+      }),
+      1264,
+    )
+    expect(record.category).toHaveLength(120)
+    expect(record.director).toHaveLength(160)
+  })
+
   it('rejette une année hors plage', () => {
     expect(() =>
       parseOffiJsonLine(
