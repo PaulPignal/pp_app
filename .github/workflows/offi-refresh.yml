@@ -1,25 +1,38 @@
 name: Offi refresh
 
-# Rafraîchit les données offi → Neon, automatiquement.
-#   - Quotidien 05:30 UTC (07:30 Paris l'été / 06:30 l'hiver) : pipeline œuvres
-#     (scrape → migrations Prisma → ingestion). Capte les sorties ciné du mercredi,
-#     les nouveaux spectacles et la dispo billetterie.
-#   - Hebdomadaire (dimanche) : rafraîchit le catalogue des lieux + relie les œuvres.
+# Rafraîchit les données offi → Neon, automatiquement, UNE SECTION PAR JOUR :
+#   - quotidien 05:30 UTC (07:30 Paris l'été) : cinema (sorties du mercredi + dispo)
+#   - lundi    03:00 UTC : theatre
+#   - mardi    03:00 UTC : concert
+#   - mercredi 03:00 UTC : exposition, visite, enfants
+#   - dimanche 06:00 UTC : catalogue des lieux + relink des œuvres
+#
+# Pourquoi une section par jour : à froid le crawl coûte ~20 s par page de programme
+# (15 fiches détaillées par page). Les 6 sections = ~340 pages ≈ 2 h, soit bien plus
+# que le timeout du job. Crawler tout chaque jour a donc gelé l'ingestion du
+# 13/06/2026 au 10/08/2026 (58 runs annulés à 90 min, tmp jeté, zéro ligne ingérée).
+# Découpé, le pire cas (concert, 150 pages) tient en ~55 min et chaque section est
+# rafraîchie au moins une fois par semaine.
 #
 # Pré-requis : secret de dépôt DATABASE_URL (chaîne de connexion Neon).
-# Le cache JSONL est persisté entre les runs (actions/cache) pour profiter du
-# rafraîchissement incrémental à 72 h du scraper (poli envers offi.fr).
+# Le cache JSONL est persisté PAR SECTION (actions/cache) pour profiter du
+# rafraîchissement incrémental à 72 h du scraper (poli envers offi.fr). Une clé par
+# section est obligatoire : le scraper n'écrit que ce qu'il crawle, donc un cache
+# unique serait écrasé (et les autres sections perdues) à chaque run mono-section.
 
 on:
   schedule:
-    - cron: '30 5 * * *'      # tous les jours — œuvres
+    - cron: '30 5 * * *'      # tous les jours — cinema
+    - cron: '0 3 * * 1'       # lundi — theatre
+    - cron: '0 3 * * 2'       # mardi — concert
+    - cron: '0 3 * * 3'       # mercredi — exposition, visite, enfants
     - cron: '0 6 * * 0'       # dimanche — lieux
   workflow_dispatch:
     inputs:
       target:
-        description: 'works | venues | all'
+        description: 'cinema | theatre | concert | exposition,visite,enfants | venues | all'
         required: false
-        default: 'works'
+        default: 'cinema'
 
 concurrency:
   group: offi-refresh
@@ -28,7 +41,8 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # 90 min suffisent pour une section ; un `all` manuel (reseed complet) demande ~2 h.
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 350 || 90 }}
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       # env.ts exige NEXTAUTH_SECRET ; l'ingestion ne l'utilise pas → placeholder
@@ -61,36 +75,64 @@ jobs:
         working-directory: app
         run: pnpm install --frozen-lockfile
 
-      # Restaure data/offi.jsonl du run précédent (restore seul : la sauvegarde se
-      # fait en fin de job même en cas d'échec → les retries sont incrémentaux).
-      - name: Restore JSONL cache
-        uses: actions/cache/restore@v4
-        with:
-          path: data/offi.jsonl
-          key: offi-jsonl-${{ github.run_id }}
-          restore-keys: |
-            offi-jsonl-
-
+      # Décidé AVANT la restauration du cache : la clé de cache dépend des sections.
       - name: Decide targets
         id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          # Via env (et pas en interpolation directe dans le script) : l'input est
+          # une chaîne libre → pas d'injection shell possible.
+          TARGET: ${{ github.event.inputs.target }}
         run: |
-          # cron quotidien → works ; cron hebdo (dimanche 06:00) → venues ;
-          # déclenchement manuel → input.target.
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            if [ "${{ github.event.schedule }}" = "0 6 * * 0" ]; then
-              echo "do_works=false" >> "$GITHUB_OUTPUT"
-              echo "do_venues=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "do_works=true" >> "$GITHUB_OUTPUT"
-              echo "do_venues=false" >> "$GITHUB_OUTPUT"
-            fi
+          set -euo pipefail
+          ALL='theatre,cinema,exposition,concert,visite,enfants'
+          sections=''
+          do_venues=false
+
+          if [ "$EVENT_NAME" = 'schedule' ]; then
+            case "$SCHEDULE" in
+              '0 6 * * 0') do_venues=true ;;
+              '0 3 * * 1') sections='theatre' ;;
+              '0 3 * * 2') sections='concert' ;;
+              '0 3 * * 3') sections='exposition,visite,enfants' ;;
+              *)           sections='cinema' ;;
+            esac
           else
-            case "${{ github.event.inputs.target }}" in
-              venues) echo "do_works=false" >> "$GITHUB_OUTPUT"; echo "do_venues=true" >> "$GITHUB_OUTPUT" ;;
-              all)    echo "do_works=true"  >> "$GITHUB_OUTPUT"; echo "do_venues=true" >> "$GITHUB_OUTPUT" ;;
-              *)      echo "do_works=true"  >> "$GITHUB_OUTPUT"; echo "do_venues=false" >> "$GITHUB_OUTPUT" ;;
+            case "$TARGET" in
+              venues) do_venues=true ;;
+              all)    sections="$ALL"; do_venues=true ;;
+              works)  sections="$ALL" ;;
+              '')     sections='cinema' ;;
+              *)      sections="$TARGET" ;;
             esac
           fi
+
+          # Garde-fou : une section inconnue ferait un crawl vide (donc un fichier
+          # vide, donc un `mv` qui écrase le cache) → on échoue tôt et clairement.
+          for section in $(printf '%s' "$sections" | tr ',' ' '); do
+            case ",$ALL," in
+              *",$section,"*) ;;
+              *) echo "::error::Section inconnue: $section (attendu parmi $ALL)"; exit 1 ;;
+            esac
+          done
+
+          {
+            echo "sections=$sections"
+            echo "do_venues=$do_venues"
+            echo "slug=$(printf '%s' "$sections" | tr ',' '-')"
+          } >> "$GITHUB_OUTPUT"
+
+      # Restaure le JSONL de la section du run précédent (restore seul : la sauvegarde
+      # se fait en fin de job même en cas d'échec → les retries sont incrémentaux).
+      - name: Restore JSONL cache
+        if: steps.plan.outputs.sections != ''
+        uses: actions/cache/restore@v4
+        with:
+          path: data/offi-${{ steps.plan.outputs.slug }}.jsonl
+          key: offi-jsonl-${{ steps.plan.outputs.slug }}-${{ github.run_id }}
+          restore-keys: |
+            offi-jsonl-${{ steps.plan.outputs.slug }}-
 
       # Fail-fast : valide DB + migrations + Node/pnpm en ~10 s AVANT le scrape de
       # ~40 min. Les pannes d'env (node:sqlite, version pnpm…) échouent ici, vite.
@@ -99,10 +141,14 @@ jobs:
         run: pnpm exec prisma migrate deploy --schema prisma/schema.prisma
 
       - name: Refresh works (scrape → ingest)
-        if: steps.plan.outputs.do_works == 'true'
+        if: steps.plan.outputs.sections != ''
         # Migrations déjà faites au préflight → on saute celles du pipeline.
+        # Chemin ABSOLU obligatoire : le pipeline passe le fichier à
+        # `pnpm --dir app ingest:offi`, dont le cwd est app/.
         env:
           OFFI_SKIP_DB_DEPLOY: '1'
+          OFFI_SECTIONS: ${{ steps.plan.outputs.sections }}
+          OFFI_OUTPUT_FILE: ${{ github.workspace }}/data/offi-${{ steps.plan.outputs.slug }}.jsonl
         run: ./scripts/offi-pipeline.sh
 
       - name: Refresh venues catalog + relink
@@ -113,18 +159,18 @@ jobs:
       # Sauvegarde le cache JSONL même si une étape précédente a échoué : le scrape
       # déjà fait n'est pas perdu, le prochain run repart de là (incrémental).
       - name: Save JSONL cache
-        if: always()
+        if: always() && steps.plan.outputs.sections != ''
         uses: actions/cache/save@v4
         with:
-          path: data/offi.jsonl
-          key: offi-jsonl-${{ github.run_id }}
+          path: data/offi-${{ steps.plan.outputs.slug }}.jsonl
+          key: offi-jsonl-${{ steps.plan.outputs.slug }}-${{ github.run_id }}
 
       # Le JSONL scrapé est aussi exposé en artefact : si l'ingestion échoue, on peut
       # le télécharger et rejouer l'ingest seul (idempotent) sans relancer le scrape.
       - name: Upload JSONL artifact
-        if: always() && hashFiles('data/offi.jsonl') != ''
+        if: always() && steps.plan.outputs.sections != '' && hashFiles(format('data/offi-{0}.jsonl', steps.plan.outputs.slug)) != ''
         uses: actions/upload-artifact@v4
         with:
-          name: offi-jsonl-${{ github.run_id }}
-          path: data/offi.jsonl
+          name: offi-jsonl-${{ steps.plan.outputs.slug }}-${{ github.run_id }}
+          path: data/offi-${{ steps.plan.outputs.slug }}.jsonl
           retention-days: 7
