@@ -1,11 +1,25 @@
 name: Offi refresh
 
 # Rafraîchit les données offi → Neon, automatiquement, UNE SECTION PAR JOUR :
-#   - quotidien 05:30 UTC (07:30 Paris l'été) : cinema (sorties du mercredi + dispo)
+#   - quotidien 05:30 UTC (07:30 Paris l'été) : cinema + visite
 #   - lundi    03:00 UTC : theatre
 #   - mardi    03:00 UTC : concert
-#   - mercredi 03:00 UTC : exposition, visite, enfants
+#   - mercredi 03:00 UTC : exposition + enfants
 #   - dimanche 06:00 UTC : catalogue des lieux + relink des œuvres
+#
+# Cadence arbitrée sur les données, pas au doigt mouillé :
+#   - cinema : 98 % des date_start tombent un mercredi (168 sorties observées) ;
+#     pagination par pertinence, donc les nouveautés sont toujours en tête. Quotidien
+#     par confort (~11 min) plus que par nécessité.
+#   - visite : 62 % de dates uniques, 44 % captées à moins de 7 jours de leur début et
+#     premier quartile à 5 jours (mesuré sur startDate - createdAt). En hebdomadaire on
+#     en perd une partie avant même de l'avoir ingérée. 10 pages, ~4 min : quotidien.
+#   - concert : le plus gros volume et 75 % de dates uniques, mais captés avec 11 jours
+#     d'avance au premier quartile et 49 en médiane → un passage hebdomadaire suffit.
+#     Pagination chronologique : le plafond de 150 pages coupe le lointain (au-delà de
+#     février 2027), et un run tronqué par le timeout ingère l'imminent en premier.
+#   - theatre, exposition, enfants : durées d'exploitation médianes de 98 à 125 jours,
+#     5 % seulement démarrent sous 7 jours → hebdomadaire, voire large.
 #
 # Pourquoi une section par jour : à froid le crawl coûte ~20 s par page de programme
 # (15 fiches détaillées par page). Les 6 sections = ~340 pages ≈ 2 h, soit bien plus
@@ -22,17 +36,17 @@ name: Offi refresh
 
 on:
   schedule:
-    - cron: '30 5 * * *'      # tous les jours — cinema
+    - cron: '30 5 * * *'      # tous les jours — cinema + visite
     - cron: '0 3 * * 1'       # lundi — theatre
     - cron: '0 3 * * 2'       # mardi — concert
-    - cron: '0 3 * * 3'       # mercredi — exposition, visite, enfants
+    - cron: '0 3 * * 3'       # mercredi — exposition, enfants
     - cron: '0 6 * * 0'       # dimanche — lieux
   workflow_dispatch:
     inputs:
       target:
-        description: 'cinema | theatre | concert | exposition,visite,enfants | venues | all'
+        description: 'cinema,visite | theatre | concert | exposition,enfants | venues | all'
         required: false
-        default: 'cinema'
+        default: 'cinema,visite'
 
 concurrency:
   group: offi-refresh
@@ -97,15 +111,15 @@ jobs:
               '0 6 * * 0') do_venues=true ;;
               '0 3 * * 1') sections='theatre' ;;
               '0 3 * * 2') sections='concert' ;;
-              '0 3 * * 3') sections='exposition,visite,enfants' ;;
-              *)           sections='cinema' ;;
+              '0 3 * * 3') sections='exposition,enfants' ;;
+              *)           sections='cinema,visite' ;;
             esac
           else
             case "$TARGET" in
               venues) do_venues=true ;;
               all)    sections="$ALL"; do_venues=true ;;
               works)  sections="$ALL" ;;
-              '')     sections='cinema' ;;
+              '')     sections='cinema,visite' ;;
               *)      sections="$TARGET" ;;
             esac
           fi
