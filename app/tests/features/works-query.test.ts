@@ -51,7 +51,10 @@ describe('listDiscoverWorks', () => {
     expect(prisma.work.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          OR: [{ endDate: null }, { endDate: { gte: new Date('2026-03-12T00:00:00.000Z') } }],
+          AND: [
+            { OR: [{ endDate: null }, { endDate: { gte: new Date('2026-03-12T00:00:00.000Z') } }] },
+            { OR: [{ section: 'streaming' }, { updatedAt: { gte: new Date('2026-02-26T00:00:00.000Z') } }] },
+          ],
           reactions: { none: { userId: 'user-1' } },
         },
         take: 25,
@@ -68,7 +71,10 @@ describe('listDiscoverWorks', () => {
     expect(prisma.work.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          OR: [{ endDate: null }, { endDate: { gte: new Date('2026-03-12T00:00:00.000Z') } }],
+          AND: [
+            { OR: [{ endDate: null }, { endDate: { gte: new Date('2026-03-12T00:00:00.000Z') } }] },
+            { OR: [{ section: 'streaming' }, { updatedAt: { gte: new Date('2026-02-26T00:00:00.000Z') } }] },
+          ],
           category: 'drame',
           section: 'cinema',
           reactions: { none: { userId: 'user-1' } },
@@ -111,8 +117,24 @@ describe('listDiscoverWorks', () => {
 
     expect(prisma.work.count).toHaveBeenCalledWith({
       where: {
-        OR: [{ endDate: null }, { endDate: { gte: new Date('2026-03-12T00:00:00.000Z') } }],
+        AND: [
+          { OR: [{ endDate: null }, { endDate: { gte: new Date('2026-03-12T00:00:00.000Z') } }] },
+          { OR: [{ section: 'streaming' }, { updatedAt: { gte: new Date('2026-02-26T00:00:00.000Z') } }] },
+        ],
       },
+    })
+  })
+  it('exclut les œuvres que le crawl n a plus vues depuis 14 jours', async () => {
+    prisma.work.count.mockResolvedValue(0)
+    prisma.work.findMany.mockResolvedValue([])
+
+    await listDiscoverWorks({ per: 10, section: 'cinema' })
+
+    const { where } = prisma.work.findMany.mock.calls[0][0]
+    // 2026-03-12 moins 14 jours : une fiche dont updatedAt est antérieur est écartée,
+    // ce qui couvre le cas des films sortis des salles (offi ne donne pas de date de fin).
+    expect(where.AND).toContainEqual({
+      OR: [{ section: 'streaming' }, { updatedAt: { gte: new Date('2026-02-26T00:00:00.000Z') } }],
     })
   })
 })

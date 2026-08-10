@@ -3,7 +3,7 @@ import 'server-only'
 import { unstable_cache } from 'next/cache'
 import type { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/server/db'
-import { getParisTodayStart } from '@/features/works/availability'
+import { getParisTodayStart, getStaleCutoff } from '@/features/works/availability'
 import { listDiscoverWorksParamsSchema, type ListDiscoverWorksParams } from '@/features/works/schemas'
 import { mapWorkToCardDto, workCardSelect } from '@/features/works/dto'
 
@@ -14,7 +14,18 @@ type ListDiscoverWorksInput = Partial<ListDiscoverWorksParams> & {
 export async function listDiscoverWorks(input: ListDiscoverWorksInput = {}) {
   const { per, since, category, section, platforms } = listDiscoverWorksParamsSchema.parse(input)
   const where: Prisma.WorkWhereInput = {
-    OR: [{ endDate: null }, { endDate: { gte: getParisTodayStart() } }],
+    AND: [
+      // Encore à l'affiche d'après la date de fin fournie par offi.
+      { OR: [{ endDate: null }, { endDate: { gte: getParisTodayStart() } }] },
+      // Encore vue par le crawl. `updatedAt` est le dernier passage de l'ingestion sur
+      // la fiche, et l'ingestion n'upserte que ce que le crawl a ramené : une œuvre
+      // disparue du programme (film qui quitte les salles, sans date de fin côté offi)
+      // est donc masquée sans être supprimée, les réactions restent intactes. Une fiche
+      // qui réapparaît reçoit un updatedAt frais et revient d'elle-même.
+      // `streaming` est exclu : sa visibilité est portée par `platforms`, et son
+      // rafraîchissement (TMDB) est indépendant du crawl offi.
+      { OR: [{ section: 'streaming' }, { updatedAt: { gte: getStaleCutoff() } }] },
+    ],
   }
 
   if (since) {

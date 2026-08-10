@@ -40,6 +40,19 @@ export function getParisTodayStart(date = new Date()) {
   return new Date(`${getParisTodayDate(date)}T00:00:00.000Z`)
 }
 
+// Fenêtre de fraîcheur du catalogue offi. Une œuvre que le crawl n'a plus ramenée
+// depuis plus longtemps que ça a quitté l'affiche : c'est le seul signal fiable de
+// fin de disponibilité, offi ne fournissant aucune date de fin côté cinéma (0 sur
+// 661 fiches observées) et ne marquant pas les retraits autrement que par l'absence.
+// 14 jours : chaque section est crawlée au moins une fois par semaine, donc un run
+// raté ne vide pas la Découverte. Contrepartie assumée : si le flux casse plus de
+// deux semaines, le catalogue se vide au lieu d'afficher du périmé.
+export const STALE_AFTER_DAYS = 14
+
+export function getStaleCutoff(date = new Date()) {
+  return new Date(getParisTodayStart(date).getTime() - STALE_AFTER_DAYS * 24 * 60 * 60 * 1000)
+}
+
 export function isWorkCurrentlyShowing(endDate: string | Date | null | undefined, now = new Date()) {
   const endDay = getDateOnly(endDate)
 
