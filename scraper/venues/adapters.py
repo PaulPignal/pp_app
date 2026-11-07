@@ -43,10 +43,9 @@ def venue_platforms(fetcher: PoliteFetcher, venue: dict) -> list[str]:
     """Billetteries du lieu : celles du catalogue (triage) puis celles reconnues sur l'accueil au moment du
     run (une plateforme ajoutée après le triage, comme Vosbillets, est ainsi prise en compte sans retriage)."""
     names = [p.split(":")[0] for p in (venue.get("ticketing_all") or "").split("|") if p]
-    home = fetcher.get(venue["website"])
-    if home.ok:
-        soup = BeautifulSoup(home.text, "html.parser")
-        for name in triage.detect_ticketing(triage.external_hosts(soup, home.final_url)):
+    for page in billetterie.site_pages(fetcher, venue):  # accueil + pages agenda, déjà en cache
+        soup = BeautifulSoup(page.text, "html.parser")
+        for name in triage.detect_ticketing(triage.external_hosts(soup, page.final_url)):
             if name not in names:
                 names.append(name)
     return names

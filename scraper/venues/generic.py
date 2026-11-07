@@ -115,6 +115,11 @@ def ranked_links(soup, base_url: str, exclude: set[str]) -> list[tuple[int, str]
     return scored
 
 
+def _parent(url: str) -> str:
+    segments = [s for s in urlparse(url).path.split("/") if s]
+    return "/".join(segments[:-1])
+
+
 def detail_links(soup, base_url: str, exclude: set[str], limit: int) -> list[str]:
     """Liens internes qui ressemblent à des fiches spectacle, les plus probables d'abord."""
     ranked = sorted(ranked_links(soup, base_url, exclude), key=lambda item: -item[0])
@@ -180,14 +185,13 @@ def extract_generic(fetcher: PoliteFetcher, venue: dict, max_detail: int = MAX_D
         # score négatif = lien de navigation sans autre indice : jamais une fiche, pas de requête
         links = [u for u in sorted(scored, key=lambda u: -scored[u]) if scored[u] >= 0][:max_detail]
         fetched: list[Page] = []
-        structured = False
+        structured: set[str] = set()  # familles (chemin parent) des fiches lues en schema.org
         cutoff = (today or date.today()).isoformat()
         for link in links:
             page = fetcher.get(link)
             info["pages"] += 1
             if not page.ok:
                 continue
-            fetched.append(page)
             found, signal = schemaorg.occurrences_from_html(page.text, page.final_url)
             if found and not any((o["date_end"] or o["date_start"] or "") >= cutoff for o in found):
                 # données structurées périmées (Théâtre de l'Atelier : JSON-LD daté de 2023 sur des fiches
@@ -196,17 +200,21 @@ def extract_generic(fetcher: PoliteFetcher, venue: dict, max_detail: int = MAX_D
                 if occ:
                     found, signal = [occ], "html"
             if found:
-                structured = True
+                structured.add(_parent(page.url))
                 occurrences += found
                 info["signal"] = info["signal"] or signal
-        if not structured:  # aucune fiche structurée : lecture HTML des pages les plus probables
-            for page in fetched:
-                if scored.get(page.url, 0) < FICHE_SCORE:
-                    continue
-                occ = html_fiche.parse_fiche(page.text, page.final_url, today)
-                if occ:
-                    occurrences.append(occ)
-                    info["signal"] = info["signal"] or "html"
+            else:
+                fetched.append(page)
+        # Fiches sans schema.org : lecture HTML des pages les plus probables. Sur un site dont certaines fiches
+        # sont structurées, seules leurs sœurs (même chemin parent) sont relues : Bobino met un JSON-LD sur
+        # une fiche /event-pro/ sur vingt ; les pages de service d'un site structuré restent ignorées.
+        for page in fetched:
+            if scored.get(page.url, 0) < FICHE_SCORE or (structured and _parent(page.url) not in structured):
+                continue
+            occ = html_fiche.parse_fiche(page.text, page.final_url, today)
+            if occ:
+                occurrences.append(occ)
+                info["signal"] = info["signal"] or "html"
     info["pages"] += len(pages)
     info["status"] = "ok" if occurrences else "aucun_event"
     return schemaorg.group_occurrences(occurrences), info

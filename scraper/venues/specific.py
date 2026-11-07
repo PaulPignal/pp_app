@@ -330,7 +330,7 @@ ADAPTERS: dict = {
     "cartoucherie-theatre-de-lepee-de-bois-1631": epee_adapter,
     "theatre-71-3268": make_adapter(["https://malakoffscenenationale.fr/calendrier"], r"^/theatre-71/programme/[a-z0-9\-]+$"),
     "theatre-rive-gauche-3077": make_adapter(["https://lagaiterivegauche.com/spectacles/paris-is-magique/"], r"^/spectacles/[a-z0-9\-]+/?$"),
-    "theatre-des-mathurins-2750": make_adapter(["https://www.theatredesmathurins.com/reservation-groupes/"], r"^/spectacles/[a-z0-9\-]+/?$"),
+    "theatre-des-mathurins-2750": make_adapter(["https://www.theatredesmathurins.com/", "https://www.theatredesmathurins.com/reservation-groupes/"], r"^/spectacles/[a-z0-9\-]+/?$", max_fiches=60),
     "theatre-du-nord-ouest-2849": nord_ouest_adapter,
     "comedie-saint-michel-3528": csm_adapter,
     "apollo-theatre-3239": make_adapter(["https://www.apollotheatre.fr/nos-spectacles-l.html"], r"-lo\d+\.html$", max_fiches=60),
