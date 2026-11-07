@@ -283,5 +283,19 @@ class ExtractCinemaVenuesTests(unittest.TestCase):
         self.assertEqual(parsers.extract_cinema_venues(_soup('<div>rien</div>')), (0, []))
 
 
+class OfficialWebsiteTests(unittest.TestCase):
+    def test_domaine_finissant_par_x_com_nest_pas_un_reseau_social(self):
+        html = '<a rel="external nofollow" href="http://www.lesgemeaux.com">site</a>'
+        self.assertEqual(parsers.extract_official_website(_soup(html)), "http://www.lesgemeaux.com")
+
+    def test_reseaux_sociaux_ecartes(self):
+        html = (
+            '<a rel="external" href="https://x.com/theatre">x</a>'
+            '<a rel="external" href="https://www.facebook.com/t">fb</a>'
+            '<a rel="external" href="https://www.theatre.fr/">site</a>'
+        )
+        self.assertEqual(parsers.extract_official_website(_soup(html)), "https://www.theatre.fr/")
+
+
 if __name__ == "__main__":
     unittest.main()
