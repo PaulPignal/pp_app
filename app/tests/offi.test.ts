@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildWorkUpsert } from '@/features/offi-import/mappers'
 import { parseOffiJsonLine } from '@/features/offi-import/schemas'
 
@@ -178,5 +178,38 @@ describe('Offi ingestion helpers', () => {
         42,
       ),
     ).toThrow(/Line 42/)
+  })
+})
+
+describe('bornage des dates aberrantes', () => {
+  const base = { url: 'https://www.offi.fr/theatre/x-1/show-2.html', title: 'Spectacle', section: 'theatre' }
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('écarte une date_end « 9224-11-11 » sans rejeter la fiche ni la date de début', () => {
+    vi.useFakeTimers({ now: new Date('2026-11-07T10:00:00Z') })
+    const record = parseOffiJsonLine(JSON.stringify({ ...base, date_start: '2026-11-01', date_end: '9224-11-11' }), 1)
+    expect(record.date_start).toBe('2026-11-01')
+    expect(record.date_end).toBeNull()
+    expect(buildWorkUpsert(record).update).not.toHaveProperty('endDate') // la valeur en base n'est pas écrasée
+  })
+
+  it('garde une date à la limite (aujourd’hui + 3 ans) et écarte le lendemain', () => {
+    vi.useFakeTimers({ now: new Date('2026-11-07T10:00:00Z') })
+    expect(parseOffiJsonLine(JSON.stringify({ ...base, date_end: '2029-11-07' }), 1).date_end).toBe('2029-11-07')
+    expect(parseOffiJsonLine(JSON.stringify({ ...base, date_end: '2029-11-08' }), 2).date_end).toBeNull()
+  })
+
+  it('écarte une date avant 1900', () => {
+    expect(parseOffiJsonLine(JSON.stringify({ ...base, date_start: '0001-01-01' }), 3).date_start).toBeNull()
+  })
+
+  it('une date de début aberrante n’intervertit plus début et fin', () => {
+    vi.useFakeTimers({ now: new Date('2026-11-07T10:00:00Z') })
+    const record = parseOffiJsonLine(JSON.stringify({ ...base, date_start: '9999-01-01', date_end: '2026-12-01' }), 4)
+    expect(record.date_start).toBeNull()
+    expect(record.date_end).toBe('2026-12-01')
   })
 })

@@ -70,6 +70,20 @@ const nullableMoney = z.preprocess(
   z.number().nonnegative().max(1000).nullable(),
 )
 
+// Bornage des dates : offi a servi des `date_end` comme « 9224-11-11 ». Une date hors de
+// [1900-01-01 ; aujourd'hui + 3 ans] est jugée aberrante et traitée comme inconnue (null) : la fiche
+// est conservée, seule la date est écartée, et l'ingestion ne touche pas à la valeur déjà en base.
+export const MIN_PLAUSIBLE_DATE = '1900-01-01'
+export const MAX_YEARS_AHEAD = 3
+
+export function boundIsoDate(value: string | null, now: Date = new Date()): string | null {
+  if (!value) return null
+  const max = new Date(now)
+  max.setUTCFullYear(max.getUTCFullYear() + MAX_YEARS_AHEAD)
+  const limit = max.toISOString().slice(0, 10)
+  return value < MIN_PLAUSIBLE_DATE || value > limit ? null : value
+}
+
 export const WORK_SOURCES = ['offi', 'direct'] as const
 export type WorkSource = (typeof WORK_SOURCES)[number]
 export const OFFI_URL_PREFIX = 'https://www.offi.fr/'
@@ -171,8 +185,8 @@ export const offiWorkSchema = z
     const rawSource = record.source ?? 'offi'
     const source: WorkSource = rawSource === 'offi' ? 'offi' : 'direct'
     const inferredSection = record.section ?? inferWorkSectionFromUrl(record.url) ?? DEFAULT_WORK_SECTION
-    let dateStart = record.date_start
-    let dateEnd = record.date_end
+    let dateStart = boundIsoDate(record.date_start)
+    let dateEnd = boundIsoDate(record.date_end)
     let priceMin = record.price_min_eur
     let priceMax = record.price_max_eur
 
