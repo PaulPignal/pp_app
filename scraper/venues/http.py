@@ -19,19 +19,14 @@ from urllib.parse import urlparse
 
 import requests
 
-try:
-    from scraper.offi_scraper import USER_AGENTS
-except ModuleNotFoundError:  # exécuté depuis scraper/
-    from offi_scraper import USER_AGENTS  # type: ignore[no-redef]
-
-USER_AGENT = USER_AGENTS[1]
 DEFAULT_CACHE_DIR = os.environ.get("VENUES_CACHE_DIR") or os.path.expanduser("~/perso/pp_app-relance/t2-cache")
 # Durée de vie d'une page en cache (heures). Sans limite, un cache local rejoué des semaines
 # plus tard servirait un agenda périmé. VENUES_CACHE_TTL_HOURS=0 désactive la limite.
 DEFAULT_CACHE_TTL_HOURS = float(os.environ.get("VENUES_CACHE_TTL_HOURS", "24"))
-# User-Agent qui identifie le projet (sans adresse e-mail) : utilisé par les sources machine
-# (API JSON, iCal, sitemaps) ajoutées pour les lieux à agenda JavaScript.
+# User-Agent qui identifie le projet (sans adresse e-mail).
 PROJECT_USER_AGENT = "pp-app-agenda-culturel/1.0 (+https://github.com/PaulPignal/pp_app)"
+# Depuis le 07/11/2026, tous les sites de lieux sont lus sous le nom du projet (plus de User-Agent de navigateur).
+USER_AGENT = PROJECT_USER_AGENT
 MIN_INTERVAL_S = 1.0
 MAX_CRAWL_DELAY_S = 10.0
 MAX_BYTES = 3_000_000
