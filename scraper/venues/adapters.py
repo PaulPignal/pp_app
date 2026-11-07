@@ -5,13 +5,13 @@ from __future__ import annotations
 from typing import Callable, Optional
 
 try:
-    from scraper.venues import billetterie, generic, schemaorg, specific, triage
+    from scraper.venues import billetterie, generic, js_agendas, schemaorg, specific, triage
     from scraper.venues.http import PoliteFetcher
 except ModuleNotFoundError:  # pragma: no cover
-    from venues import billetterie, generic, schemaorg, specific, triage  # type: ignore[no-redef]
+    from venues import billetterie, generic, js_agendas, schemaorg, specific, triage  # type: ignore[no-redef]
     from venues.http import PoliteFetcher  # type: ignore[no-redef]
 
-SPECIFIC: dict[str, Callable] = specific.ADAPTERS  # slug offi du lieu -> fonction(fetcher, venue, today)
+SPECIFIC: dict[str, Callable] = {**specific.ADAPTERS, **js_agendas.ADAPTERS}  # slug offi du lieu -> fonction(fetcher, venue, today)
 
 
 def _title_key(record: dict) -> str:
@@ -40,7 +40,9 @@ def merge_records(batches: list[list[dict]]) -> list[dict]:
 def run_venue(fetcher: PoliteFetcher, venue: dict, today=None) -> tuple[list[dict], dict]:
     info: dict = {"adapter": "", "status": ""}
     if venue["slug"] in SPECIFIC:
-        records, sub = SPECIFIC[venue["slug"]](fetcher, venue, today)
+        # Lieux à agenda « JavaScript » : User-Agent du projet (sources machine), le reste inchangé.
+        active = fetcher.project_fetcher() if venue["slug"] in js_agendas.ADAPTERS else fetcher
+        records, sub = SPECIFIC[venue["slug"]](active, venue, today)
         info.update(sub)
         info["adapter"] = f"specifique:{venue['slug']}"
         return records, info

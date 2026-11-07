@@ -3,11 +3,9 @@
 les fiches spectacle sont en HTML statique. Chaque adaptateur = pages d'agenda + motif des liens
 de fiche (mesuré sur le site) ; la lecture de la fiche est commune (html_fiche.parse_fiche).
 
-Lieux écartés après examen (rendu JavaScript, aucun lien de fiche dans le HTML servi) :
-Philharmonie de Paris (agenda chargé par bouton « Jours suivants »), Théâtre des Champs-Élysées,
-MC93, Espace 1789 (liens /node/N génériques), Théâtre de Saint-Quentin-en-Yvelines, La Ferme du Buisson, Théâtre Darius Milhaud,
-Accor Arena (Angular, API interne /api-cms non documentée), Le Trianon et l'Élysée Montmartre
-(liens de fiche absents du HTML servi).
+Lieux d'abord écartés comme « rendus en JavaScript » (Philharmonie, Théâtre des Champs-Élysées, MC93,
+Espace 1789, Saint-Quentin-en-Yvelines, Ferme du Buisson, Accor Arena, Trianon, Élysée Montmartre) :
+réexaminés le 07/11/2026, voir `js_agendas.py` (Théâtre Darius Milhaud : renoncement, aucune source).
 """
 from __future__ import annotations
 

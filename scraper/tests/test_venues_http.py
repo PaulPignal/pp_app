@@ -70,3 +70,20 @@ class PoliteFetcherTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CrawlDelayTest(unittest.TestCase):
+    def test_crawl_delay_du_robots_txt_est_respecte_et_plafonne(self):
+        import tempfile
+
+        from scraper.venues.http import PoliteFetcher
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fetcher = PoliteFetcher(cache_dir=tmp)
+            fetcher._raw_get = lambda url: type("R", (), {"text": "User-agent: *\nCrawl-delay: 10\n", "status_code": 200, "headers": {}, "url": url})()  # type: ignore[assignment]
+            fetcher._robots_for("https://exemple.test/page")
+            self.assertEqual(fetcher._crawl_delay["exemple.test"], 10.0)
+            fetcher2 = PoliteFetcher(cache_dir=tmp + "/b")
+            fetcher2._raw_get = lambda url: type("R", (), {"text": "User-agent: *\nCrawl-delay: 4000\n", "status_code": 200, "headers": {}, "url": url})()  # type: ignore[assignment]
+            fetcher2._robots_for("https://autre.test/page")
+            self.assertEqual(fetcher2._crawl_delay["autre.test"], 10.0)

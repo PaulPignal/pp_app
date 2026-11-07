@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 import re
 import time
 from dataclasses import dataclass
@@ -32,6 +33,7 @@ DEFAULT_CACHE_TTL_HOURS = float(os.environ.get("VENUES_CACHE_TTL_HOURS", "24"))
 # (API JSON, iCal, sitemaps) ajoutées pour les lieux à agenda JavaScript.
 PROJECT_USER_AGENT = "pp-app-agenda-culturel/1.0 (+https://github.com/PaulPignal/pp_app)"
 MIN_INTERVAL_S = 1.0
+MAX_CRAWL_DELAY_S = 10.0
 MAX_BYTES = 3_000_000
 BLOCK_STATUS = {401, 403, 429, 503}
 _CHALLENGE_RE = re.compile(
@@ -69,6 +71,9 @@ class PoliteFetcher:
             "Accept": "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,*/*;q=0.8",
         })
         self._last_hit: dict[str, float] = {}
+        self._lock = threading.Lock()
+        self._project: Optional[PoliteFetcher] = None
+        self._crawl_delay: dict[str, float] = {}  # hôte -> Crawl-delay de robots.txt (secondes, plafonné)
         self._robots: dict[str, Optional[robotparser.RobotFileParser]] = {}
         self.network_requests = 0
         os.makedirs(cache_dir, exist_ok=True)
@@ -96,11 +101,22 @@ class PoliteFetcher:
 
     # --- politesse ---
     def _wait_turn(self, host: str) -> None:
-        last = self._last_hit.get(host, 0.0)
-        delay = self.min_interval - (time.time() - last)
-        if delay > 0:
-            time.sleep(delay)
-        self._last_hit[host] = time.time()
+        # Réservation atomique du créneau : plusieurs lieux d'un même domaine, traités en parallèle,
+        # restent à 1 requête par intervalle (le Crawl-delay de robots.txt prime s'il est plus long).
+        with self._lock:
+            interval = max(self.min_interval, self._crawl_delay.get(host, 0.0))
+            now = time.time()
+            slot = max(now, self._last_hit.get(host, 0.0) + interval)
+            self._last_hit[host] = slot
+        if slot > now:
+            time.sleep(slot - now)
+
+    def project_fetcher(self) -> "PoliteFetcher":
+        """Fetcher partagé, User-Agent du projet : pour les sources machine (API JSON, calendriers)."""
+        with self._lock:
+            if self._project is None:
+                self._project = PoliteFetcher(self.cache_dir, self.min_interval, self.timeout, PROJECT_USER_AGENT, self.cache_ttl_hours)
+            return self._project
 
     def _raw_get(self, url: str) -> requests.Response:
         self._wait_turn(urlparse(url).netloc)
@@ -126,6 +142,9 @@ class PoliteFetcher:
                 text, status = None, None
         if status == 200 and text is not None:
             rp.parse(text.splitlines())
+            delay = rp.crawl_delay("*")
+            if delay:  # respecté, plafonné pour qu'un lieu ne bloque pas tout le lot (valeur absurde : 4000)
+                self._crawl_delay[parsed.netloc] = min(float(delay), MAX_CRAWL_DELAY_S)
         elif status in (401, 403):
             rp.disallow_all = True  # type: ignore[attr-defined]
         else:
