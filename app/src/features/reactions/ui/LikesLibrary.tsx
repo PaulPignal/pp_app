@@ -67,7 +67,6 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
   const [section, setSection] = useState<'all' | WorkSection>('all')
   const [sort, setSort] = useState<SortKey>('recent')
   const sortId = useId()
-  const sectionId = useId()
 
   useEffect(() => {
     if (!toast) return
@@ -200,6 +199,15 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
 
   const hasFilters = query.trim().length > 0 || section !== 'all'
 
+  // Pilules : « Toutes » + les sections présentes dans la vue (et la section choisie).
+  const sectionItems = useMemo(() => {
+    const present = new Set(baseItems.items.map((item) => item.work?.section))
+    return [
+      { label: 'Toutes', value: 'all' },
+      ...WORK_SECTION_VALUES.filter((s) => s === section || present.has(s)).map((s) => ({ label: WORK_SECTION_LABELS[s], value: s })),
+    ]
+  }, [baseItems, section])
+
   return (
     <>
       <h1 className="sr-only">Mes likes</h1>
@@ -232,31 +240,26 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
             </div>
           </div>
 
-          {/* Recherche + section. */}
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="relative flex-1">
-              <IconSearch size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
-              <input
-                type="search"
-                className="input pl-10"
-                placeholder="Titre, lieu, metteur en scène…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                aria-label="Rechercher dans mes likes"
-              />
-            </div>
-            <label htmlFor={sectionId} className="sr-only">
-              Filtrer par section
-            </label>
-            <select id={sectionId} className="input select sm:w-52" value={section} onChange={(e) => setSection(e.target.value as 'all' | WorkSection)}>
-              <option value="all">Toutes les sections</option>
-              {WORK_SECTION_VALUES.map((s) => (
-                <option key={s} value={s}>
-                  {WORK_SECTION_LABELS[s]}
-                </option>
-              ))}
-            </select>
+          {/* Recherche, puis section en bande de pilules (même modèle que la Découverte). */}
+          <div className="relative">
+            <IconSearch size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
+            <input
+              type="search"
+              className="input pl-10"
+              placeholder="Titre, lieu, metteur en scène…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Rechercher dans mes likes"
+            />
           </div>
+          {sectionItems.length > 2 ? (
+            <SegmentedControl
+              ariaLabel="Filtrer par section"
+              value={section}
+              onChange={(value) => setSection(value as 'all' | WorkSection)}
+              items={sectionItems}
+            />
+          ) : null}
 
           {items.length === 0 ? (
             <EmptyState

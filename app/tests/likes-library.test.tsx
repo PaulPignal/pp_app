@@ -132,7 +132,10 @@ describe('LikesLibrary', () => {
       />,
     )
 
-    await user.selectOptions(screen.getByLabelText('Filtrer par section'), 'cinema')
+    const sections = screen.getByRole('radiogroup', { name: 'Filtrer par section' })
+    expect(within(sections).getAllByRole('radio').map((r) => r.textContent)).toEqual(['Toutes', 'Théâtre', 'Cinéma'])
+    await user.click(within(sections).getByRole('radio', { name: 'Cinéma' }))
+    expect(within(sections).getByRole('radio', { name: 'Cinéma' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.queryByRole('button', { name: /Voir le détail de Hamlet/ })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Voir le détail de Oppenheimer/ })).toBeInTheDocument()
 
