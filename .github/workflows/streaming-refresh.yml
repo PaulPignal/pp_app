@@ -60,3 +60,34 @@ jobs:
       - name: Ingest TMDB streaming
         working-directory: app
         run: pnpm exec tsx scripts/ingest-tmdb-streaming.ts "${{ github.event.inputs.maxPages || '30' }}"
+
+  # Garde le dépôt « actif » (GitHub désactive les workflows planifiés d'un dépôt public
+  # sans activité depuis 60 jours). Même job que dans offi-refresh.yml : le commit vide
+  # n'est créé que si le dernier commit a 45 jours ou plus, donc une seule des deux
+  # copies agit. Seul le GITHUB_TOKEN est utilisé, aucun secret ajouté.
+  keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Commit vide si le dépôt est inactif depuis 45 jours
+        run: |
+          set -euo pipefail
+          last=$(git log -1 --format=%ct)
+          age_days=$(( ($(date +%s) - last) / 86400 ))
+          echo "Dernier commit sur $DEFAULT_BRANCH : il y a $age_days jours"
+          if [ "$age_days" -lt 45 ]; then
+            echo "Rien à faire."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit --allow-empty -m "chore(ci): keepalive, dépôt inactif depuis $age_days jours"
+          git push origin "HEAD:$DEFAULT_BRANCH"

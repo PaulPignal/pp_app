@@ -43,6 +43,47 @@ resolve_python() {
   return 1
 }
 
+# Neon met son compute en veille : le premier connect peut dépasser les 5 s que Prisma
+# laisse par défaut (P1001 « Can't reach database server », run 37927345372 du 09/10/2026,
+# échec en 6 s). Parade en deux temps, sans toucher au schéma :
+#   1. connect_timeout=30 ajouté à DATABASE_URL (jamais affiché) ;
+#   2. nouvelle tentative avec backoff (10, 20, 40, 80 s) sur les seules erreurs de
+#      connexion. L'ingestion est idempotente (upsert) : la rejouer ne duplique rien.
+add_connect_timeout() {
+  [[ -n "${DATABASE_URL:-}" ]] || return 0
+  case "$DATABASE_URL" in
+    *connect_timeout=*) ;;
+    *\?*) DATABASE_URL="$DATABASE_URL&connect_timeout=${OFFI_DB_CONNECT_TIMEOUT:-30}" ;;
+    *) DATABASE_URL="$DATABASE_URL?connect_timeout=${OFFI_DB_CONNECT_TIMEOUT:-30}" ;;
+  esac
+  export DATABASE_URL
+}
+
+retry_db() {
+  local label="$1"; shift
+  local max="${OFFI_DB_ATTEMPTS:-5}" delay="${OFFI_DB_RETRY_DELAY:-10}" attempt=1 out rc
+  while :; do
+    out="$(mktemp)"
+    set +e
+    "$@" 2>&1 | tee -a "$LOG_FILE" "$out"
+    rc=${PIPESTATUS[0]}
+    set -e
+    if [[ $rc -eq 0 ]]; then
+      rm -f "$out"
+      return 0
+    fi
+    if [[ $attempt -ge $max ]] || ! grep -qE "P1001|P1002|P1017|ECONNREFUSED|ETIMEDOUT|ECONNRESET|Connection terminated|timeout expired|Can't reach database" "$out"; then
+      rm -f "$out"
+      return "$rc"
+    fi
+    rm -f "$out"
+    log "$label : connexion impossible (tentative $attempt/$max), nouvel essai dans ${delay}s"
+    sleep "$delay"
+    delay=$((delay * 2))
+    attempt=$((attempt + 1))
+  done
+}
+
 trap cleanup EXIT
 
 if ! command -v pnpm >/dev/null 2>&1; then
@@ -77,6 +118,8 @@ if [[ $# -gt 0 ]]; then
   SCRAPER_CMD+=("$@")
 fi
 
+add_connect_timeout
+
 log "Running scraper -> $TMP_FILE"
 if ! "${SCRAPER_CMD[@]}" 2>&1 | tee -a "$LOG_FILE"; then
   exit 1
@@ -90,13 +133,13 @@ fi
 mv "$TMP_FILE" "$OUTPUT_FILE"
 if [[ "${OFFI_SKIP_DB_DEPLOY:-0}" != "1" ]]; then
   log "Applying Prisma migrations"
-  if ! pnpm --dir "$ROOT_DIR/app" db:deploy 2>&1 | tee -a "$LOG_FILE"; then
+  if ! retry_db "Migrations" pnpm --dir "$ROOT_DIR/app" db:deploy; then
     exit 1
   fi
 fi
 
 log "Running ingestion -> $OUTPUT_FILE"
-if ! pnpm --dir "$ROOT_DIR/app" ingest:offi "$OUTPUT_FILE" 2>&1 | tee -a "$LOG_FILE"; then
+if ! retry_db "Ingestion" pnpm --dir "$ROOT_DIR/app" ingest:offi "$OUTPUT_FILE"; then
   exit 1
 fi
 

@@ -1,25 +1,53 @@
 name: Offi refresh
 
-# Rafraîchit les données offi → Neon, automatiquement, UNE SECTION PAR JOUR :
-#   - quotidien 05:30 UTC (07:30 Paris l'été) : cinema + visite
-#   - lundi    03:00 UTC : theatre
-#   - mardi    03:00 UTC : concert
-#   - mercredi 03:00 UTC : exposition + enfants
-#   - dimanche 06:00 UTC : catalogue des lieux + relink des œuvres
+# Rafraîchit les données offi → Neon, automatiquement, UNE SECTION PAR JOUR
+# (heures UTC ; Paris = UTC+2 l'été, UTC+1 l'hiver) :
+#   - quotidien 04:17 UTC (05:17 / 06:17 Paris) : cinema + visite
+#   - lundi     02:43 UTC : theatre
+#   - mardi     02:43 UTC : concert
+#   - mercredi  02:47 UTC : exposition + enfants
+#   - dimanche  05:23 UTC : catalogue des lieux + relink des œuvres
 #
-# Cadence arbitrée sur les données, pas au doigt mouillé :
-#   - cinema : 98 % des date_start tombent un mercredi (168 sorties observées) ;
-#     pagination par pertinence, donc les nouveautés sont toujours en tête. Quotidien
-#     par confort (~11 min) plus que par nécessité.
-#   - visite : 62 % de dates uniques, 44 % captées à moins de 7 jours de leur début et
-#     premier quartile à 5 jours (mesuré sur startDate - createdAt). En hebdomadaire on
-#     en perd une partie avant même de l'avoir ingérée. 10 pages, ~4 min : quotidien.
-#   - concert : le plus gros volume et 75 % de dates uniques, mais captés avec 11 jours
-#     d'avance au premier quartile et 49 en médiane → un passage hebdomadaire suffit.
-#     Pagination chronologique : le plafond de 150 pages coupe le lointain (au-delà de
-#     février 2027), et un run tronqué par le timeout ingère l'imminent en premier.
-#   - theatre, exposition, enfants : durées d'exploitation médianes de 98 à 125 jours,
-#     5 % seulement démarrent sous 7 jours → hebdomadaire, voire large.
+# Heures de départ : minutes « creuses » (:17, :43, :47, :23) plutôt que :00 et :30,
+# créneaux les plus encombrés de GitHub. Mesuré sur 85 runs planifiés (08/2026 à
+# 10/2026) : le départ réel a un retard médian de 274 min (cinema+visite), 335 (theatre),
+# 302 (concert), 280 (exposition+enfants), maximum 727 min. Le retard médian grossit :
+# 41 min en août, 289 en septembre, 391 en octobre. L'heure du cron n'est donc pas
+# l'heure d'exécution : les données sont prêtes vers 09:00 à 12:00 Paris en octobre.
+# Hypothèse (non prouvée) : une minute creuse réduit ce retard.
+#
+# Cadence arbitrée sur les mesures des logs CI (rapport T1-cadence.md), pas au doigt
+# mouillé. Les artefacts JSONL (7 jours de rétention) avaient tous expiré quand la
+# mesure a été faite : seuls les comptes de fiches par run sont connus, pas les champs
+# modifiés. La rétention passe à 90 jours pour permettre la mesure fiche à fiche.
+#   - cinema : nombre de fiches du listing entre 386 et 747 selon le jour de semaine
+#     (creux le lundi, moyenne 429 ; pic le mardi, moyenne 656) : le programme se
+#     renouvelle chaque semaine et varie de ~66 fiches par jour en valeur absolue
+#     (médiane 36). Quotidien : un run coûte 2 à 24 min (médiane 5 min).
+#   - visite : 104 à 165 fiches, variation médiane de 4 fiches par jour ; fiches à date
+#     unique, donc périssables (mesure du 10/08 : 44 % captées à moins de 7 jours de
+#     leur début, mais mesure faite sur 3 jours d'arrivées seulement : à confirmer par
+#     le SQL de scripts/cadence-stats.sql en b1388fb). Quotidien, avec cinema.
+#   - concert : le listing est plafonné à 150 pages (2 249 fiches, identique à ±2 sur les
+#     10 runs). Mesuré : les pages 151 et 199 contiennent encore 15 fiches chacune, donc
+#     le plafond coupe le lointain (la page 150 s'arrête fin mars / début avril 2027).
+#     Run de 55 min en moyenne (54 à 81) pour ~2 400 requêtes. Hebdomadaire : 1 requête
+#     détail par fiche chaque semaine, aucune réutilisation de cache (voir ci-dessous).
+#   - theatre : 1 814 fiches (08/08) → 2 232 (05/10), plateau depuis fin septembre.
+#     Run de 46 à 56 min. Hebdomadaire.
+#   - exposition, enfants : 281 et 293 fiches (+23 % et +15 % en 8 semaines), 13 à 14 min.
+#     Hebdomadaire (la fenêtre STALE_AFTER_DAYS interdit de descendre sous 1 passage
+#     par semaine sans la rallonger).
+#
+# OFFI_REFRESH_AFTER_HOURS = 72 : mesuré, pour les sections hebdomadaires la fiche en
+# cache a toujours 168 h, soit plus que 72 h : 0 fiche réutilisée sur les 21 runs
+# hebdomadaires avec cache de theatre, concert et exposition+enfants (hors le run de
+# concert du 11/08, lancé la veille d'un run complet : 2 242 réutilisées sur 2 249,
+# 4 minutes au lieu de 55). Toute valeur de 1 à 167 donne le même résultat pour elles.
+# Pour cinema et visite (quotidiens), 72 h fait refetcher en moyenne 31 % des fiches par
+# run (médiane 17 %) au lieu de toutes, soit 277 requêtes par run en moyenne : on garde 72. Passer concert à 200 h économiserait la moitié des
+# requêtes (une semaine sur deux), au prix de prix/horaires vieux de 14 jours : non
+# retenu, aucune mesure de la vitesse de changement d'une fiche détail (hypothèse).
 #
 # Pourquoi une section par jour : à froid le crawl coûte ~20 s par page de programme
 # (15 fiches détaillées par page). Les 6 sections = ~340 pages ≈ 2 h, soit bien plus
@@ -27,6 +55,12 @@ name: Offi refresh
 # 13/06/2026 au 10/08/2026 (58 runs annulés à 90 min, tmp jeté, zéro ligne ingérée).
 # Découpé, le pire cas (concert, 150 pages) tient en ~55 min et chaque section est
 # rafraîchie au moins une fois par semaine.
+#
+# Désactivation GitHub : sans activité du dépôt pendant 60 jours, GitHub désactive les
+# workflows planifiés (constaté : dernier push le 10/08, désactivation le 09/10). Le job
+# `keepalive` ci-dessous pousse un commit vide quand le dernier commit a 45 jours ou
+# plus, avec le seul GITHUB_TOKEN (aucun secret ajouté). Il ne peut pas réactiver un
+# workflow déjà désactivé : voir le rapport.
 #
 # Pré-requis : secret de dépôt DATABASE_URL (chaîne de connexion Neon).
 # Le cache JSONL est persisté PAR SECTION (actions/cache) pour profiter du
@@ -36,11 +70,11 @@ name: Offi refresh
 
 on:
   schedule:
-    - cron: '30 5 * * *'      # tous les jours — cinema + visite
-    - cron: '0 3 * * 1'       # lundi — theatre
-    - cron: '0 3 * * 2'       # mardi — concert
-    - cron: '0 3 * * 3'       # mercredi — exposition, enfants
-    - cron: '0 6 * * 0'       # dimanche — lieux
+    - cron: '17 4 * * *'      # tous les jours — cinema + visite
+    - cron: '43 2 * * 1'      # lundi — theatre
+    - cron: '43 2 * * 2'      # mardi — concert
+    - cron: '47 2 * * 3'      # mercredi — exposition, enfants
+    - cron: '23 5 * * 0'      # dimanche — lieux
   workflow_dispatch:
     inputs:
       target:
@@ -108,10 +142,10 @@ jobs:
 
           if [ "$EVENT_NAME" = 'schedule' ]; then
             case "$SCHEDULE" in
-              '0 6 * * 0') do_venues=true ;;
-              '0 3 * * 1') sections='theatre' ;;
-              '0 3 * * 2') sections='concert' ;;
-              '0 3 * * 3') sections='exposition,enfants' ;;
+              '23 5 * * 0') do_venues=true ;;
+              '43 2 * * 1') sections='theatre' ;;
+              '43 2 * * 2') sections='concert' ;;
+              '47 2 * * 3') sections='exposition,enfants' ;;
               *)           sections='cinema,visite' ;;
             esac
           else
@@ -152,9 +186,38 @@ jobs:
 
       # Fail-fast : valide DB + migrations + Node/pnpm en ~10 s AVANT le scrape de
       # ~40 min. Les pannes d'env (node:sqlite, version pnpm…) échouent ici, vite.
-      - name: Preflight — migrations (fail-fast avant le scrape)
+      # Réveil de Neon : le compute passe en veille, et le premier connect peut dépasser
+      # les 5 s que Prisma laisse par défaut. Le run 37927345372 (09/10/2026) a échoué ainsi
+      # en 6 s (P1001) ; sur 170 runs, ce préflight dure 4 à 8 s quand il réussit.
+      # Parade : connect_timeout=30 et 5 tentatives avec backoff (10, 20, 40, 80 s) sur les
+      # seules erreurs de connexion. Toute autre erreur (migration, env) échoue tout de suite.
+      - name: Preflight — réveil Neon + migrations (fail-fast avant le scrape)
         working-directory: app
-        run: pnpm exec prisma migrate deploy --schema prisma/schema.prisma
+        run: |
+          set -uo pipefail
+          case "$DATABASE_URL" in
+            *connect_timeout=*) ;;
+            *\?*) export DATABASE_URL="$DATABASE_URL&connect_timeout=30" ;;
+            *)    export DATABASE_URL="$DATABASE_URL?connect_timeout=30" ;;
+          esac
+          LOG="$RUNNER_TEMP/preflight.log"
+          delay=10
+          for attempt in 1 2 3 4 5; do
+            if pnpm exec prisma migrate deploy --schema prisma/schema.prisma 2>&1 | tee "$LOG"; then
+              exit 0
+            fi
+            if ! grep -qE "P1001|P1002|P1017|Can't reach database" "$LOG"; then
+              echo "::error::Préflight en échec, erreur autre qu'une connexion : pas de nouvel essai."
+              exit 1
+            fi
+            if [ "$attempt" -lt 5 ]; then
+              echo "::warning::Neon injoignable (tentative $attempt/5), nouvel essai dans ${delay}s"
+              sleep "$delay"
+              delay=$((delay * 2))
+            fi
+          done
+          echo "::error::Neon injoignable après 5 tentatives (voir la console Neon : projet suspendu, quota ?)"
+          exit 1
 
       - name: Refresh works (scrape → ingest)
         if: steps.plan.outputs.sections != ''
@@ -189,4 +252,42 @@ jobs:
         with:
           name: offi-jsonl-${{ steps.plan.outputs.slug }}-${{ github.run_id }}
           path: data/offi-${{ steps.plan.outputs.slug }}.jsonl
-          retention-days: 7
+          # 90 jours (7 auparavant) : les artefacts de septembre-octobre avaient tous
+          # expiré le 07/11, ce qui interdisait de mesurer les fiches nouvelles,
+          # disparues et modifiées entre deux runs. ~0,4 Mo par run cinema+visite.
+          retention-days: 90
+
+  # Garde le dépôt « actif » : GitHub désactive les workflows planifiés d'un dépôt public
+  # sans activité depuis 60 jours (Offi refresh et Streaming refresh désactivés le 09/10 et
+  # le 10/08/2026). Un commit vide sur la branche par défaut remet le compteur à zéro.
+  # Seul le GITHUB_TOKEN est utilisé (permission contents: write limitée à ce job), aucun
+  # secret ajouté. Job indépendant du refresh : il tourne même si celui-ci échoue.
+  # Ne tourne qu'au run quotidien et seulement si le dernier commit a 45 jours ou plus,
+  # soit environ 8 commits vides par an. Même job dans streaming-refresh.yml : si un
+  # workflow est désactivé, l'autre garde le dépôt actif.
+  keepalive:
+    if: github.event_name == 'schedule' && github.event.schedule == '17 4 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Commit vide si le dépôt est inactif depuis 45 jours
+        run: |
+          set -euo pipefail
+          last=$(git log -1 --format=%ct)
+          age_days=$(( ($(date +%s) - last) / 86400 ))
+          echo "Dernier commit sur $DEFAULT_BRANCH : il y a $age_days jours"
+          if [ "$age_days" -lt 45 ]; then
+            echo "Rien à faire."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit --allow-empty -m "chore(ci): keepalive, dépôt inactif depuis $age_days jours"
+          git push origin "HEAD:$DEFAULT_BRANCH"
