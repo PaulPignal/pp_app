@@ -33,8 +33,9 @@ except ModuleNotFoundError:  # pragma: no cover
     from venues.http import Page, PoliteFetcher  # type: ignore[no-redef]
 
 # Plafond de fiches lues par lieu (VENUES_MAX_FICHES pour l'ajuster) : 40 laissait 39 spectacles de côté au
-# Théâtre du Nord-Ouest (59 chez offi) ; 60 couvre les plus gros catalogues mesurés hors lieux à adaptateur.
-MAX_DETAIL_PAGES = int(os.environ.get("VENUES_MAX_FICHES", "60"))
+# Théâtre du Nord-Ouest (59 chez offi) ; à 60, quatre lieux restaient au plafond (Suresnes et Les Gémeaux
+# ont 146 fiches, Pleyel 79, Apollo 67) ; 120 les couvre pour une centaine de requêtes de plus au total.
+MAX_DETAIL_PAGES = int(os.environ.get("VENUES_MAX_FICHES", "120"))
 MAX_LISTING_PAGES = 4  # pages suivantes d'un agenda paginé
 MIN_LISTED_TITLES = 3  # en dessous, les pages de liste ne portent pas l'agenda : on lit les fiches
 MIN_FAMILY = 3         # liens frères sous un même chemin pour former une « famille » de fiches
