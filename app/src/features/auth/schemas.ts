@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, hasPasswordComplexity } from '@/features/auth/password-policy'
+import {
+  PASSWORD_MAX_BYTES,
+  PASSWORD_MIN_LENGTH,
+  fitsBcryptLimit,
+  hasPasswordComplexity,
+} from '@/features/auth/password-policy'
 
 const emailSchema = z.string().trim().toLowerCase().email()
 
@@ -8,7 +13,7 @@ export const registerUserSchema = z.object({
   password: z
     .string()
     .min(PASSWORD_MIN_LENGTH, `Le mot de passe doit faire au moins ${PASSWORD_MIN_LENGTH} caractères`)
-    .max(PASSWORD_MAX_LENGTH)
+    .refine(fitsBcryptLimit, `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX_BYTES} octets`)
     .refine(hasPasswordComplexity, 'Le mot de passe doit mêler minuscules, majuscules et chiffres'),
 })
 

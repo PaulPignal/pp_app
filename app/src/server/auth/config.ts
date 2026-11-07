@@ -4,6 +4,7 @@ import type { NextAuthOptions } from 'next-auth'
 import { getServerSession } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcryptjs'
+import { DUMMY_PASSWORD_HASH, upgradePasswordHash } from '@/features/auth/server/commands'
 import { normalizeEmail } from '@/features/auth/schemas'
 import { prisma } from '@/server/db'
 import { env } from '@/server/env'
@@ -15,7 +16,8 @@ function isDev() {
 }
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: 'jwt' },
+  // 7 jours : un JWT ne se révoque pas, sa durée de vie borne une session volée.
+  session: { strategy: 'jwt', maxAge: 7 * 24 * 60 * 60 },
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -42,8 +44,13 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const user = await prisma.user.findUnique({ where: { email } })
+          const user = await prisma.user.findUnique({
+            where: { email },
+            select: { id: true, email: true, passwordHash: true },
+          })
           if (!user) {
+            // Même coût bcrypt qu'un vrai compte : la durée de réponse ne révèle pas l'existence de l'email.
+            await compare(password, DUMMY_PASSWORD_HASH)
             if (isDev()) console.warn('[auth] user not found for', email)
             return null
           }
@@ -53,6 +60,8 @@ export const authOptions: NextAuthOptions = {
             if (isDev()) console.warn('[auth] bad password for', email)
             return null
           }
+
+          await upgradePasswordHash(user.id, password, user.passwordHash)
 
           return { id: user.id, email: user.email }
         } catch (error) {
