@@ -201,5 +201,56 @@ class PagesFiltreesTests(unittest.TestCase):
         self.assertNotIn(url, links)
 
 
+class FakeFetcher:
+    """Fetcher sans réseau : un dictionnaire url -> HTML (404 sinon)."""
+
+    def __init__(self, pages: dict):
+        self.pages = pages
+
+    def get(self, url):
+        from scraper.venues.http import Page
+        html = self.pages.get(url)
+        return Page(url=url, final_url=url, status=200 if html is not None else 404, text=html or "")
+
+    def project_fetcher(self):
+        return self
+
+
+class GeneriqueBoutEnBoutTests(unittest.TestCase):
+    SITE = "https://x.fr"
+
+    def pages(self, fiche_jsonld_date="2026-11-20"):
+        fiche = lambda slug, title, texte: f"""<html><head><title>{title} - X</title>
+            <script type="application/ld+json">{{"@type":"Event","name":"{title}","startDate":"{fiche_jsonld_date}T20:00:00+01:00","url":"https://x.fr/spectacles/{slug}/"}}</script>
+            </head><body><nav><a href="/">Accueil</a><a href="/agenda/">Agenda</a><a href="/contact">Contact</a></nav>
+            <main><h1>{title}</h1><p>{texte}</p></main></body></html>"""
+        agenda = lambda n, liens: f"""<html><body><nav><a href="/">Accueil</a><a href="/agenda/">Agenda</a><a href="/infos-pratiques/tarifs">Tarifs</a>
+            <a href="/infos-pratiques/acces">Accès</a><a href="/infos-pratiques/equipe">Équipe</a></nav><main><h1>Agenda {n}</h1>
+            {''.join(f'<a href="/spectacles/{s}/">{s}</a>' for s in liens)}<a href="/agenda/?page=2">page 2</a></main></body></html>"""
+        return {
+            self.SITE: '<html><body><a href="/agenda/">Agenda</a></body></html>',
+            self.SITE + "/agenda/": agenda(1, ["hamlet", "phedre"]),
+            self.SITE + "/agenda/?page=2": agenda(2, ["macbeth"]),
+            self.SITE + "/spectacles/hamlet/": fiche("hamlet", "Hamlet", "Du 12 novembre au 20 décembre 2026, tarif 25 €"),
+            self.SITE + "/spectacles/phedre/": fiche("phedre", "Phèdre", "Le 3 décembre 2026 à 20h"),
+            self.SITE + "/spectacles/macbeth/": fiche("macbeth", "Macbeth", "Les 5 et 6 janvier 2027"),
+        }
+
+    def test_agenda_pagine_et_fiches(self):
+        venue = {"website": self.SITE, "name": "X", "sections": ["theatre"], "slug": "x-1", "city": "Paris"}
+        groups, info = generic.extract_generic(FakeFetcher(self.pages()), venue, today=TODAY)
+        self.assertEqual(sorted(g["title"] for g in groups), ["Hamlet", "Macbeth", "Phèdre"])  # page 2 suivie
+        self.assertEqual(info["signal"], "jsonld")
+        self.assertEqual(info["pages"], 6)  # 3 pages de liste + 3 fiches, rien du menu
+
+    def test_jsonld_perime_remplace_par_le_texte(self):
+        venue = {"website": self.SITE, "name": "X", "sections": ["theatre"], "slug": "x-1", "city": "Paris"}
+        groups, info = generic.extract_generic(FakeFetcher(self.pages(fiche_jsonld_date="2023-11-26")), venue, today=TODAY)
+        by_title = {g["title"]: g for g in groups}
+        self.assertEqual(by_title["Hamlet"]["date_start"], "2026-11-12")
+        self.assertEqual(by_title["Macbeth"]["date_end"], "2027-01-06")
+        self.assertEqual(info["signal"], "html")
+
+
 if __name__ == "__main__":
     unittest.main()

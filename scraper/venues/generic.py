@@ -177,9 +177,11 @@ def extract_generic(fetcher: PoliteFetcher, venue: dict, max_detail: int = MAX_D
         for page in pages[1:] or pages:
             for score, url in ranked_links(BeautifulSoup(page.text, "html.parser"), page.final_url, seen):
                 scored[url] = max(scored.get(url, -9), score)
-        links = sorted(scored, key=lambda u: -scored[u])[:max_detail]
+        # score négatif = lien de navigation sans autre indice : jamais une fiche, pas de requête
+        links = [u for u in sorted(scored, key=lambda u: -scored[u]) if scored[u] >= 0][:max_detail]
         fetched: list[Page] = []
         structured = False
+        cutoff = (today or date.today()).isoformat()
         for link in links:
             page = fetcher.get(link)
             info["pages"] += 1
@@ -187,6 +189,12 @@ def extract_generic(fetcher: PoliteFetcher, venue: dict, max_detail: int = MAX_D
                 continue
             fetched.append(page)
             found, signal = schemaorg.occurrences_from_html(page.text, page.final_url)
+            if found and not any((o["date_end"] or o["date_start"] or "") >= cutoff for o in found):
+                # données structurées périmées (Théâtre de l'Atelier : JSON-LD daté de 2023 sur des fiches
+                # 2026) : le texte de la fiche, qui ne livre que des dates à venir, fait foi
+                occ = html_fiche.parse_fiche(page.text, page.final_url, today)
+                if occ:
+                    found, signal = [occ], "html"
             if found:
                 structured = True
                 occurrences += found
