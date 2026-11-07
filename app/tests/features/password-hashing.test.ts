@@ -10,6 +10,7 @@ const { prisma } = vi.hoisted(() => ({
 vi.mock('@/server/db', () => ({ prisma }))
 vi.mock('@/server/env', () => ({ env: { NEXTAUTH_SECRET: 'unit-test-secret-at-least-32-bytes-long!!' } }))
 
+import { Prisma } from '@/generated/prisma/client'
 import { fitsBcryptLimit, isPasswordAcceptable } from '@/features/auth/password-policy'
 import { registerUserSchema } from '@/features/auth/schemas'
 import { BCRYPT_COST, DUMMY_PASSWORD_HASH, registerUser, upgradePasswordHash } from '@/features/auth/server/commands'
@@ -37,7 +38,6 @@ describe('hash bcrypt', () => {
   })
 
   it('inscription en coût 12', async () => {
-    prisma.user.findUnique.mockResolvedValue(null)
     prisma.user.create.mockImplementation(async ({ data }: { data: { email: string; passwordHash: string } }) => ({
       id: 'u1',
       email: data.email,
@@ -48,6 +48,16 @@ describe('hash bcrypt', () => {
     expect(getRounds(passwordHash)).toBe(12)
     expect(BCRYPT_COST).toBe(12)
     expect(getRounds(DUMMY_PASSWORD_HASH)).toBe(12)
+    // Aucune lecture ni mise à jour : un compte existant ne peut pas voir son mot de passe réécrit.
+    expect(prisma.user.findUnique).not.toHaveBeenCalled()
+    expect(prisma.user.update).not.toHaveBeenCalled()
+  })
+
+  it('email déjà pris : la contrainte d’unicité donne email_exists', async () => {
+    prisma.user.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: '7' }),
+    )
+    await expect(registerUser({ email: 'taken@example.com', password: 'Abcdefghijk1' })).rejects.toThrow('email_exists')
   })
 
   it('un ancien hash de coût inférieur à 12 est remplacé à la connexion, pas un hash en coût 12', async () => {

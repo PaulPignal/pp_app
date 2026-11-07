@@ -21,30 +21,18 @@ export async function upgradePasswordHash(userId: string, password: string, curr
   }
 }
 
+// Inscription = création seulement. Un email déjà pris échoue sur la contrainte d'unicité
+// (P2002), sans lecture préalable : un aller-retour en moins, même durée de réponse que
+// l'email soit libre ou pris, et aucun chemin qui réécrirait le mot de passe d'un compte.
 export async function registerUser(input: RegisterUserInput) {
   const { email, password } = registerUserSchema.parse(input)
-
-  const existingUser = await prisma.user.findUnique({ where: { email } })
-
-  if (existingUser?.passwordHash) {
-    throw new Error('email_exists')
-  }
-
   const passwordHash = await hash(password, BCRYPT_COST)
 
   try {
-    const user = existingUser
-      ? await prisma.user.update({
-          where: { email },
-          data: { passwordHash },
-          select: { id: true, email: true },
-        })
-      : await prisma.user.create({
-          data: { email, passwordHash },
-          select: { id: true, email: true },
-        })
-
-    return user
+    return await prisma.user.create({
+      data: { email, passwordHash },
+      select: { id: true, email: true },
+    })
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       throw new Error('email_exists')
