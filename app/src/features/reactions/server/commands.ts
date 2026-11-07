@@ -12,22 +12,15 @@ const setReactionStatusSchema = z.object({
 export async function setReactionStatus(input: { userId: string; workId: string; status: 'LIKE' | 'DISLIKE' | 'SEEN' }) {
   const { userId, workId, status } = setReactionStatusSchema.parse(input)
 
-  const previous = await prisma.reaction.findUnique({
-    where: { userId_workId: { userId, workId } },
-    select: { status: true },
-  })
-
+  // Un seul aller-retour : l'upsert suffit (l'ancien statut n'était lu par aucun appelant).
   const reaction = await prisma.reaction.upsert({
     where: { userId_workId: { userId, workId } },
     update: { status },
     create: { userId, workId, status },
+    select: { workId: true, status: true },
   })
 
-  return {
-    reaction,
-    previousStatus: previous?.status ?? null,
-    alreadyExisted: previous?.status === status,
-  }
+  return { reaction }
 }
 
 const clearReactionSchema = z.object({
