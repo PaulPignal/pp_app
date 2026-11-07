@@ -67,14 +67,14 @@
     "node": "20.x || 22.x",
     "pnpm": ">=8"
   },
-  "overrides": {
-    "cookie": "0.7.2",
-    "esbuild": "0.25.9"
-  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "pnpm": {
+    "overrides": {
+      "cookie@<0.7.0": "0.7.2",
+      "esbuild@<0.25.0": "0.25.9"
+    },
     "onlyBuiltDependencies": [
       "@prisma/client",
       "@prisma/engines",
