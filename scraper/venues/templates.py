@@ -27,6 +27,7 @@ Gabarits actifs :
 from __future__ import annotations
 
 import re
+import unicodedata
 from datetime import date
 from typing import Callable, Optional
 from urllib.parse import urljoin, urlparse
@@ -192,7 +193,7 @@ def placeminute_boutique(fetcher: PoliteFetcher, venue: dict, today: Optional[da
 
 
 BOOKING_TEXT_RE = re.compile(r"r[ée]serv|billet|infos?\b|en savoir plus|r[ée]sa\b|acheter|book", re.I)
-NOT_A_SHOW_RE = re.compile(r"cadeau|abonnement|privatis|black-friday|printemps-du|faq|photos?|partenaires?|actualit|equipe|histoire|informations?-pratiques|contact|mentions|cgv|cgu|carte-|cours|stage|atelier|location|recrut|presse|newsletter|accessib|plan|pratique|reservation|groupes|^theatre$|^spectacles?$|^programm", re.I)
+NOT_A_SHOW_RE = re.compile(r"cadeau|abonnement|privatis|black-friday|printemps-du|faq|photos?|partenaires?|actualit|equipe|histoire|informations?-pratiques|contact|mentions|cgv|cgu|carte-|cours|stage|atelier|location|recrut|presse|newsletter|accessib|plan|pratique|reservation|groupes|^theatre$|^spectacles?$|^programm|telecharg|^le-lieu|agenda|^les-actions|recevoir|inscri", re.I)
 CARD_DEPTH = 4  # niveaux d'ancêtres examinés pour trouver le lien « Réserver » de la carte
 MIN_CARDS = 3
 MAX_CARD_ANCHORS = 800  # liens de l'accueil examinés (pages Wix de plusieurs milliers de liens)
@@ -457,6 +458,19 @@ def main() -> None:
     annotate(args.catalogue, args.out, PoliteFetcher(), log=lambda m: print(m, flush=True))
 
 
+_SERVICE_TITLE_RE = re.compile(
+    r"(les |nos |le |la )?(spectacles?|evenements?|actualites?|agenda|programmation|programme|saison|le lieu|l'agenda.*|telechargements?|"
+    r"les actions|billetterie|infos?( pratiques?)?|contact|accueil|a l'affiche|reserver|le theatre|la salle)"
+)
+
+
+def is_service_title(title: str) -> bool:
+    """Titre d'une page de service (menu, rubrique) lue à la place d'une fiche : écarté des gabarits."""
+    plain = unicodedata.normalize("NFKD", re.sub(r"[’`ʼ]", "'", title or "")).encode("ascii", "ignore").decode().lower().strip()
+    plain = re.sub(r"\s+", " ", plain)
+    return bool(_SERVICE_TITLE_RE.fullmatch(plain))
+
+
 def complement(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = None, known: int = 0) -> tuple[list[dict], dict]:
     """Enregistrements des extracteurs de gabarit pour un lieu (liste vide si aucun ne s'applique).
     `known` : nombre de spectacles déjà extraits par les autres sources."""
@@ -466,6 +480,7 @@ def complement(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = None
         extractor = EXTRACTORS[name]
         groups, sub = extractor(fetcher, venue, today, known)
         info[name] = sub.get("status", "")
+        groups = [g for g in groups if not is_service_title(g.get("title", ""))]
         records += schemaorg.records_from_groups(groups, venue, f"direct:gabarit_{name}", today=today)
     return records, info
 

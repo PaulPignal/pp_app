@@ -178,6 +178,14 @@ class TpaSalleTests(unittest.TestCase):
         self.assertEqual([g["title"] for g in groups], ["22 minutes"])  # toutes les fiches de l'essai portent la même pièce
 
 
+class TitresDeServiceTests(unittest.TestCase):
+    def test_titres_de_menu_ecartes(self):
+        for title in ["Les spectacles", "Téléchargements", "Le lieu", "L'Agenda théâtre / cinéma", "Les actions", "À l’affiche", "Contact"]:
+            self.assertTrue(templates.is_service_title(title), title)
+        for title in ["Le Voleur de mots", "Les Fanfarons", "Spectacle de Noël", "Le lieu du crime"]:
+            self.assertFalse(templates.is_service_title(title), title)
+
+
 class WixPlatesTests(unittest.TestCase):
     def _home(self):
         menu = '<nav><ul>' + "".join(f'<li><a href="/menu-{c}-xxx">M</a></li>' for c in "abcdefg") + '</ul></nav>'
