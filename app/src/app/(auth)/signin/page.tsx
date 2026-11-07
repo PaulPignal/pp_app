@@ -4,6 +4,7 @@ import { FormEvent, Suspense, useId, useState } from 'react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { safeCallbackUrl } from '@/features/auth/callback-url'
 import StatusBanner from '@/shared/ui/StatusBanner'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
 
@@ -22,7 +23,7 @@ function SignInInner() {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const params = useSearchParams()
-  const callbackUrl = params.get('callbackUrl') || '/'
+  const callbackUrl = safeCallbackUrl(params.get('callbackUrl'))
   const emailId = useId()
   const passwordId = useId()
 
