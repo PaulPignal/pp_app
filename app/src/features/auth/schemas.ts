@@ -6,7 +6,8 @@ import {
   hasPasswordComplexity,
 } from '@/features/auth/password-policy'
 
-const emailSchema = z.string().trim().toLowerCase().email()
+// Seule règle d'email du dépôt (inscription, connexion, ajout d'ami).
+export const emailSchema = z.string().trim().toLowerCase().email()
 
 export const registerUserSchema = z.object({
   email: emailSchema,
