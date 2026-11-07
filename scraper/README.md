@@ -6,7 +6,7 @@
 - Point d'entrée ingestion DB: `app/scripts/ingest-offi.ts`
 - Sortie standard du pipeline: `data/offi.jsonl`
 - Logs pipeline: `scraper/logs/offi-pipeline-YYYYMMDD-HHMMSS.log`
-- Dépendances Python: `requests`, `beautifulsoup4`, `lxml`
+- Dépendances Python: `requests`, `beautifulsoup4`
 - Dépendances DB/app: `pnpm --dir app ...` avec `DATABASE_URL`
 
 Le scraper applique désormais un throttling, des retries exponentiels sur `403/429/5xx/timeouts`, une validation stricte des enregistrements, et renvoie un code non nul si aucune donnée exploitable n'est extraite.

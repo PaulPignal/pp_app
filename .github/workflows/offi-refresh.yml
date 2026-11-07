@@ -2,7 +2,8 @@ name: Offi refresh
 
 # Rafraîchit les données offi → Neon, automatiquement, UNE SECTION PAR JOUR
 # (heures UTC ; Paris = UTC+2 l'été, UTC+1 l'hiver) :
-#   - quotidien 04:17 UTC (05:17 / 06:17 Paris) : cinema + visite
+#   - jeudi 04:17 UTC (05:17 / 06:17 Paris) : cinema + visite (hebdomadaire depuis le 07/11/2026,
+#     cinéma mis de côté ; jeudi = lendemain des sorties du mercredi)
 #   - lundi     02:43 UTC : theatre
 #   - mardi     02:43 UTC : concert
 #   - mercredi  02:47 UTC : exposition + enfants
@@ -44,7 +45,7 @@ name: Offi refresh
 # hebdomadaires avec cache de theatre, concert et exposition+enfants (hors le run de
 # concert du 11/08, lancé la veille d'un run complet : 2 242 réutilisées sur 2 249,
 # 4 minutes au lieu de 55). Toute valeur de 1 à 167 donne le même résultat pour elles.
-# Pour cinema et visite (quotidiens), 72 h fait refetcher en moyenne 31 % des fiches par
+# Pour cinema et visite (quotidiens jusqu'au 07/11/2026), 72 h fait refetcher en moyenne 31 % des fiches par
 # run (médiane 17 %) au lieu de toutes, soit 277 requêtes par run en moyenne : on garde 72. Passer concert à 200 h économiserait la moitié des
 # requêtes (une semaine sur deux), au prix de prix/horaires vieux de 14 jours : non
 # retenu, aucune mesure de la vitesse de changement d'une fiche détail (hypothèse).
@@ -70,7 +71,7 @@ name: Offi refresh
 
 on:
   schedule:
-    - cron: '17 4 * * *'      # tous les jours — cinema + visite
+    - cron: '17 4 * * 4'      # jeudi : cinema + visite
     - cron: '43 2 * * 1'      # lundi — theatre
     - cron: '43 2 * * 2'      # mardi — concert
     - cron: '47 2 * * 3'      # mercredi — exposition, enfants
@@ -266,11 +267,11 @@ jobs:
   # le 10/08/2026). Un commit vide sur la branche par défaut remet le compteur à zéro.
   # Seul le GITHUB_TOKEN est utilisé (permission contents: write limitée à ce job), aucun
   # secret ajouté. Job indépendant du refresh : il tourne même si celui-ci échoue.
-  # Ne tourne qu'au run quotidien et seulement si le dernier commit a 45 jours ou plus,
-  # soit environ 8 commits vides par an. Même job dans streaming-refresh.yml : si un
+  # Ne tourne qu'au run du jeudi et seulement si le dernier commit a 45 jours ou plus,
+  # soit au plus 8 commits vides par an. Même job dans streaming-refresh.yml : si un
   # workflow est désactivé, l'autre garde le dépôt actif.
   keepalive:
-    if: github.event_name == 'schedule' && github.event.schedule == '17 4 * * *'
+    if: github.event_name == 'schedule' && github.event.schedule == '17 4 * * 4'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
