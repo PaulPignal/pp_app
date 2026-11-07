@@ -23,11 +23,11 @@ from bs4 import BeautifulSoup
 
 try:
     from scraper.offi_scraper import MONTH_PATTERN, MONTHS
-    from scraper.venues import html_fiche, schemaorg
+    from scraper.venues import generic, html_fiche, schemaorg
     from scraper.venues.http import PoliteFetcher
 except ModuleNotFoundError:  # pragma: no cover
     from offi_scraper import MONTH_PATTERN, MONTHS  # type: ignore[no-redef]
-    from venues import html_fiche, schemaorg  # type: ignore[no-redef]
+    from venues import generic, html_fiche, schemaorg  # type: ignore[no-redef]
     from venues.http import PoliteFetcher  # type: ignore[no-redef]
 
 MAX_FICHES = 40
@@ -52,6 +52,8 @@ def fiche_links(html: str, base_url: str, link_re: re.Pattern, limit: int = MAX_
 
 def read_fiches(fetcher: PoliteFetcher, links: list[str], today, info: dict, limit: int = MAX_FICHES) -> list[dict]:
     occurrences = []
+    if links:
+        limit = generic.fiche_budget(fetcher, links[0], limit)  # Crawl-delay 10 s à la Comédie Saint-Michel : 24 fiches
     for link in links[:limit]:
         page = fetcher.get(link)
         info["event_pages"] += 1

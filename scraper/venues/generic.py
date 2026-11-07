@@ -43,6 +43,10 @@ FICHE_SCORE = 2        # score minimal pour lire une page en HTML (repli sans sc
 STRONG_FICHE_SCORE = 3 # famille nombreuse + chemin profond (ou lien donné par wp-json)
 DATELESS_FICHE_SCORE = 4  # famille nombreuse, chemin profond et parent d'agenda : fiche gardée même sans date
 MIN_FICHE_FAMILY = 8   # fiches sûres à partir desquelles on lit les fiches malgré une liste structurée
+# Budget de temps par lieu pour les fiches : un site à Crawl-delay 10 s (Académie Fratellini, Bobino, Trianon…)
+# lisait 120 fiches en 20 minutes et allongeait tout le run ; 24 fiches à 10 s, 80 à 3 s, 120 à 1 s.
+MAX_FICHE_SECONDS = 240
+_PAST_YEAR_RE = re.compile(r"(?<!\d)(20[0-2]\d)(?!\d)")
 _NAV_TAGS = ["nav", "header", "footer"]
 _PAGE_QUERY_KEYS = ("page", "paged", "p", "pg")
 _PAGE_PATH_RE = re.compile(r"/page/(\d+)/?$")
@@ -85,9 +89,16 @@ def pagination_links(soup, page_url: str, limit: int = MAX_LISTING_PAGES) -> lis
     return [found[n] for n in sorted(found)[:limit]]
 
 
-def ranked_links(soup, base_url: str, exclude: set[str]) -> list[tuple[int, str]]:
+def fiche_budget(fetcher, url: str, wanted: int) -> int:
+    """Nombre de fiches lisibles sur cet hôte en MAX_FICHE_SECONDS au rythme imposé par robots.txt."""
+    delay = fetcher.delay_for(url) if hasattr(fetcher, "delay_for") else 1.0
+    return max(1, min(wanted, int(MAX_FICHE_SECONDS / max(delay, 0.1))))
+
+
+def ranked_links(soup, base_url: str, exclude: set[str], today: Optional[date] = None) -> list[tuple[int, str]]:
     """Liens internes candidats à la fiche spectacle, avec un score (plus haut = plus probable)."""
     host = urlparse(base_url).netloc
+    this_year = (today or date.today()).year
     items: list[tuple[str, str, int, bool]] = []
     families: dict[str, int] = {}
     seen: set[str] = set()
@@ -122,6 +133,9 @@ def ranked_links(soup, base_url: str, exclude: set[str]) -> list[tuple[int, str]
             score += 1
         if in_nav:
             score -= 3
+        years = [int(y) for y in _PAST_YEAR_RE.findall(parent)]
+        if years and max(years) < this_year:  # /agenda-2017/… : archives (Théâtre du Soleil), lues en dernier
+            score -= 3
         scored.append((score, url))
     return scored
 
@@ -151,6 +165,7 @@ def listing_pages(fetcher: PoliteFetcher, home: Page, wordpress: bool = False) -
         links = pagination_links(BeautifulSoup(page.text, "html.parser"), page.final_url)
         if not links and wordpress and not urlparse(page.final_url).query and not _PAGE_PATH_RE.search(page.final_url):
             links = [f"{page.final_url.rstrip('/')}/page/{n}/" for n in range(2, MAX_LISTING_PAGES + 2)]
+        known = {u for _, u in ranked_links(BeautifulSoup(page.text, "html.parser"), page.final_url, set())}
         for link in links:
             if link in seen:
                 continue
@@ -158,6 +173,10 @@ def listing_pages(fetcher: PoliteFetcher, home: Page, wordpress: bool = False) -
             more = fetcher.get(link)
             if not more.ok:
                 break
+            fresh = {u for _, u in ranked_links(BeautifulSoup(more.text, "html.parser"), more.final_url, set())} - known
+            if not fresh:  # même contenu (WordPress rend /page/2/ d'une page simple) : on s'arrête
+                break
+            known |= fresh
             pages.append(more)
     return pages
 
@@ -196,9 +215,10 @@ def extract_generic(fetcher: PoliteFetcher, venue: dict, max_detail: int = MAX_D
                 if url not in seen:
                     scored[url] = max(scored.get(url, 0), STRONG_FICHE_SCORE)
         for page in pages[1:] or pages:
-            for score, url in ranked_links(BeautifulSoup(page.text, "html.parser"), page.final_url, seen):
+            for score, url in ranked_links(BeautifulSoup(page.text, "html.parser"), page.final_url, seen, today):
                 scored[url] = max(scored.get(url, -9), score)
     strong = sum(1 for u in scored if scored[u] >= STRONG_FICHE_SCORE)
+    max_detail = fiche_budget(fetcher, home.final_url, max_detail)
     # Les fiches sont lues quand la liste ne porte pas l'agenda, ou quand une vraie famille de fiches existe
     # alors que la liste n'en structure qu'une partie (L'Européen : 13 spectacles JSON-LD sur l'accueil,
     # 21 fiches ; BO Saint-Martin : wp-json liste toutes les fiches).

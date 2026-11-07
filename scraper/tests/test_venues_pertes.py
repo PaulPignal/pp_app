@@ -288,5 +288,23 @@ class Iteration2Tests(unittest.TestCase):
         self.assertTrue({"Vedette 1", "Pièce 0", "Pièce 9"} <= titles, titles)  # 3 titres structurés, 10 fiches sûres : fiches lues
 
 
+class BudgetTests(unittest.TestCase):
+    def test_budget_selon_crawl_delay(self):
+        class F:
+            def __init__(self, d): self.d = d
+            def delay_for(self, url): return self.d
+        self.assertEqual(generic.fiche_budget(F(1.0), "https://x.fr", 120), 120)
+        self.assertEqual(generic.fiche_budget(F(3.0), "https://x.fr", 120), 80)
+        self.assertEqual(generic.fiche_budget(F(10.0), "https://x.fr", 120), 24)
+        self.assertEqual(generic.fiche_budget(F(10.0), "https://x.fr", 40), 24)
+
+    def test_archives_par_annee_en_dernier(self):
+        html = ('<main><a href="/fr/agenda-2017/vieux-spectacle-2017-2099">Vieux</a><a href="/fr/agenda-2017/autre-2017-2098">Autre</a>'
+                '<a href="/fr/agenda-2017/encore-2017-2097">Encore</a><a href="/fr/agenda-2026/juste-la-fin-du-monde-2026-2494">Juste</a>'
+                '<a href="/fr/agenda-2026/bopkyta-2026-2500">Bopkyta</a><a href="/fr/agenda-2026/ardents-2026-2501">Ardents</a></main>')
+        links = generic.detail_links(BeautifulSoup(html, "html.parser"), "https://www.theatre-du-soleil.fr/fr/", set(), 10)
+        self.assertTrue(all("agenda-2026" in u for u in links[:3]), links)
+
+
 if __name__ == "__main__":
     unittest.main()
