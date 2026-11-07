@@ -25,13 +25,37 @@ def offi_title(url: str) -> str:
     return re.sub(r"-\d+$", "", url.rsplit("/", 1)[-1].removesuffix(".html")).replace("-", " ")
 
 
+# Apostrophe d'élision entre deux lettres : offi la supprime dans ses URL (« l'avare » -> « lavare »,
+# « c'est » -> « cest »), alors que slugify en fait un séparateur (« l-avare »). Sans cette
+# normalisation, tout titre élidé compare « lavare » à « avare » et échoue.
+_ELISION_RE = re.compile(r"(?<=[^\W\d_])['’ʼ`](?=[^\W\d_])")
+# Mot seul trop générique pour valoir appariement par inclusion (« festival » dans « festival d'humour »).
+_GENERIC_ALONE = {
+    "festival", "spectacle", "spectacles", "concert", "concerts", "cabaret", "comedy-club", "lecture", "lectures",
+    "rencontre", "rencontres", "atelier", "ateliers", "improvisation", "nouveau-spectacle", "en-rodage", "rodage",
+    "jeune-public", "soiree", "soirees", "le-spectacle", "la-comedie", "le-cabaret", "conference", "projection",
+}
+MIN_INCLUSION_CHARS = 8
+
+
+def normalize_title(value: str) -> str:
+    """Titre sans apostrophe d'élision, comme dans les URL d'offi."""
+    return _ELISION_RE.sub("", value or "")
+
+
 def titles_match(offi: str, direct: str) -> bool:
-    a, b = discover.slugify(offi), discover.slugify(direct)
+    """Même spectacle ? Slug identique ; ou l'un des deux titres (≥ 8 caractères, pas un mot générique)
+    est contenu mot à mot dans l'autre (sous-titre, « Artiste dans Titre ») ; ou recouvrement d'au moins
+    60 % des mots significatifs du titre offi (au moins deux)."""
+    a, b = discover.slugify(normalize_title(offi)), discover.slugify(normalize_title(direct))
     if not a or not b:
         return False
     if a == b:
         return True
-    ta, tb = discover.tokens(offi), discover.tokens(direct)
+    short, long_ = sorted((a, b), key=len)
+    if len(short) >= MIN_INCLUSION_CHARS and short not in _GENERIC_ALONE and f"-{short}-" in f"-{long_}-":
+        return True
+    ta, tb = discover.tokens(normalize_title(offi)), discover.tokens(normalize_title(direct))
     if len(ta) < 2:
         return False
     return len(ta & tb) / len(ta) >= 0.6 and len(ta & tb) >= 2
