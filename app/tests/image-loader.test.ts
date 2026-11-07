@@ -23,6 +23,18 @@ describe('offiImageLoader', () => {
     expect(offiImageLoader({ src: small, width: 480 })).toContain('/images/1000/')
   })
 
+  it('sert les affiches TMDB à la taille demandée, plafonnée à w500', () => {
+    const poster = 'https://image.tmdb.org/t/p/w500/abc.jpg'
+    expect(offiImageLoader({ src: poster, width: 64 })).toBe('https://image.tmdb.org/t/p/w92/abc.jpg')
+    expect(offiImageLoader({ src: poster, width: 160 })).toBe('https://image.tmdb.org/t/p/w185/abc.jpg')
+    expect(offiImageLoader({ src: poster, width: 256 })).toBe('https://image.tmdb.org/t/p/w342/abc.jpg')
+    expect(offiImageLoader({ src: poster, width: 384 })).toBe('https://image.tmdb.org/t/p/w500/abc.jpg')
+    expect(offiImageLoader({ src: poster, width: 1080 })).toBe('https://image.tmdb.org/t/p/w500/abc.jpg')
+    expect(offiImageLoader({ src: 'https://image.tmdb.org/t/p/original/abc.jpg', width: 160 })).toBe(
+      'https://image.tmdb.org/t/p/w185/abc.jpg',
+    )
+  })
+
   it('laisse les URLs non-offi inchangées', () => {
     expect(offiImageLoader({ src: 'https://example.com/x.png', width: 200 })).toBe('https://example.com/x.png')
   })
