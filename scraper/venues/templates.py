@@ -2,6 +2,9 @@
 """Extracteurs par gabarit : un site de lieu bâti sur un modèle commun (thème, CMS, module de billetterie)
 partage les mêmes balises ; l'empreinte relevée par `fingerprint` désigne l'extracteur à lancer.
 
+Plateformes tierces (BilletReduc, TPA, Placeminute) : lues avec le User-Agent du projet (`project_fetcher`),
+1 requête par seconde et par domaine, robots.txt respecté (PoliteFetcher).
+
 Branchement : `adapters.run_venue` appelle `complement()` après l'extracteur générique ; les
 enregistrements obtenus sont fusionnés par titre (le générique fait foi, ils comblent les trous).
 Le gabarit détecté est écrit dans la colonne `template` du catalogue (`fingerprint.template_label`), ce
@@ -127,7 +130,7 @@ def billetreduc_salle_id(fetcher: PoliteFetcher, venue: dict) -> Optional[str]:
         events, _ = billetterie.classify_links(BeautifulSoup(page.text, "html.parser"), page.final_url, platform)
         fiches |= events
     for url in sorted(fiches)[:BR_FICHES]:
-        page = fetcher.get(url)
+        page = fetcher.project_fetcher().get(url)  # plateforme tierce : User-Agent du projet
         if page.ok:
             for m in list(BR_SALLE_RE.finditer(page.text)) + list(BR_SALLE_REL_RE.finditer(page.text)):
                 votes[m.group(1)] = votes.get(m.group(1), 0) + 1
@@ -141,7 +144,7 @@ def billetreduc_salle(fetcher: PoliteFetcher, venue: dict, today: Optional[date]
         info["status"] = "salle_introuvable"
         return [], info
     info["salle"] = salle
-    page = fetcher.get(f"https://www.billetreduc.com/{salle}/salle.htm")
+    page = fetcher.project_fetcher().get(f"https://www.billetreduc.com/{salle}/salle.htm")
     if not page.ok:
         info["status"] = page.note or f"http {page.status}"
         return [], info
@@ -170,7 +173,7 @@ def placeminute_boutique(fetcher: PoliteFetcher, venue: dict, today: Optional[da
     sub = max(hosts, key=hosts.get)
     info["boutique"] = sub
     root = f"https://{sub}.placeminute.com/"
-    shop = fetcher.get(root)
+    shop = fetcher.project_fetcher().get(root)
     if not shop.ok:
         info["status"] = shop.note or f"http {shop.status}"
         return [], info
@@ -182,7 +185,7 @@ def placeminute_boutique(fetcher: PoliteFetcher, venue: dict, today: Optional[da
             links.append(url)
     occurrences: list[dict] = []
     for url in links[:PLACEMINUTE_MAX]:
-        page = fetcher.get(url)
+        page = fetcher.project_fetcher().get(url)
         info["pages"] += 1
         if page.ok:
             occ = html_fiche.parse_fiche(page.text, page.final_url, today, require_date=False)
@@ -268,7 +271,7 @@ def tpa_salle_path(fetcher: PoliteFetcher, venue: dict, pages: list[Page]) -> Op
             return m.group(1)
     if not any("tpa.fr" in page.text for page in pages):
         return None
-    index = fetcher.get("https://tpa.fr/salles-theatre-paris/")
+    index = fetcher.project_fetcher().get("https://tpa.fr/salles-theatre-paris/")
     if not index.ok:
         return None
     ours = discover.tokens(venue["name"])
@@ -294,7 +297,7 @@ def tpa_salle(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = None,
         info["status"] = "sans_tpa"
         return [], info
     info["salle"] = path
-    salle = fetcher.get("https://tpa.fr" + path)
+    salle = fetcher.project_fetcher().get("https://tpa.fr" + path)
     if not salle.ok:
         info["status"] = salle.note or f"http {salle.status}"
         return [], info
@@ -305,7 +308,7 @@ def tpa_salle(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = None,
             links.append("https://tpa.fr" + piece)
     occurrences: list[dict] = []
     for url in links[:TPA_MAX]:
-        page = fetcher.get(url)
+        page = fetcher.project_fetcher().get(url)
         info["pages"] += 1
         if page.ok:
             occ = html_fiche.parse_fiche(page.text, page.final_url, today, require_date=False)
