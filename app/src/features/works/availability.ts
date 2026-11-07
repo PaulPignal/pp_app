@@ -44,10 +44,15 @@ export function getParisTodayStart(date = new Date()) {
 // depuis plus longtemps que ça a quitté l'affiche : c'est le seul signal fiable de
 // fin de disponibilité, offi ne fournissant aucune date de fin côté cinéma (0 sur
 // 661 fiches observées) et ne marquant pas les retraits autrement que par l'absence.
-// 14 jours : chaque section est crawlée au moins une fois par semaine, donc un run
-// raté ne vide pas la Découverte. Contrepartie assumée : si le flux casse plus de
-// deux semaines, le catalogue se vide au lieu d'afficher du périmé.
-export const STALE_AFTER_DAYS = 14
+// 21 jours : chaque section est crawlée au moins une fois par semaine. Avec 14 jours,
+// un seul run hebdomadaire raté (échec réseau, retard GitHub de plusieurs heures) mettait
+// déjà les fiches au bord du masquage, et deux semaines sans flux (workflow désactivé
+// par GitHub après 60 jours sans activité, constaté du 09/10 au 07/11/2026) vidaient la
+// Découverte. 21 jours tolèrent deux runs hebdomadaires manqués d'affilée. Contrepartie
+// assumée : un film sorti des salles reste visible jusqu'à 7 jours de plus (21 au lieu
+// de 14) ; si le flux casse plus de trois semaines, le catalogue se vide au lieu
+// d'afficher du périmé.
+export const STALE_AFTER_DAYS = 21
 
 export function getStaleCutoff(date = new Date()) {
   return new Date(getParisTodayStart(date).getTime() - STALE_AFTER_DAYS * 24 * 60 * 60 * 1000)
