@@ -27,3 +27,8 @@ app-backup.tgz
 offi-app_dump.txt.gz
 *.tgz
 *.txt.gz
+
+# Sources directes : sorties volumineuses régénérables (le catalogue CSV, lui, est versionné)
+data/venues/*.jsonl
+data/venues/*_report.csv
+data/venues/works_by_venue.json

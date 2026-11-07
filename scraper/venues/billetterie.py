@@ -139,6 +139,7 @@ def mapado_occurrence(html: str, page_url: str) -> list[dict]:
     for d in dates or [{"startDate": ticketing.get("firstFutureEventDateStartDate")}]:
         start = d.get("startDate")
         prices = prices_by_start.get(start, [])
+        prices = [p for p in prices if p > 0] or prices  # tarif à 0 = carte d'abonné : ignoré s'il existe des tarifs payants
         stock = stock_by_start.get(start)
         occurrences.append({
             "title": title, "url": page_url, "date_start": schemaorg.iso_day(start), "date_end": schemaorg.iso_day(d.get("endDate")),

@@ -280,7 +280,10 @@ def group_occurrences(occurrences: list[dict]) -> list[dict]:
             group["performances"] = []
             group["_prices"] = []
             groups[key] = group
-        group["performances"].append({k: v for k, v in perf.items() if v is not None})
+        if occ.get("performances"):  # séances déjà détaillées par la source (fiche HTML)
+            group["performances"] += occ["performances"]
+        else:
+            group["performances"].append({k: v for k, v in perf.items() if v is not None})
         for p in (occ["price_min_eur"], occ["price_max_eur"]):
             if p is not None:
                 group["_prices"].append(p)
