@@ -30,26 +30,19 @@ export async function listLibraryWorks(userId: string): Promise<{ likes: LikedWo
   return { likes, seen }
 }
 
-// Pour un ensemble d'œuvres, quels amis (amitié ACCEPTED) les ont aussi likées.
-export async function friendsWhoLiked(
-  userId: string,
-  workIds: string[],
-): Promise<Record<string, FriendLikerDto[]>> {
-  const result: Record<string, FriendLikerDto[]> = {}
-  if (workIds.length === 0) return result
-
-  const friendships = await prisma.friendship.findMany({
-    where: { userId, status: 'ACCEPTED' },
-    select: { friendId: true },
-  })
-  const friendIds = friendships.map((f) => f.friendId)
-  if (friendIds.length === 0) return result
-
+// Pour chaque œuvre de la bibliothèque (LIKE ou SEEN), les amis (amitié ACCEPTED) qui l'ont likée.
+// Une seule requête, sans dépendre de listLibraryWorks : la page lance les deux en parallèle.
+export async function friendsWhoLiked(userId: string): Promise<Record<string, FriendLikerDto[]>> {
   const reactions = await prisma.reaction.findMany({
-    where: { userId: { in: friendIds }, status: 'LIKE', workId: { in: workIds } },
+    where: {
+      status: 'LIKE',
+      user: { friendshipsReceived: { some: { userId, status: 'ACCEPTED' } } },
+      work: { reactions: { some: { userId, status: { in: ['LIKE', 'SEEN'] } } } },
+    },
     select: { workId: true, user: { select: { id: true, email: true } } },
   })
 
+  const result: Record<string, FriendLikerDto[]> = {}
   for (const r of reactions) {
     ;(result[r.workId] ??= []).push({ id: r.user.id, name: friendDisplayName(r.user.email) })
   }

@@ -1,11 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 
-// Câblage seulement (prisma simulé) : la forme renvoyée au client ne contient pas d'email.
+// Câblage seulement (prisma simulé) : une seule requête, et aucune adresse email côté client.
+// La justesse du filtre est vérifiée sur la base locale (voir le rapport T5).
 const { prisma } = vi.hoisted(() => ({
-  prisma: {
-    friendship: { findMany: vi.fn() },
-    reaction: { findMany: vi.fn() },
-  },
+  prisma: { reaction: { findMany: vi.fn() } },
 }))
 
 vi.mock('@/server/db', () => ({ prisma }))
@@ -13,19 +11,18 @@ vi.mock('@/server/db', () => ({ prisma }))
 import { friendsWhoLiked } from '@/features/reactions/server/queries'
 
 describe('friendsWhoLiked', () => {
-  it('renvoie le prénom lisible des amis, jamais leur email', async () => {
-    prisma.friendship.findMany.mockResolvedValue([{ friendId: 'f1' }])
+  it('une seule requête : likes des amis acceptés sur les œuvres de ma bibliothèque', async () => {
     prisma.reaction.findMany.mockResolvedValue([{ workId: 'w1', user: { id: 'f1', email: 'lea.martin@example.com' } }])
 
-    const result = await friendsWhoLiked('me', ['w1'])
+    const result = await friendsWhoLiked('me')
 
+    expect(prisma.reaction.findMany).toHaveBeenCalledTimes(1)
+    expect(prisma.reaction.findMany.mock.calls[0][0].where).toEqual({
+      status: 'LIKE',
+      user: { friendshipsReceived: { some: { userId: 'me', status: 'ACCEPTED' } } },
+      work: { reactions: { some: { userId: 'me', status: { in: ['LIKE', 'SEEN'] } } } },
+    })
     expect(result).toEqual({ w1: [{ id: 'f1', name: 'Lea' }] })
     expect(JSON.stringify(result)).not.toContain('@')
-  })
-
-  it('aucune requête sans œuvre', async () => {
-    prisma.reaction.findMany.mockClear()
-    await expect(friendsWhoLiked('me', [])).resolves.toEqual({})
-    expect(prisma.reaction.findMany).not.toHaveBeenCalled()
   })
 })

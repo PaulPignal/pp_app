@@ -29,12 +29,12 @@ export default async function LikesPage({ searchParams }: LikesPageProps = {}) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const view = resolveLikesView(resolvedSearchParams?.view)
 
-  const { likes, seen } = await listLibraryWorks(sessionUser.id)
+  const [{ likes, seen }, friendsByWork] = await Promise.all([
+    listLibraryWorks(sessionUser.id),
+    friendsWhoLiked(sessionUser.id),
+  ])
   const current = likes.filter((like) => isWorkCurrentlyShowing(like.work?.endDate))
   const archived = likes.filter((like) => !isWorkCurrentlyShowing(like.work?.endDate))
-
-  const allWorkIds = [...likes, ...seen].map((item) => item.workId)
-  const friendsByWork = await friendsWhoLiked(sessionUser.id, allWorkIds)
 
   return (
     <div className="flex flex-col gap-4">
