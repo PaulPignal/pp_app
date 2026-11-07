@@ -1,7 +1,8 @@
 name: Venues refresh
 
-# Sources directes des lieux (vague 1 : théâtres vendus via Mapado, Billetreduc, Tick&Live,
-# Shotgun, soit 89 lieux au catalogue du 07/11/2026). Hebdomadaire.
+# Sources directes des lieux de théâtre : billetteries et sites propres (191 lieux dont le site
+# répond au catalogue du 07/11/2026 ; jusqu'au 07/11, vague 1 seulement : Mapado, Billetreduc,
+# Tick&Live, Shotgun). Hebdomadaire.
 #
 # Créneau : vendredi 03:37 UTC. Les créneaux d'offi-refresh sont lundi 02:43, mardi 02:43,
 # mercredi 02:47, jeudi 04:17 et dimanche 05:23 : le vendredi est libre, aucun chevauchement
@@ -29,10 +30,14 @@ on:
     - cron: '37 3 * * 5'      # vendredi
   workflow_dispatch:
     inputs:
-      platforms:
-        description: 'Billetteries (vague 1 par défaut)'
+      sections:
+        description: 'Sections offi des lieux à lire (theatre par défaut)'
         required: false
-        default: 'mapado,billetreduc,tick_and_live,shotgun'
+        default: 'theatre'
+      platforms:
+        description: 'Billetteries à garder, vide = tous les lieux (sites propres inclus)'
+        required: false
+        default: ''
 
 concurrency:
   group: venues-refresh
@@ -49,7 +54,10 @@ jobs:
       VENUES_CACHE_DIR: ${{ github.workspace }}/.venues-cache
       # Un run CI part d'un cache vide ; la durée de vie du cache ne joue pas.
       VENUES_CACHE_TTL_HOURS: '24'
-      PLATFORMS: ${{ github.event.inputs.platforms || 'mapado,billetreduc,tick_and_live,shotgun' }}
+      # Depuis le 07/11/2026 : tous les lieux de théâtre, billetteries et sites propres (HTML sur mesure,
+      # WordPress, adaptateurs dédiés). Mesure locale : 191 lieux, 13 min à froid.
+      SECTIONS: ${{ github.event.inputs.sections || 'theatre' }}
+      PLATFORMS: ${{ github.event.inputs.platforms || '' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -58,9 +66,12 @@ jobs:
           python-version: '3.12'
       - run: pip install -r scraper/requirements.txt
 
-      - name: Scrape direct (vague 1)
-        # PLATFORMS passe par l'environnement : l'input est une chaîne libre (pas d'injection shell).
-        run: python3 -m scraper.venues --all --platforms "$PLATFORMS" --out data/venues/events.jsonl
+      - name: Scrape direct (lieux de théâtre)
+        # SECTIONS et PLATFORMS passent par l'environnement : inputs libres, pas d'injection shell.
+        run: |
+          args=(--all --sections "$SECTIONS" --out data/venues/events.jsonl)
+          if [ -n "$PLATFORMS" ]; then args+=(--platforms "$PLATFORMS"); fi
+          python3 -m scraper.venues "${args[@]}"
 
       # Comparaison avec le dernier run offi de théâtre (cache écrit par offi-refresh, restauré en
       # lecture seule). Absent : le rapport est simplement sauté.

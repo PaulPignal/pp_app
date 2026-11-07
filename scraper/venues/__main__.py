@@ -12,7 +12,9 @@ import argparse
 import csv
 import json
 import os
+import re
 import sys
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
@@ -43,14 +45,28 @@ def platforms_of(row: dict) -> set[str]:
     return names
 
 
+# Titres de menu ou de rubrique lus par erreur comme des fiches (0,3 % des enregistrements le 07/11/2026).
+# Correspondance exacte du titre entier, sans accents ni casse : un vrai spectacle « Nos volontés » passe.
+_NAV_TITLE = re.compile(
+    r"(agenda|spectacles?|actualites?|calendrier|programmation|accueil|billetterie( solidaire)?"
+    r"|saison( \d{2,4}(\W+\d{2,4})?)?|reserver( - .*)?|abonnements?( .*)?|profitez d'offres promotionnelles)"
+)
+
+
+def is_navigation_title(title: str) -> bool:
+    plain = unicodedata.normalize("NFKD", title or "").encode("ascii", "ignore").decode().lower().strip()
+    return bool(_NAV_TITLE.fullmatch(re.sub(r"\s+", " ", plain)))
+
+
 def select_venues(rows: list[dict], slug: Optional[str], run_all: bool, min_feasibility: int, limit: Optional[int],
-                  platforms: Optional[set[str]] = None) -> list[dict]:
+                  platforms: Optional[set[str]] = None, sections: Optional[set[str]] = None) -> list[dict]:
     if slug:
         return [r for r in rows if r["slug"] == slug]
     if not run_all:
         return []
     chosen = [r for r in rows if r.get("website") and r.get("status") != "bloqué" and int(r.get("feasibility") or 3) <= min_feasibility
-              and (not platforms or platforms_of(r) & platforms)]
+              and (not platforms or platforms_of(r) & platforms)
+              and (not sections or set(r["sections"]) & sections)]
     return chosen[:limit] if limit else chosen
 
 
@@ -67,10 +83,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--workers", type=int, default=6, help="lieux traités en parallèle (domaines distincts)")
     ap.add_argument("--limit", type=int, help="avec --all : nombre max de lieux")
     ap.add_argument("--platforms", help="avec --all : ne garde que les lieux vendus via ces billetteries (ex. mapado,billetreduc,tick_and_live,shotgun : vague 1)")
+    ap.add_argument("--sections", help="avec --all : ne garde que les lieux de ces sections offi (ex. theatre)")
     args = ap.parse_args(argv)
 
     venues = select_venues(load_catalogue(args.catalogue), args.venue, args.all, args.max_feasibility, args.limit,
-                       set(args.platforms.split(",")) if args.platforms else None)
+                       set(args.platforms.split(",")) if args.platforms else None,
+                       set(args.sections.split(",")) if args.sections else None)
     if not venues:
         print("Aucun lieu sélectionné", file=sys.stderr)
         return 1
@@ -92,6 +110,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         report = csv.writer(rep)
         report.writerow(["slug", "adapter", "status", "events"])
         for venue, records, info in pool.map(run, venues):
+            records = [r for r in records if not is_navigation_title(r.get("title", ""))]
             for record in records:
                 out.write(dumps(record) + "\n")
             out.flush()
