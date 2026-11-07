@@ -20,11 +20,11 @@ from bs4 import BeautifulSoup
 
 try:
     from scraper import discover, parsers
-    from scraper.venues import schemaorg, triage
+    from scraper.venues import html_fiche, schemaorg, triage
     from scraper.venues.http import Page, PoliteFetcher
 except ModuleNotFoundError:  # pragma: no cover
     import discover, parsers  # type: ignore[no-redef]
-    from venues import schemaorg, triage  # type: ignore[no-redef]
+    from venues import html_fiche, schemaorg, triage  # type: ignore[no-redef]
     from venues.http import Page, PoliteFetcher  # type: ignore[no-redef]
 
 MAX_EVENTS = 40
@@ -55,6 +55,9 @@ PLATFORMS: dict[str, Platform] = {
     "eventbrite": Platform("eventbrite", "eventbrite.", _p(r"^/e/[^/?]+"), None),
     "fnac_spectacles": Platform("fnac_spectacles", "fnacspectacles.com", _p(r"^/event/"), None, blocked=True),
     "ticketmaster": Platform("ticketmaster", "ticketmaster.", _p(r"^/fr/manifestation/"), None, blocked=True),
+    # Vosbillets : un sous-domaine par lieu (leguichetmontparnasse.vosbillets.fr), fiches HTML sans schema.org
+    # (titre en h1, « du 7 novembre 2026 au 19 décembre 2026 » dans le texte) lues par html_fiche.
+    "vosbillets": Platform("vosbillets", "vosbillets.fr", _p(r"^/billetterie/representation/\d+"), _p(r"^/billetterie/?$")),
 }
 
 
@@ -94,7 +97,7 @@ def classify_links(soup, base_url: str, platform: Platform) -> tuple[set[str], s
     entries: set[str] = set()
     for tag, attr in (("a", "href"), ("iframe", "src")):
         for el in soup.find_all(tag, attrs={attr: True}):
-            url = urljoin(base_url, el[attr])
+            url = urljoin(base_url, triage.clean_href(el[attr]))
             parsed = urlparse(url)
             if platform.host not in parsed.netloc or parsed.scheme not in ("http", "https"):
                 continue
@@ -153,7 +156,18 @@ def mapado_occurrence(html: str, page_url: str) -> list[dict]:
     return occurrences
 
 
-PARSERS: dict[str, Callable[[str, str], list[dict]]] = {"mapado": mapado_occurrence}
+def vosbillets_occurrence(html: str, page_url: str) -> list[dict]:
+    """Fiche Vosbillets lue en HTML ; « Plus de places » vaut complet."""
+    occ = html_fiche.parse_fiche(html, page_url)
+    if not occ:
+        return []
+    if re.search(r"plus de places", html, re.I):
+        occ["availability"] = "SoldOut"
+    occ["booking_url"] = page_url
+    return [occ]
+
+
+PARSERS: dict[str, Callable[[str, str], list[dict]]] = {"mapado": mapado_occurrence, "vosbillets": vosbillets_occurrence}
 
 
 def occurrences_for(platform: Platform, page: Page) -> list[dict]:

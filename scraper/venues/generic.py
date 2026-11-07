@@ -65,7 +65,7 @@ def pagination_links(soup, page_url: str, limit: int = MAX_LISTING_PAGES) -> lis
     listing_path = urlparse(page_url).path
     found: dict[int, str] = {}
     for a in soup.find_all("a", href=True):
-        url = urljoin(page_url, a["href"]).split("#", 1)[0]
+        url = urljoin(page_url, triage.clean_href(a["href"])).split("#", 1)[0]
         if urlparse(url).netloc != host:
             continue
         number = _page_number(url, listing_path)
@@ -81,7 +81,7 @@ def ranked_links(soup, base_url: str, exclude: set[str]) -> list[tuple[int, str]
     families: dict[str, int] = {}
     seen: set[str] = set()
     for a in soup.find_all("a", href=True):
-        url = urljoin(base_url, a["href"])
+        url = urljoin(base_url, triage.clean_href(a["href"]))
         parsed = urlparse(url)
         if parsed.netloc != host or parsed.scheme not in ("http", "https"):
             continue

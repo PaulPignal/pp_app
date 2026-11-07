@@ -52,6 +52,7 @@ TICKETING_HOSTS = {
     "infoconcert": ["infoconcert.com"],
     "tick_and_live": ["tickandlive.com"],
     "pass_culture": ["passculture.app"],
+    "vosbillets": ["vosbillets.fr"],
 }
 CMS_MARKERS = [
     ("wordpress", re.compile(r"wp-content/|wp-includes/|wp-json", re.I)),
@@ -121,12 +122,18 @@ def find_feeds(soup, base_url: str) -> list[str]:
     return sorted(set(feeds))[:5]
 
 
+def clean_href(href: str) -> str:
+    """Attribut href débarrassé des guillemets échappés que certains sites laissent dans leur HTML
+    (Laurette Théâtre : href="\\"/programme\\"", lu comme le chemin « /\\"/programme\\" »)."""
+    return href.strip().replace('\\"', "").replace("\\'", "").strip("\"'")
+
+
 def pick_agenda_links(soup, base_url: str, limit: int = 2) -> list[str]:
     """Liens internes les plus probables vers l'agenda (texte ou chemin évocateur)."""
     host = urlparse(base_url).netloc
     scored: dict[str, int] = {}
     for a in soup.find_all("a", href=True):
-        url = urljoin(base_url, a["href"]).split("#", 1)[0]
+        url = urljoin(base_url, clean_href(a["href"])).split("#", 1)[0]
         parsed = urlparse(url)
         if parsed.netloc != host or parsed.path in ("", "/") or parsed.scheme not in ("http", "https"):
             continue

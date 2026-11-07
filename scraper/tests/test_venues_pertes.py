@@ -8,7 +8,7 @@ from datetime import date
 
 from bs4 import BeautifulSoup
 
-from scraper.venues import coverage, generic, specific, wordpress
+from scraper.venues import billetterie, coverage, generic, specific, triage, wordpress
 
 TODAY = date(2026, 11, 7)
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "venues")
@@ -163,6 +163,30 @@ class EpeeDeBoisTests(unittest.TestCase):
         self.assertNotIn("UBU ROI", {o["title"] for o in occ})  # liste de recherche toutes saisons, hors agenda
         self.assertTrue(all(o["date_end"] >= "2026-10-01" for o in occ))  # septembre écarté
         self.assertTrue(any(o["date_end"] >= "2026-11-07" for o in occ))
+
+
+class HrefEchappesTests(unittest.TestCase):
+    def test_guillemets_echappes_retires(self):
+        self.assertEqual(triage.clean_href('\\"/programme\\"'), "/programme")
+        self.assertEqual(triage.clean_href(" /agenda/ "), "/agenda/")
+        html = '<a href=\\"/programme\\">Programme</a><a href=\\"/sur-les-traces-darsene-lupin\\">Lupin</a>'  # HTML réel : href=\\"/programme\\"
+        soup = BeautifulSoup(html, "html.parser")
+        self.assertEqual(triage.pick_agenda_links(soup, "https://www.laurette-theatre.fr/"), ["https://www.laurette-theatre.fr/programme"])
+        self.assertIn("https://www.laurette-theatre.fr/sur-les-traces-darsene-lupin", generic.detail_links(soup, "https://www.laurette-theatre.fr/programme", set(), 5))
+
+
+class VosbilletsTests(unittest.TestCase):
+    def test_liens_et_fiche(self):
+        platform = billetterie.PLATFORMS["vosbillets"]
+        soup = BeautifulSoup(fixture("vosbillets_billetterie"), "html.parser")
+        events, _ = billetterie.classify_links(soup, "https://leguichetmontparnasse.vosbillets.fr/billetterie", platform)
+        self.assertGreaterEqual(len(events), 10)
+        self.assertTrue(all("/billetterie/representation/" in e for e in events))
+        occ = billetterie.vosbillets_occurrence(fixture("vosbillets_representation"), "https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/36335/frederique-le-banc-public")
+        self.assertEqual(len(occ), 1)
+        self.assertEqual(occ[0]["title"], "Frédérique, Le Banc Public")
+        self.assertEqual(occ[0]["date_end"], "2026-12-19")
+        self.assertEqual(triage.detect_ticketing(["leguichetmontparnasse.vosbillets.fr"]), {"vosbillets": 1})
 
 
 if __name__ == "__main__":

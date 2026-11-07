@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="V2bfSlELayuC2fnws0rqwpwf9OxA0rTHWTgoBUev" name="csrf-token"/>
+<meta content="5e40bd59-e4f0-4c50-8f00-e8f4599a1b51" name="venue-id"/>
+<meta content="20" name="basket-timer"/>
+
+<link href="/favicon.ico" rel="icon" type="image/x-icon"/>
+<title>Frédérique, Le Banc Public | Billetterie</title>
+<meta content="https://vosbillets-images.s3.eu-west-par.io.cloud.ovh.net/public/site/2180/spectacle/36335/desc/20260925174953883.html" name="description"/>
+<link href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/36335/frederique-le-banc-public" rel="canonical"/>
+<meta content="website" property="og:type"/>
+<meta content="Frédérique, Le Banc Public | Billetterie" property="og:title"/>
+<meta content="https://vosbillets-images.s3.eu-west-par.io.cloud.ovh.net/public/site/2180/spectacle/36335/desc/20260925174953883.html" property="og:description"/>
+<meta content="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/36335/frederique-le-banc-public" property="og:url"/>
+<meta content="https://vosbillets-images.s3.eu-west-par.io.cloud.ovh.net/public/site/2180/spectacle/36335/images/20260925174949262.webp" property="og:image"/>
+
+<!-- Anti-flash thème sombre: applique .dark avant le CSS (par défaut clair) -->
+
+
+<!-- Fonts -->
+<link href="https://fonts.bunny.net" rel="preconnect"/>
+<link href="https://fonts.bunny.net/css?family=figtree:400,500,600&amp;display=swap" rel="stylesheet">
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css" rel="stylesheet"/>
+<!-- Scripts -->
+<link as="style" href="https://leguichetmontparnasse.vosbillets.fr/build/assets/app-D3BFlx6Y.css" rel="preload"><link as="style" href="https://leguichetmontparnasse.vosbillets.fr/build/assets/app-8yPzm9Re.css" rel="preload"><link href="https://leguichetmontparnasse.vosbillets.fr/build/assets/app-BFmKIEjU.js" rel="modulepreload"><link href="https://leguichetmontparnasse.vosbillets.fr/build/assets/app-D3BFlx6Y.css" rel="stylesheet"><link href="https://leguichetmontparnasse.vosbillets.fr/build/assets/app-8yPzm9Re.css" rel="stylesheet"/>
+<link href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" rel="stylesheet"/>
+<link href="https://cdn.datatables.net/responsive/3.0.4/css/responsive.dataTables.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+<link href="https://cdn.datatables.net/rowreorder/1.2.8/css/rowReorder.dataTables.min.css" rel="stylesheet" type="text/css"/>
+<!-- Inclure Tippy.js via CDN copie datatable -->
+<link href="https://cdn.jsdelivr.net/npm/tippy.js@6/dist/tippy.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+</link></link></link></link></link></head>
+
+<body class="font-sans antialiased scrollbar-red">
+<div class="fixed bottom-5 right-5 hidden items-center p-4 rounded-xl shadow-lg text-white transition-opacity duration-500" id="toast" role="alert" style="    z-index: 1000;">
+<span class="mr-2" id="toast-icon">ℹ️</span>
+<span id="toast-text">Message ici</span>
+</div>
+
+<div class="min-h-screen bg-bg-page dark:bg-bg-page-dark dark:transition-all dark:duration-500 transition-all duration-500">
+<nav class="sticky top-0 bg-gradient-to-r from-nav-from to-nav-to dark:bg-gradient-to-r dark:from-nav-from-dark dark:to-nav-to-dark shadow-lg border-b border-red-500/20 z-[999] dark:text-gray-100" x-data="{ open: false }">
+<div class="px-1.5 sm:px-6 lg:px-8">
+<div class="flex justify-between h-16 min-w-0">
+<div class="flex items-center min-w-0 flex-1">
+<div class="flex items-center min-w-0 flex-1 mr-1 lg:mr-5 lg:flex-none lg:shrink-0">
+<div class="mr-1 lg:mr-4 shrink-0 min-w-0 flex items-center w-auto max-w-[62px] sm:w-[150px] sm:max-w-none lg:w-auto lg:min-w-0" data-turbo-permanent="" id="site-logo" title="Accueil">
+<a class="flex items-center h-12 lg:h-14 overflow-visible" href="https://leguichetmontparnasse.vosbillets.fr">
+
+</a>
+</div>
+<a class="ml-0.5 flex-1 min-w-0 text-left text-[11px] font-bold leading-tight text-white whitespace-normal break-words [display:-webkit-box] hover:text-white lg:hidden" href="https://leguichetmontparnasse.vosbillets.fr" style="-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+</a>
+<a class="hidden lg:mr-16 lg:ml-2 lg:max-w-[180px] lg:shrink-0 text-left text-base font-bold leading-tight text-white whitespace-normal break-words lg:[display:-webkit-box] hover:text-white" href="https://leguichetmontparnasse.vosbillets.fr" style="-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+</a>
+</div>
+<div class="hidden lg:flex space-x-1">
+<a class="inline-flex items-center px-1 text-white hover:text-gray-400 duration-150 hover:scale-110 group relative px-4 py-2 rounded-lg transition-all duration-200 text-white/80 dark:text-gray-300 hover:text-white" href="/" title="Accueil">
+    Accueil
+</a>
+<a class="inline-flex items-center px-1 text-white hover:text-gray-400 duration-150 hover:scale-110 group relative px-4 py-2 rounded-lg transition-all duration-200 text-white/80 dark:text-gray-300 hover:text-white" data-turbo="false" href="https://leguichetmontparnasse.vosbillets.fr/billetterie" title="Billetterie">
+    Billetterie
+</a>
+<a class="inline-flex items-center px-1 text-white hover:text-gray-400 duration-150 hover:scale-110 group relative px-4 py-2 rounded-lg transition-all duration-200 text-white/80 dark:text-gray-300 hover:text-white" href="https://leguichetmontparnasse.vosbillets.fr/itr/infos_divers" title="Informations Diverses">
+    Informations Diverses
+</a>
+<a class="group relative inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white/80 dark:text-gray-300 hover:text-white transition-all duration-200 hover:scale-110" data-turbo="false" href="https://www.guichetmontparnasse.com/" rel="noopener noreferrer" target="_blank" title="Retour sur le site">
+<span>Retour sur le site</span>
+ </a>
+</div>
+</div>
+<!-- Menu pour utilisateurs non connectés -->
+<div class="hidden lg:flex lg:items-center lg:space-x-4">
+<!-- Icônes thème dark -->
+<button :aria-pressed="isDark ? 'true' : 'false'" @click="
+        document.documentElement.classList.toggle('dark');
+        isDark = document.documentElement.classList.contains('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    " aria-label="Basculer le thème" class="ml-auto relative inline-flex items-center justify-center h-10 w-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 hover:shadow-lg transition-all duration-300 group overflow-hidden" title="Modification du thème" x-data="{
+        isDark: document.documentElement.classList.contains('dark'),
+        init() {
+            // Synchronise l'état du switcher si le thème change ailleurs (desktop/mobile)
+            const self = this;
+            const observer = new MutationObserver(function() {
+                self.isDark = document.documentElement.classList.contains('dark');
+            });
+            observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        }
+    }" x-init="init()">
+<!-- Effet halo animé -->
+<span class="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/10 via-white/5 to-transparent"></span>
+<!-- Icônes avec transition -->
+<span class="absolute inset-0 flex items-center justify-center transition-transform duration-300 scale-100 rotate-0 dark:scale-0 dark:rotate-90">
+ </span>
+<span class="absolute inset-0 flex items-center justify-center transition-transform duration-300 scale-0 -rotate-90 dark:scale-100 dark:rotate-0">
+ </span>
+</button>
+<div class="relative">
+<button class="relative bg-white/10 backdrop-blur-sm text-white p-2 h-10 w-10 rounded-lg border border-white/20 shadow-lg hover:bg-white/20 hover:scale-105 transition-all duration-200 group flex items-center justify-center" id="cartButton" onclick="toggleCartModal()" title="Panier">
+ <span class="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full min-w-[1.25rem] h-5 shadow-lg" id="cartCount">0</span>
+<!-- Effet de pulse quand le panier n'est pas vide -->
+<div class="absolute inset-0 rounded-lg bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+</div>
+</button>
+</div>
+<a class="flex items-center space-x-2 text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/client/login">
+ <span>Mes achats</span>
+</a>
+</div>
+<!-- Hamburger -->
+<div class="mr-0 flex shrink-0 items-center lg:hidden space-x-1 pl-0" title="Menu">
+<a aria-label="Retour sur le site" class="relative bg-white/10 dark:bg-gray-900/40 backdrop-blur-sm text-white p-1.5 rounded-lg border border-white/20 dark:border-gray-700 hover:bg-white/20 dark:hover:bg-gray-800/60 transition-all duration-200" data-turbo="false" href="https://www.guichetmontparnasse.com/" rel="noopener noreferrer" target="_blank" title="Retour sur le site">
+ </a>
+<!-- Accès rapide Billetterie mobile -->
+<a class="relative bg-white/10 dark:bg-gray-900/40 backdrop-blur-sm text-white p-1.5 rounded-lg border border-white/20 dark:border-gray-700 hover:bg-white/20 dark:hover:bg-gray-800/60 transition-all duration-200" data-turbo="false" href="https://leguichetmontparnasse.vosbillets.fr/billetterie" title="Billetterie">
+ </a>
+<!-- Panier mobile -->
+<button class="relative bg-white/10 dark:bg-gray-900/40 backdrop-blur-sm text-white p-1.5 rounded-lg border border-white/20 dark:border-gray-700 hover:bg-white/20 dark:hover:bg-gray-800/60 transition-all duration-200" id="cartButtonMobile" onclick="toggleCartModal()" title="Panier">
+ <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-500 dark:bg-red-700 rounded-full min-w-[1rem] h-4" id="cartCountMobile">0</span>
+</button>
+<a class="relative bg-white/10 dark:bg-gray-900/40 backdrop-blur-sm text-white p-1.5 rounded-lg border border-white/20 dark:border-gray-700 hover:bg-white/20 dark:hover:bg-gray-800/60 transition-all duration-200" href="https://leguichetmontparnasse.vosbillets.fr/historique-paiements">
+
+</a>
+<!-- Bouton Thème mobile (rapide) -->
+<span class="flex items-center">
+</span>
+<!-- Menu hamburger -->
+<button @click="open = ! open" class="inline-flex items-center justify-center p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-all duration-200">
+
+</button>
+</div>
+</div>
+</div>
+<!-- Responsive Navigation Menu -->
+<div :class="{ 'block': open, 'hidden': !open }" class="hidden lg:hidden">
+<div class="bg-white/95 dark:bg-gray-700 backdrop-blur-sm border-t border-red-300/20 shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto">
+<div class="px-4 py-4 space-y-1">
+<a class="flex items-center px-4 py-3 rounded-lg border-l-4 border-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-red-600 dark:hover:text-gray-200 transition-all duration-200" data-turbo="false" href="https://www.guichetmontparnasse.com/" rel="noopener noreferrer" target="_blank">
+ <span>Retour sur le site</span>
+</a>
+<a class="block w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:text-gray-800 dark:focus:text-gray-200 focus:bg-gray-50 dark:focus:bg-gray-700 focus:border-gray-300 dark:focus:border-gray-600 transition duration-150 ease-in-out flex items-center px-4 py-3 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-50 hover:text-red-600" href="/">
+                            Accueil
+</a>
+<a class="block w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:text-gray-800 dark:focus:text-gray-200 focus:bg-gray-50 dark:focus:bg-gray-700 focus:border-gray-300 dark:focus:border-gray-600 transition duration-150 ease-in-out flex items-center px-4 py-3 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-50 hover:text-red-600" data-turbo="false" href="https://leguichetmontparnasse.vosbillets.fr/billetterie">
+
+                            Billetterie
+</a>
+<button :aria-pressed="isDark ? 'true' : 'false'" @click="toggleTheme()" aria-label="Basculer le thème" class="w-full flex items-center px-4 py-3 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-50 hover:text-red-600 dark:text-gray-200 dark:hover:bg-gray-800" type="button" x-data="{
+                            isDark: document.documentElement.classList.contains('dark'),
+                        
+                            toggleTheme() {
+                                document.documentElement.classList.toggle('dark');
+                                this.isDark = document.documentElement.classList.contains('dark');
+                                localStorage.setItem('theme', this.isDark ? 'dark' : 'light');
+                            },
+                        
+                            init() {
+                                const observer = new MutationObserver(() =&gt; {
+                                    this.isDark = document.documentElement.classList.contains('dark');
+                                });
+                        
+                                observer.observe(document.documentElement, {
+                                    attributes: true,
+                                    attributeFilter: ['class']
+                                });
+                            }
+                        }" x-init="init()">
+<span class="relative mr-3 inline-flex h-5 w-5 items-center justify-center">
+
+ </span>
+<span class="flex-1 text-left">
+                                Thème
+                            </span>
+</button>
+<a class="block w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:text-gray-800 dark:focus:text-gray-200 focus:bg-gray-50 dark:focus:bg-gray-700 focus:border-gray-300 dark:focus:border-gray-600 transition duration-150 ease-in-out flex items-center px-4 py-3 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-50 hover:text-red-600" href="https://leguichetmontparnasse.vosbillets.fr/client/login">
+                            Mes achats
+</a>
+</div>
+</div>
+</div>
+</nav>
+<!-- Modal panier - en dehors de la navigation pour éviter les conflits de z-index -->
+<div class="fixed inset-0 bg-black/20 overflow-y-auto h-full w-full opacity-0 transition-all duration-300 hidden z-[100] backdrop-blur-sm" id="cartModal" onclick="toggleCartModal()">
+<div class="relative min-h-screen flex items-center justify-center p-4">
+<div class="nav-cart-panel relative w-full max-w-md bg-white dark:bg-slate-900 dark:border-slate-700 rounded-2xl shadow-2xl transform scale-95 transition-all duration-300 overflow-hidden" onclick="event.stopPropagation()">
+<!-- Header du panier -->
+<div class="nav-cart-header bg-gradient-to-r from-primary to-secondary dark:from-primary-dark dark:to-secondary-dark p-6">
+<div class="flex justify-between items-center">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+ </div>
+<h2 class="text-xl font-bold text-white">Panier</h2>
+<span class="cart-timer-mini text-sm text-white border border-white rounded-sm"></span>
+</div>
+<div class="flex items-center space-x-2">
+<button class="flex items-center space-x-1 px-3 py-1.5 bg-white/20 rounded-lg text-white text-sm font-medium hover:bg-white/30 transition-colors duration-200" id="cartClearNavBtn" onclick="clearCart()" title="Vider le panier">
+
+<span class="hidden sm:inline">Vider</span>
+</button>
+<button class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors" onclick="toggleCartModal()">
+
+</button>
+</div>
+</div>
+</div>
+<!-- Contenu du panier -->
+<div class="nav-cart-items bg-white dark:bg-slate-900">
+<ul class="space-y-3 p-6 text-gray-900 dark:text-gray-100" id="cartItemsNav">
+<!-- Liste des articles -->
+</ul>
+<div class="hidden" id="emptyCartNavMessage">
+<div class="flex flex-col items-center justify-center py-12 px-6 text-center">
+<div class="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+ </div>
+<h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Panier vide</h3>
+<p class="text-gray-500 dark:text-slate-400 text-sm">
+                            Votre panier est vide</p>
+</div>
+</div>
+</div>
+<!-- Footer du panier -->
+<div class="nav-cart-footer border-t border-primary/15 dark:border-primary-dark/30 bg-gray-50 dark:bg-gray-800 p-6">
+<!-- Total -->
+<div class="flex justify-between items-center mb-4">
+<span class="text-lg font-semibold text-gray-900 dark:text-gray-100">Total</span>
+<div class="text-right">
+<span class="text-2xl font-bold text-gray-900 dark:text-gray-100" id="cartTotalNavIndex">0
+                            €</span>
+</div>
+</div>
+<!-- Bouton voir le panier -->
+<button class="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary-dark hover:to-secondary-dark text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled="" id="viewCartNavBtn" onclick="window.location.href='https://leguichetmontparnasse.vosbillets.fr/billetterie/finaliser-commande'" title="Procéder au paiement">
+ <span>Procéder au paiement</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+
+
+
+
+
+<!-- Modal Panier Web (cartWeb) -->
+<div class="fixed inset-0 bg-black/70 dark:bg-black/55 overflow-y-auto h-full w-full opacity-0 transition-all duration-300 hidden z-[100] backdrop-blur-sm" id="cartModalWebcart" onclick="toggleCartModalWebcart()">
+<div class="relative min-h-screen flex items-center justify-center p-4">
+<div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl transform scale-95 transition-all duration-300 overflow-hidden" onclick="event.stopPropagation()">
+<div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+<div class="flex justify-between items-center">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+ </div>
+<h2 class="text-xl font-bold text-white">Panier Web</h2>
+</div>
+<div class="flex items-center space-x-2">
+<button class="flex items-center space-x-1 px-3 py-1.5 bg-white/20 rounded-lg text-white text-sm font-medium hover:bg-white/30 transition-colors duration-200" onclick="clearCartWebcart()" title="Vider le panier Web">
+
+<span class="hidden sm:inline">Vider</span>
+</button>
+<button class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors" onclick="toggleCartModalWebcart()">
+
+</button>
+</div>
+</div>
+</div>
+<div class="max-h-96 overflow-y-auto">
+<ul class="space-y-3 p-6" id="cartItemsWebcart">
+<!-- Liste des articles du panier Web -->
+</ul>
+<div class="hidden" id="emptyCartWebcartMessage">
+<div class="flex flex-col items-center justify-center py-12 px-6 text-center">
+<div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+ </div>
+<h3 class="text-lg font-medium text-gray-900 mb-2">Panier Web vide</h3>
+<p class="text-gray-500 text-sm">Votre panier web est vide</p>
+</div>
+</div>
+</div>
+<div class="border-t border-gray-200 bg-gray-50 p-6">
+<div class="w-full text-center mb-3">
+<div class="whitespace-nowrap inline-flex items-center rounded-full bg-green-100 text-green-700 dark:bg-orange-900/30 dark:text-orange-300 px-3 py-1 text-xs font-medium" id="timerBasketWeb">
+
+<span>Expiration du panier : <span class="font-semibold" id="timeToDecrement">99:99</span></span>
+</div>
+</div>
+<div class="flex justify-between items-center mb-4">
+<span class="text-lg font-semibold text-gray-900">Total</span>
+<div class="text-right">
+<span class="text-2xl font-bold text-gray-900" id="cartTotalWebcart">0 €</span>
+</div>
+</div>
+<button class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled="" id="viewCartWebcartBtn" onclick="window.location.href='https://leguichetmontparnasse.vosbillets.fr/panier'" title="Procéder au paiement">
+ <span>Procéder au paiement</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Page Heading -->
+<!-- Page Content -->
+<main>
+<button class="w-full hidden bg-gradient-to-r from-tickBossTheme to-red-600 text-white font-medium py-2.5 px-4 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 transform hover:scale-[1.02] shadow-md hover:shadow-lg show-details-btn" onclick="debugLS()">DEBUG LS
+            </button>
+
+<section class="py-2 md:py-10 bg-bg-page dark:bg-bg-page-dark min-h-screen">
+<div class="max-w-[1400px] mx-auto px-4 md:px-6 xl:px-8 xl:pr-[18rem]">
+<div class="space-y-1 lg:space-y-0 max-h-none overflow-visible">
+<div class="fixed inset-0 z-[220] hidden bg-white/70 dark:bg-gray-900/75 backdrop-blur-[1px]" id="addToCartLoader">
+<div class="h-full w-full flex items-center justify-center">
+<div class="flex flex-col items-center space-y-3">
+
+<div class="flex items-center text-gray-600 dark:text-gray-200 text-lg font-medium">
+<span>Ajout en cours de vérification</span>
+<span aria-hidden="true" class="add-loader-dots ml-2"><span>·</span><span>·</span><span>·</span></span>
+</div>
+</div>
+</div>
+</div>
+
+<div class="multisales-preview-layout">
+<div class="multisales-preview-details min-w-0 space-y-4">
+<div class="" style="margin-top: 0px">
+<div class="relative overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-600 bg-white dark:bg-slate-800 mb-4 lg:mb-6">
+<div class="flex items-start min-h-44 sm:min-h-52">
+<!-- TEXTE -->
+<div class="relative order-2 w-7/12 flex flex-col px-3 py-3 sm:px-5 sm:py-4">
+<!-- BOUTON RETOUR -->
+<a aria-label="Retour à la billetterie" class="absolute top-2 left-2 w-8 h-8 rounded-full inline-flex items-center justify-center bg-primary text-white shadow-md hover:bg-secondary transition-all duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie">
+
+</a>
+<!-- CONTENU -->
+<div class="mt-8 pr-2 flex-1 flex flex-col justify-center">
+<h2 class="text-lg sm:text-xl lg:text-2xl font-extrabold leading-tight text-slate-900 dark:text-white break-words" data-est-sans-date="false" id="modalTitle-36335">
+                                    Frédérique, Le Banc Public
+                                </h2>
+<div class="mt-2 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-300 leading-tight break-words">
+                                            7 novembre 2026 à 20h30 au 19 décembre 2026 à 20h30 <span class="font-normal">(13 dates)</span>
+</div>
+<div class="border-t mt-2 leading-tight overflow-hidden">
+<!-- NOM DE LA SALLE -->
+<div class="font-bold mt-2 text-sm sm:text-base text-slate-800 dark:text-slate-100 truncate">
+                                                GUICHET MONTPARNASSE
+                                            </div>
+<!-- DESCRIPTION -->
+</div>
+</div>
+</div>
+<!-- IMAGE -->
+<div class="order-1 w-5/12 shrink-0 self-start aspect-[2/3] bg-black overflow-hidden flex items-center justify-center">
+
+</div>
+</div>
+<div class="hidden w-full border-t border-slate-100 bg-white/95 p-4 dark:border-slate-600 dark:bg-slate-900 sm:p-5 lg:block">
+<div class="overflow-hidden text-sm text-gray-700 dark:text-gray-200 line-clamp-3 [&amp;_iframe]:w-full [&amp;_iframe]:aspect-video [&amp;_iframe]:h-auto" id="preview-description-short-36335">
+                            Assis sur Frédérique, on ne fait jamais que passer. Mais parfois, on y laisse un bout de son histoire.<br/>Dans un parc parisien, un banc pas tout à fait comme les autres : Frédérique. Elle observe les passants qui s'y arrêtent, un instant ou un peu plus longtemps. Au fil des rencontres, elle devient tour à tour témoin, complice discret ou simple spectatrice. Musicien de rue, philosophe sans domicile, amoureux, promeneur ou touriste... Chacun apporte son histoire, ordinaire ou inattendue. Scène après scène, une galerie de personnages prend vie, entre humour et poésie. Une pièce tendre et accessible à tous, qui célèbre la richesse des instants quotidiens.
+                        </div>
+<button class="mt-3 text-sm text-gray-400 hover:text-indigo-600 focus:outline-none underline bg-transparent border-none p-0 shadow-none" id="preview-description-toggle-36335" onclick="window.togglePreviewDescription('36335')" type="button">
+                            Lire la suite
+                        </button>
+<div class="mt-2 hidden overflow-hidden text-sm text-gray-700 opacity-0 transition-all duration-700 ease-in-out dark:text-gray-200 [&amp;_iframe]:w-full [&amp;_iframe]:aspect-video [&amp;_iframe]:h-auto" id="preview-description-full-36335" style="max-height:0;">
+                            Assis sur Frédérique, on ne fait jamais que passer. Mais parfois, on y laisse un bout de son histoire.<br/>Dans un parc parisien, un banc pas tout à fait comme les autres : Frédérique. Elle observe les passants qui s'y arrêtent, un instant ou un peu plus longtemps. Au fil des rencontres, elle devient tour à tour témoin, complice discret ou simple spectatrice. Musicien de rue, philosophe sans domicile, amoureux, promeneur ou touriste... Chacun apporte son histoire, ordinaire ou inattendue. Scène après scène, une galerie de personnages prend vie, entre humour et poésie. Une pièce tendre et accessible à tous, qui célèbre la richesse des instants quotidiens.
+                        </div>
+</div>
+</div>
+</div>
+</div>
+<div class="multisales-preview-reservation mt-2 sm:p-6 md:p-8 lg:sticky lg:top-4 lg:mt-0 lg:rounded-2xl lg:border lg:border-slate-100 lg:bg-white lg:p-5 lg:shadow-sm dark:lg:border-slate-700 dark:lg:bg-slate-800">
+
+<!-- Gauge dynamique : disponibilité des places -->
+<div class="mb-4 min-h-[140px] w-full max-w-xl mx-auto" id="calendarRoot-36335"></div>
+<!-- OVERLAY -->
+<div class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4" id="indispoModalWrapper">
+<div class="bg-gradient-to-br from-slate-50 to-white dark:from-gray-900 dark:to-gray-900 shadow-2xl dark:shadow-black/40 border border-slate-100/50 dark:border-gray-700 rounded-2xl sm:rounded-3xl p-5 sm:p-8 max-w-[92vw] sm:max-w-md w-full text-center relative overflow-hidden transform transition-all duration-300 ease-out scale-95 translate-y-2 opacity-0" id="indispoModalCard">
+<!-- glow -->
+<div class="absolute -top-4 -right-4 w-20 h-20 bg-gradient-to-r from-primary/20 to-secondary/10 rounded-3xl blur-xl">
+</div>
+<!-- icon -->
+<div class="mx-auto w-16 h-16 sm:w-20 sm:h-20 mb-4 sm:mb-6 bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-900/10 rounded-2xl flex items-center justify-center shadow-lg border border-amber-200 dark:border-amber-800">
+
+</div>
+<!-- titre -->
+<h2 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-slate-800 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent mb-2 sm:mb-3">
+            Plus de places
+        </h2>
+<!-- message -->
+<p class="text-sm sm:text-base text-slate-600 dark:text-gray-300 leading-relaxed px-1 sm:px-4">
+            Il n’y a actuellement plus de places disponibles pour cette date.
+        </p>
+<!-- bouton -->
+<div class="mt-6 sm:mt-8">
+<button class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-2.5 rounded-lg transition text-sm sm:text-base" id="closeIndispoModal">
+                Compris
+            </button>
+</div>
+</div>
+</div>
+
+<!-- Infos salle/capacité pour le JS, non affichées -->
+<span class="hidden" id="roomName-36335">
+                Non renseignée
+            </span>
+<span class="hidden" id="roomCapacity-36335">
+                Non renseignée
+            </span>
+<div class="max-w-2xl mx-auto my-0 sm:my-3 text-primary dark:text-indigo-100 text-center" id="selectedDateControls-36335">
+<div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+<button class="px-4 py-2 w-full sm:w-auto bg-white border border-indigo-200 dark:border-primary-soft rounded-md text-primary dark:text-primary-soft font-semibold shadow-sm" id="selectedDateBtn-36335" type="button">
+                        Aucune date sélectionnée
+                    </button>
+</div>
+<div class="w-full text-sm text-gray-700 dark:text-gray-200" id="selectedDateList-36335">
+</div>
+</div>
+<div class="mb-0 md:mb-6 hidden" id="pricesAndReservationsContainer-36335"></div>
+<div class="mt-4 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white/95 p-4 dark:border-slate-600 dark:bg-slate-900 lg:hidden">
+<div class="text-sm text-gray-700 dark:text-gray-200 [&amp;_iframe]:aspect-video [&amp;_iframe]:h-auto [&amp;_iframe]:w-full">
+                    Assis sur Frédérique, on ne fait jamais que passer. Mais parfois, on y laisse un bout de son histoire.<br/>Dans un parc parisien, un banc pas tout à fait comme les autres : Frédérique. Elle observe les passants qui s'y arrêtent, un instant ou un peu plus longtemps. Au fil des rencontres, elle devient tour à tour témoin, complice discret ou simple spectatrice. Musicien de rue, philosophe sans domicile, amoureux, promeneur ou touriste... Chacun apporte son histoire, ordinaire ou inattendue. Scène après scène, une galerie de personnages prend vie, entre humour et poésie. Une pièce tendre et accessible à tous, qui célèbre la richesse des instants quotidiens.
+                </div>
+</div>
+</div>
+</div>
+</div>
+<div aria-live="assertive" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" id="cart-error-modal" role="alert" style="display:none;">
+<div class="rounded-2xl shadow-2xl max-w-xl w-full ring-1 ring-tickBossTheme/30 bg-white p-0 overflow-hidden animate-fade-in">
+<div class="flex items-center gap-2 px-6 py-4 bg-tickBossTheme">
+<span class="flex items-center justify-center bg-white/20 rounded-full w-8 h-8 mr-1">
+
+</span>
+<span class="text-white text-lg font-extrabold tracking-wide flex-1" id="cart-error-title">Oups — Un problème est survenu</span>
+<button aria-label="Fermer" class="text-white/80 hover:text-red-200 text-2xl font-bold ml-auto focus:outline-none transition" id="cart-error-close" type="button">×</button>
+</div>
+<div class="p-8 bg-gradient-to-br from-white via-gray-50 to-gray-100">
+<p class="text-gray-800 text-lg mb-6 leading-relaxed" id="cart-error-message-text">
+</p>
+<hr aria-hidden="true" class="my-6 border-t border-gray-200" role="separator"/>
+<div class="flex justify-end gap-3" id="cart-error-actions">
+<button class="px-6 py-2 bg-tickBossTheme text-white font-semibold rounded-full shadow-lg hover:bg-tickBossTheme/90 focus:outline-none focus:ring-2 focus:ring-tickBossTheme/40 transition-all duration-200" id="cart-error-close-btn" type="button">Fermer</button>
+</div>
+</div>
+</div>
+</div>
+
+
+
+
+</div>
+<div class="mt-6 xl:mt-0 xl:fixed xl:right-6 2xl:right-10 xl:top-[260px] xl:w-80 z-50" id="cartFixed">
+<div class="flex flex-col mb-10">
+<!-- Bouton flottant pour ouvrir le panier (mobile/tablette) -->
+<button class="flex fixed right-4 lg:right-6 2xl:right-10 top-1/2 -translate-y-1/2 z-50 bg-primary dark:bg-primary-dark text-white rounded-md whitespace-nowrap shadow-lg dark:shadow-gray-400 p-3 transition-all border-4 border-primary dark:border-primary-dark animate-[pulse-border_1.5s_ease-in-out_infinite]" id="openCartBtn" style="display: none;" title="Ouvrir le panier">
+ <span class="ml-2 font-bold">Afficher le panier</span>
+<span class="cart-count ml-2 px-2 py-1 rounded-md border-2 border-white dark:border-secondary-dark bg-secondary dark:bg-secondary-dark text-white text-xs font-bold align-middle">0</span>
+<span class="cart-timer-mini ml-3 px-2 py-1 border-2 border-white text-white text-xs rounded font-bold"></span>
+</button>
+<!-- Container Panier -->
+<div class="relative w-full rounded-none border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg dark:shadow-none shadow-gray-400 mt-4 xl:fixed xl:right-6 2xl:right-10 xl:top-1/2 xl:-translate-y-1/2 xl:w-80 xl:rounded xl:z-50 xl:ml-12 xl:max-h-[80vh] xl:overflow-hidden xl:mt-0 dark:transition-all dark:duration-500 transition-all duration-500 reduced" id="cartContainer">
+<!-- Timer du panier -->
+<div class="cart-fixed-section flex justify-center items-center border border-blue-600 bg-blue-200 dark:bg-blue-900 text-center text-gray-600 dark:text-white rounded-[3px] px-4 py-2" id="cartTimerContainer">
+<div class="w-5 h-5 mr-2 my-1">
+ </div>
+<p class="text-lg whitespace-nowrap">Votre panier expire dans <span class="cart-timer-text"></span></p>
+</div>
+<button aria-label="Réduire le panier" class="cart-fixed-section w-full inline-flex items-center py-1 border-2 border-panier-volant-border-header dark:border-panier-volant-border-header-dark bg-panier-volant-header-bg dark:bg-panier-volant-header-bg-dark text-white dark:text-white hover:bg-panier-volant-header-bg-hover dark:hover:bg-panier-volant-header-bg-hover-dark hover:text-panier-volant-header-text dark:hover:text-panier-volant-header-text-dark font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark" id="reduceCartBtn" title="Réduire le panier">
+
+            Réduire
+        </button>
+<!-- En-tête -->
+<div class="cart-fixed-section text-gray-600 dark:text-white py-2 px-6 flex justify-between items-center w-full">
+<div class="flex items-center gap-2">
+<!-- Bouton Réduire intégré dans l'en-tête -->
+<h2 class="text-xl font-medium flex items-center gap-3 dark:text-white ml-2">
+                    Panier
+                </h2>
+</div>
+<button class="flex items-center gap-2 text-secondary dark:text-secondary-dark text-sm font-semibold hover:text-primary dark:hover:text-primary-dark hover:scale-125 transition duration-200 transform" id="cart-drain-btn" title="Vider le panier ??">
+
+                Vider
+            </button>
+</div>
+<ul class="space-y-4 p-6" id="cartItemsIndex">
+<!-- Liste des articles -->
+</ul>
+<div class="text-center text-gray-400 dark:text-gray-500 py-4 hidden" id="emptyCartMessage">
+            Votre panier est vide
+        </div>
+<div class="cart-checkout-section mt-6 border-t pt-4 px-6 pb-6">
+<p class="text-xl font-medium text-gray-600 dark:text-white flex justify-between">
+                Total : <span id="cartTotalIndex"></span>
+</p>
+<button class="mt-4 w-full bg-panier-volant-button-bg dark:bg-panier-volant-button-bg-dark hover:bg-panier-volant-button-bg-hover dark:hover:bg-panier-volant-button-bg-hover-dark text-white font-bold py-3 rounded-md transition-all transform hover:scale-105 shadow-md" data-ripple-light="true" id="validateOrderBtn" title="Valider la commande">
+                Valider la commande
+            </button>
+</div>
+</div>
+</div>
+
+
+</div>
+</section>
+<div aria-live="assertive" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm" id="tickboss-error-modal" role="alert" style="display:none;">
+<div class="rounded-2xl shadow-2xl max-w-md w-full ring-1 ring-primary-soft dark:ring-primary bg-white dark:bg-gray-900 p-0 overflow-hidden animate-fade-in">
+<div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-primary to-secondary dark:from-primary-dark dark:to-secondary-dark">
+<span class="flex items-center justify-center bg-white rounded-full w-8 h-8 mr-1 ring-2 ring-primary-soft">
+
+</span>
+<span class="text-white text-lg font-extrabold tracking-wide flex-1">Information</span>
+<button aria-label="Fermer" class="text-white hover:text-primary hover:bg-white text-2xl font-bold ml-auto focus:outline-none transition rounded-full w-8 h-8 leading-none flex items-center justify-center" id="tickboss-error-close">×</button>
+</div>
+<div class="p-8 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+<div class="flex items-center gap-3 mb-4">
+
+<span class="text-primary dark:text-primary-soft font-semibold text-base">Problème détecté</span>
+</div>
+<div class="text-black dark:text-gray-100 text-lg mb-8 leading-relaxed" id="tickboss-error-message">
+                Une erreur technique est survenue. Veuillez réessayer plus tard.<br/>
+</div>
+<div class="flex justify-end">
+<button class="px-6 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-900 transition-all duration-200" id="tickboss-error-close-btn">
+                    Fermer
+                </button>
+</div>
+</div>
+</div>
+</div>
+
+<div aria-live="assertive" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" id="cart-error-modal" role="alert" style="display:none;">
+<div class="rounded-2xl shadow-2xl max-w-xl w-full ring-1 ring-tickBossTheme/30 bg-white p-0 overflow-hidden animate-fade-in">
+<div class="flex items-center gap-2 px-6 py-4 bg-tickBossTheme">
+<span class="flex items-center justify-center bg-white/20 rounded-full w-8 h-8 mr-1">
+
+</span>
+<span class="text-white text-lg font-extrabold tracking-wide flex-1" id="cart-error-title">Oups — Un problème est survenu</span>
+<button aria-label="Fermer" class="text-white/80 hover:text-red-200 text-2xl font-bold ml-auto focus:outline-none transition" id="cart-error-close" type="button">×</button>
+</div>
+<div class="p-8 bg-gradient-to-br from-white via-gray-50 to-gray-100">
+<p class="text-gray-800 text-lg mb-6 leading-relaxed" id="cart-error-message-text">
+</p>
+<hr aria-hidden="true" class="my-6 border-t border-gray-200" role="separator"/>
+<div class="flex justify-end gap-3" id="cart-error-actions">
+<button class="px-6 py-2 bg-tickBossTheme text-white font-semibold rounded-full shadow-lg hover:bg-tickBossTheme/90 focus:outline-none focus:ring-2 focus:ring-tickBossTheme/40 transition-all duration-200" id="cart-error-close-btn" type="button">Fermer</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="fixed inset-0 z-[1200] hidden flex items-center justify-center bg-gradient-to-br from-black/60 to-black/40 backdrop-blur-sm" id="global-confirm-modal-overlay">
+<div class="relative bg-transparent w-full max-w-2xl mx-4 p-6 overflow-hidden" id="global-confirm-modal">
+<!-- card -->
+<div class="relative bg-white/95 dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black/5">
+<!-- fancy header with decorative gradient and icon -->
+<div class="flex items-center gap-4 p-6 bg-gradient-to-r from-primary via-primary to-secondary text-white">
+<div class="flex-shrink-0">
+<div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="text-xl font-semibold leading-tight" id="global-confirm-modal-title">Confirmer l'action</h3>
+<p class="text-sm opacity-90 mt-1">Cette action peut affecter vos réservations. Confirmez pour continuer.</p>
+</div>
+<div class="flex-shrink-0">
+<button class="text-white/90 hover:text-white transition" id="global-confirm-modal-close">✕</button>
+</div>
+</div>
+<!-- body -->
+<div class="flex items-center justify-center p-6 pb-8 text-center min-h-[120px]">
+<p class="text-primary dark:text-gray-200 text-base" id="global-confirm-modal-message">Message</p>
+</div>
+<div class="border-t border-gray-200 dark:border-gray-700"></div>
+<div class="flex items-center justify-end gap-3 p-4">
+<button class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-full border border-primary/20 text-primary dark:text-gray-200 hover:bg-primary/10 transition" id="global-confirm-modal-cancel" type="button">Annuler</button>
+<button class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-primary text-white hover:bg-secondary transition shadow" id="global-confirm-modal-confirm" type="button">Confirmer</button>
+</div>
+</div>
+</div>
+</div>
+<!-- modern alert modal -->
+<div class="fixed inset-0 z-[1200] hidden items-center justify-center bg-black/40 backdrop-blur-sm" id="global-alert-modal-overlay">
+<div class="w-full max-w-lg mx-4" id="global-alert-modal">
+<div class="bg-white/95 dark:bg-gray-800 rounded-2xl shadow-xl p-6 ring-1 ring-black/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white">
+
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-lg font-semibold text-primary dark:text-white" id="global-alert-modal-title">Information</h4>
+</div>
+</div>
+<div class="mt-4">
+<p class="text-primary dark:text-gray-200 text-sm" id="global-alert-modal-message">Message</p>
+</div>
+<div class="mt-6 flex justify-end">
+<button class="px-4 py-2 rounded-md bg-primary text-white hover:bg-secondary" id="global-alert-modal-ok">OK</button>
+</div>
+</div>
+</div>
+</div>
+
+
+</main>
+<footer class="bg-gradient-to-br from-nav-from via-nav-from to-nav-to text-gray-300 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900" id="mainFooter">
+<div class="max-w-7xl mx-auto px-6 py-12">
+<!-- Section principale -->
+<div class="flex flex-col md:flex-row justify-between items-start mb-8 gap-10">
+<!-- Colonne 1: Logo et description -->
+<div class="w-full md:w-1/3 min-w-[220px] mb-8 md:mb-0">
+<a class="flex items-center space-x-4 group" href="https://leguichetmontparnasse.vosbillets.fr">
+<div class="relative">
+<div class="absolute -inset-1">
+</div>
+<div class="relative w-24 h-24 hover:border-red-500 dark:hover:border-primary-soft transition-all duration-300 flex items-center justify-center p-2">
+
+</div>
+</div>
+<div>
+<h3 class="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 dark:from-primary-soft dark:to-primary-soft bg-clip-text text-transparent group-hover:from-primary-soft group-hover:to-white dark:group-hover:from-primary-soft dark:group-hover:to-primary-dark transition-all duration-300">
+</h3>
+<p class="text-primary-soft dark:text-primary-soft text-sm font-medium tracking-wide">
+                            Depuis 1986 un théâtre de quartier !</p>
+</div>
+</a>
+</div>
+<!-- Colonne 2: Liens rapides -->
+<!-- Colonne 3: Contact -->
+<div class="w-full md:w-1/3 min-w-[220px] flex flex-col items-start md:items-end">
+<div class="space-y-4 w-full md:w-auto">
+<h4 class="text-lg font-semibold text-white mb-4">Nous contacter</h4>
+<div class="flex items-start space-x-3">
+<div class="w-10 h-10 bg-gray-800 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+ </div>
+<div>
+<button class="text-gray-300 hover:text-white transition-colors duration-200 text-sm leading-relaxed text-left cursor-pointer decoration-dotted" data-geo-url="geo:0,0?q=15+Rue+du+Maine+75014+Paris" id="openMapsModalBtn" type="button">
+<span class="whitespace-pre-line">15 Rue du Maine</span>
+<div class="flex flex-wrap gap-2">
+<div id="preview_footer_cp">75014</div>
+<div id="preview_footer_ville">Paris</div>
+</div>
+</button>
+</div>
+</div>
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 bg-gray-800 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+ </div>
+<a class="text-gray-300 hover:text-white transition-colors duration-200" href="tel:+331 43 27 88 61">
+                            01 43 27 88 61
+                        </a>
+</div>
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 bg-gray-800 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+ </div>
+<a class="text-gray-300 hover:text-white transition-colors duration-200" href="/cdn-cgi/l/email-protection#701113130515191c30170519131815041d1f1e040011021e110303155e131f1d">
+<span class="__cf_email__" data-cfemail="0465676771616d684463716d676c6170696b6a707465766a657777612a676b69">[email protected]</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<div class="border-t border-gray-400 pt-6">
+<div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+<div class="text-sm text-gray-300 dark:text-gray-400 text-center md:text-left">
+                    © 2026 <span class="font-semibold text-white">SOCIÉTÉ ARTTICK</span>. Tous droits
+                    réservés.<br/>
+<span class="block mt-1 text-xs text-white">
+                        Reproduction partielle ou totale strictement interdite
+                    </span>
+</div>
+<div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-6 text-sm text-center md:text-left">
+<a class="text-gray-300 hover:text-white transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/itr/mention_legales" title="Mentions légales">Mentions légales</a>
+<a class="text-gray-300 hover:text-white transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/itr/cgv" title="Conditions Générales de Vente">
+                        Conditions Générales de Vente
+                    </a>
+<a class="text-gray-300 hover:text-white transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/itr/infos_divers" title="Informations Diverses">Informations Diverses</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Modal Maps Chooser -->
+<div class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 opacity-0 pointer-events-none transition-opacity duration-300" id="mapsModal" style="display: none;">
+<div class="relative w-full max-w-md rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/95 dark:bg-slate-900/95 shadow-[0_25px_80px_-20px_rgba(15,23,42,0.45)] overflow-hidden opacity-0 translate-y-3 scale-[0.98] transition-all duration-300" id="mapsModalPanel">
+<div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400"></div>
+<button aria-label="Fermer la modale itinéraire" class="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors duration-200" data-close-maps-modal="1" type="button">
+ </button>
+<div class="px-6 pt-7 pb-6 sm:px-7">
+<div class="flex items-start gap-3 mb-5">
+<div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
+ </div>
+<div class="pr-10">
+<h3 class="text-xl font-semibold text-slate-900 dark:text-white leading-tight">Choisir un GPS</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Ouvrir l'itinéraire avec votre application préférée.</p>
+</div>
+</div>
+<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 px-4 py-3 mb-5">
+<div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Destination</div>
+<div class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+<span class="whitespace-pre-line">15 Rue du Maine</span><br/>
+                            75014 Paris
+                        </div>
+</div>
+<div class="space-y-3">
+<a class="group flex items-center justify-between w-full rounded-xl px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors duration-200" data-close-maps-modal="1" href="https://www.google.com/maps/dir/?api=1&amp;destination=15+Rue+du+Maine+75014+Paris" rel="noopener" target="_blank">
+<span class="inline-flex items-center gap-2">
+                                Google Maps
+                            </span>
+ </a>
+<a class="group flex items-center justify-between w-full rounded-xl px-4 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-colors duration-200" data-close-maps-modal="1" href="https://waze.com/ul?q=15+Rue+du+Maine+75014+Paris&amp;navigate=yes&amp;utm_source=arttick" rel="noopener" target="_blank">
+<span class="inline-flex items-center gap-2">
+                                Waze
+                            </span>
+ </a>
+<a class="group flex items-center justify-between w-full rounded-xl px-4 py-3 bg-slate-700 hover:bg-slate-800 text-white font-medium transition-colors duration-200" data-close-maps-modal="1" href="https://maps.apple.com/?daddr=15+Rue+du+Maine+75014+Paris&amp;dirflg=d" rel="noopener" target="_blank">
+<span class="inline-flex items-center gap-2">
+                                Plans (Apple)
+                            </span>
+ </a>
+</div>
+<div class="mt-5 flex justify-end">
+<button class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-colors duration-200" data-close-maps-modal="1" type="button">
+                            Fermer
+                        </button>
+</div>
+</div>
+</div>
+</div>
+
+</footer>
+</div>
+
+</body>
+<!-- Scripts should be inside the body -->
+
+
+
+
+
+
+
+
+<!-- Inclure Tippy.js via CDN copie datatable -->
+
+
+
+
+
+
+
+</html>

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
+from bs4 import BeautifulSoup
+
 try:
     from scraper.venues import billetterie, generic, js_agendas, schemaorg, specific, triage
     from scraper.venues.http import PoliteFetcher
@@ -37,11 +39,24 @@ def merge_records(batches: list[list[dict]]) -> list[dict]:
     return list(merged.values())
 
 
+def venue_platforms(fetcher: PoliteFetcher, venue: dict) -> list[str]:
+    """Billetteries du lieu : celles du catalogue (triage) puis celles reconnues sur l'accueil au moment du
+    run (une plateforme ajoutée après le triage, comme Vosbillets, est ainsi prise en compte sans retriage)."""
+    names = [p.split(":")[0] for p in (venue.get("ticketing_all") or "").split("|") if p]
+    home = fetcher.get(venue["website"])
+    if home.ok:
+        soup = BeautifulSoup(home.text, "html.parser")
+        for name in triage.detect_ticketing(triage.external_hosts(soup, home.final_url)):
+            if name not in names:
+                names.append(name)
+    return names
+
+
 def _platform_batches(fetcher: PoliteFetcher, venue: dict, info: dict, today) -> tuple[list[list[dict]], list[str]]:
     """Lots d'enregistrements des billetteries tierces reconnues sur le site du lieu."""
     batches: list[list[dict]] = []
     used: list[str] = []
-    for platform in [p.split(":")[0] for p in (venue.get("ticketing_all") or "").split("|") if p]:
+    for platform in venue_platforms(fetcher, venue):
         if platform in billetterie.PLATFORMS:
             records, sub = billetterie.platform_records(fetcher, venue, platform, today)
             info[f"{platform}"] = sub["status"]

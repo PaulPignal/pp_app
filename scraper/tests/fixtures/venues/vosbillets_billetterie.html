@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="Oqa1L01yTwJfdD1bvcH3NY8RTWumZzF94xfCYWAT" name="csrf-token"/>
+<meta content="5e40bd59-e4f0-4c50-8f00-e8f4599a1b51" name="venue-id"/>
+<meta content="20" name="basket-timer"/>
+
+<link href="/favicon.ico" rel="icon" type="image/x-icon"/>
+<title></title>
+<meta content="Billetterie en ligne : réservez vos événements en quelques clics." name="description"/>
+<link href="https://leguichetmontparnasse.vosbillets.fr/billetterie" rel="canonical"/>
+<meta content="website" property="og:type"/>
+<meta content="" property="og:title"/>
+<meta content="Billetterie en ligne : réservez vos événements en quelques clics." property="og:description"/>
+<meta content="https://leguichetmontparnasse.vosbillets.fr/billetterie" property="og:url"/>
+
+<!-- Anti-flash thème sombre: applique .dark avant le CSS (par défaut clair) -->
+
+
+<!-- Fonts -->
+<link href="https://fonts.bunny.net" rel="preconnect"/>
+<link href="https://fonts.bunny.net/css?family=figtree:400,500,600&amp;display=swap" rel="stylesheet">
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://unpkg.com/cropperjs@1.6.1/dist/cropper.min.css" rel="stylesheet"/>
+<!-- Scripts -->
+<link as="style" href="https://leguichetmontparnasse.vosbillets.fr/build/assets/app-D3BFlx6Y.css" rel="preload"><link as="style" href="https://leguichetmontparnasse.vosbillets.fr/build/assets/app-8yPzm9Re.css" rel="preload"><link href="https://leguichetmontparnasse.vosbillets.fr/build/assets/app-BFmKIEjU.js" rel="modulepreload"><link href="https://leguichetmontparnasse.vosbillets.fr/build/assets/app-D3BFlx6Y.css" rel="stylesheet"><link href="https://leguichetmontparnasse.vosbillets.fr/build/assets/app-8yPzm9Re.css" rel="stylesheet"/>
+<link href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" rel="stylesheet"/>
+<link href="https://cdn.datatables.net/responsive/3.0.4/css/responsive.dataTables.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+<link href="https://cdn.datatables.net/rowreorder/1.2.8/css/rowReorder.dataTables.min.css" rel="stylesheet" type="text/css"/>
+<!-- Inclure Tippy.js via CDN copie datatable -->
+<link href="https://cdn.jsdelivr.net/npm/tippy.js@6/dist/tippy.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+</link></link></link></link></link></head>
+
+<body class="font-sans antialiased scrollbar-red">
+<div class="fixed bottom-5 right-5 hidden items-center p-4 rounded-xl shadow-lg text-white transition-opacity duration-500" id="toast" role="alert" style="    z-index: 1000;">
+<span class="mr-2" id="toast-icon">ℹ️</span>
+<span id="toast-text">Message ici</span>
+</div>
+
+<div class="min-h-screen bg-bg-page dark:bg-bg-page-dark dark:transition-all dark:duration-500 transition-all duration-500">
+<nav class="sticky top-0 bg-gradient-to-r from-nav-from to-nav-to dark:bg-gradient-to-r dark:from-nav-from-dark dark:to-nav-to-dark shadow-lg border-b border-red-500/20 z-[999] dark:text-gray-100" x-data="{ open: false }">
+<div class="px-1.5 sm:px-6 lg:px-8">
+<div class="flex justify-between h-16 min-w-0">
+<div class="flex items-center min-w-0 flex-1">
+<div class="flex items-center min-w-0 flex-1 mr-1 lg:mr-5 lg:flex-none lg:shrink-0">
+<div class="mr-1 lg:mr-4 shrink-0 min-w-0 flex items-center w-auto max-w-[62px] sm:w-[150px] sm:max-w-none lg:w-auto lg:min-w-0" data-turbo-permanent="" id="site-logo" title="Accueil">
+<a class="flex items-center h-12 lg:h-14 overflow-visible" href="https://leguichetmontparnasse.vosbillets.fr">
+
+</a>
+</div>
+<a class="ml-0.5 flex-1 min-w-0 text-left text-[11px] font-bold leading-tight text-white whitespace-normal break-words [display:-webkit-box] hover:text-white lg:hidden" href="https://leguichetmontparnasse.vosbillets.fr" style="-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+</a>
+<a class="hidden lg:mr-16 lg:ml-2 lg:max-w-[180px] lg:shrink-0 text-left text-base font-bold leading-tight text-white whitespace-normal break-words lg:[display:-webkit-box] hover:text-white" href="https://leguichetmontparnasse.vosbillets.fr" style="-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+</a>
+</div>
+<div class="hidden lg:flex space-x-1">
+<a class="inline-flex items-center px-1 text-white hover:text-gray-400 duration-150 hover:scale-110 group relative px-4 py-2 rounded-lg transition-all duration-200 text-white/80 dark:text-gray-300 hover:text-white" href="/" title="Accueil">
+    Accueil
+</a>
+<a class="inline-flex items-center px-1 border-indigo-400 dark:border-indigo-600 text-white duration-150 hover:scale-110 group relative px-4 py-2 rounded-lg transition-all duration-200 text-white font-semibold dark:text-gray-100" data-turbo="false" href="https://leguichetmontparnasse.vosbillets.fr/billetterie" title="Billetterie">
+    Billetterie
+                                                    <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-0.5 bg-white rounded-full">
+</div>
+</a>
+<a class="inline-flex items-center px-1 text-white hover:text-gray-400 duration-150 hover:scale-110 group relative px-4 py-2 rounded-lg transition-all duration-200 text-white/80 dark:text-gray-300 hover:text-white" href="https://leguichetmontparnasse.vosbillets.fr/itr/infos_divers" title="Informations Diverses">
+    Informations Diverses
+</a>
+<a class="group relative inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white/80 dark:text-gray-300 hover:text-white transition-all duration-200 hover:scale-110" data-turbo="false" href="https://www.guichetmontparnasse.com/" rel="noopener noreferrer" target="_blank" title="Retour sur le site">
+<span>Retour sur le site</span>
+ </a>
+</div>
+</div>
+<!-- Menu pour utilisateurs non connectés -->
+<div class="hidden lg:flex lg:items-center lg:space-x-4">
+<!-- Icônes thème dark -->
+<button :aria-pressed="isDark ? 'true' : 'false'" @click="
+        document.documentElement.classList.toggle('dark');
+        isDark = document.documentElement.classList.contains('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    " aria-label="Basculer le thème" class="ml-auto relative inline-flex items-center justify-center h-10 w-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 hover:shadow-lg transition-all duration-300 group overflow-hidden" title="Modification du thème" x-data="{
+        isDark: document.documentElement.classList.contains('dark'),
+        init() {
+            // Synchronise l'état du switcher si le thème change ailleurs (desktop/mobile)
+            const self = this;
+            const observer = new MutationObserver(function() {
+                self.isDark = document.documentElement.classList.contains('dark');
+            });
+            observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        }
+    }" x-init="init()">
+<!-- Effet halo animé -->
+<span class="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/10 via-white/5 to-transparent"></span>
+<!-- Icônes avec transition -->
+<span class="absolute inset-0 flex items-center justify-center transition-transform duration-300 scale-100 rotate-0 dark:scale-0 dark:rotate-90">
+ </span>
+<span class="absolute inset-0 flex items-center justify-center transition-transform duration-300 scale-0 -rotate-90 dark:scale-100 dark:rotate-0">
+ </span>
+</button>
+<div class="relative">
+<button class="relative bg-white/10 backdrop-blur-sm text-white p-2 h-10 w-10 rounded-lg border border-white/20 shadow-lg hover:bg-white/20 hover:scale-105 transition-all duration-200 group flex items-center justify-center" id="cartButton" onclick="toggleCartModal()" title="Panier">
+ <span class="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full min-w-[1.25rem] h-5 shadow-lg" id="cartCount">0</span>
+<!-- Effet de pulse quand le panier n'est pas vide -->
+<div class="absolute inset-0 rounded-lg bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+</div>
+</button>
+</div>
+<a class="flex items-center space-x-2 text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/client/login">
+ <span>Mes achats</span>
+</a>
+</div>
+<!-- Hamburger -->
+<div class="mr-0 flex shrink-0 items-center lg:hidden space-x-1 pl-0" title="Menu">
+<a aria-label="Retour sur le site" class="relative bg-white/10 dark:bg-gray-900/40 backdrop-blur-sm text-white p-1.5 rounded-lg border border-white/20 dark:border-gray-700 hover:bg-white/20 dark:hover:bg-gray-800/60 transition-all duration-200" data-turbo="false" href="https://www.guichetmontparnasse.com/" rel="noopener noreferrer" target="_blank" title="Retour sur le site">
+ </a>
+<!-- Accès rapide Billetterie mobile -->
+<a class="relative bg-white/10 dark:bg-gray-900/40 backdrop-blur-sm text-white p-1.5 rounded-lg border border-white/20 dark:border-gray-700 hover:bg-white/20 dark:hover:bg-gray-800/60 transition-all duration-200" data-turbo="false" href="https://leguichetmontparnasse.vosbillets.fr/billetterie" title="Billetterie">
+ </a>
+<!-- Panier mobile -->
+<button class="relative bg-white/10 dark:bg-gray-900/40 backdrop-blur-sm text-white p-1.5 rounded-lg border border-white/20 dark:border-gray-700 hover:bg-white/20 dark:hover:bg-gray-800/60 transition-all duration-200" id="cartButtonMobile" onclick="toggleCartModal()" title="Panier">
+ <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-500 dark:bg-red-700 rounded-full min-w-[1rem] h-4" id="cartCountMobile">0</span>
+</button>
+<a class="relative bg-white/10 dark:bg-gray-900/40 backdrop-blur-sm text-white p-1.5 rounded-lg border border-white/20 dark:border-gray-700 hover:bg-white/20 dark:hover:bg-gray-800/60 transition-all duration-200" href="https://leguichetmontparnasse.vosbillets.fr/historique-paiements">
+
+</a>
+<!-- Bouton Thème mobile (rapide) -->
+<span class="flex items-center">
+</span>
+<!-- Menu hamburger -->
+<button @click="open = ! open" class="inline-flex items-center justify-center p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-all duration-200">
+
+</button>
+</div>
+</div>
+</div>
+<!-- Responsive Navigation Menu -->
+<div :class="{ 'block': open, 'hidden': !open }" class="hidden lg:hidden">
+<div class="bg-white/95 dark:bg-gray-700 backdrop-blur-sm border-t border-red-300/20 shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto">
+<div class="px-4 py-4 space-y-1">
+<a class="flex items-center px-4 py-3 rounded-lg border-l-4 border-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-red-600 dark:hover:text-gray-200 transition-all duration-200" data-turbo="false" href="https://www.guichetmontparnasse.com/" rel="noopener noreferrer" target="_blank">
+ <span>Retour sur le site</span>
+</a>
+<a class="block w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:text-gray-800 dark:focus:text-gray-200 focus:bg-gray-50 dark:focus:bg-gray-700 focus:border-gray-300 dark:focus:border-gray-600 transition duration-150 ease-in-out flex items-center px-4 py-3 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-50 hover:text-red-600" href="/">
+                            Accueil
+</a>
+<a class="block w-full ps-3 pe-4 py-2 border-l-4 border-red-600 dark:border-lime-600 text-start text-base font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-lime-900/50 focus:outline-none focus:text-indigo-800 dark:focus:text-indigo-200 focus:bg-indigo-100 dark:focus:bg-indigo-900 focus:border-indigo-700 dark:focus:border-indigo-300 transition duration-150 ease-in-out flex items-center px-4 py-3 rounded-lg transition-all duration-200 bg-red-50 text-red-700 font-semibold border-l-4 border-red-500" data-turbo="false" href="https://leguichetmontparnasse.vosbillets.fr/billetterie">
+
+                            Billetterie
+</a>
+<button :aria-pressed="isDark ? 'true' : 'false'" @click="toggleTheme()" aria-label="Basculer le thème" class="w-full flex items-center px-4 py-3 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-50 hover:text-red-600 dark:text-gray-200 dark:hover:bg-gray-800" type="button" x-data="{
+                            isDark: document.documentElement.classList.contains('dark'),
+                        
+                            toggleTheme() {
+                                document.documentElement.classList.toggle('dark');
+                                this.isDark = document.documentElement.classList.contains('dark');
+                                localStorage.setItem('theme', this.isDark ? 'dark' : 'light');
+                            },
+                        
+                            init() {
+                                const observer = new MutationObserver(() =&gt; {
+                                    this.isDark = document.documentElement.classList.contains('dark');
+                                });
+                        
+                                observer.observe(document.documentElement, {
+                                    attributes: true,
+                                    attributeFilter: ['class']
+                                });
+                            }
+                        }" x-init="init()">
+<span class="relative mr-3 inline-flex h-5 w-5 items-center justify-center">
+
+ </span>
+<span class="flex-1 text-left">
+                                Thème
+                            </span>
+</button>
+<a class="block w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:text-gray-800 dark:focus:text-gray-200 focus:bg-gray-50 dark:focus:bg-gray-700 focus:border-gray-300 dark:focus:border-gray-600 transition duration-150 ease-in-out flex items-center px-4 py-3 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-50 hover:text-red-600" href="https://leguichetmontparnasse.vosbillets.fr/client/login">
+                            Mes achats
+</a>
+</div>
+</div>
+</div>
+</nav>
+<!-- Modal panier - en dehors de la navigation pour éviter les conflits de z-index -->
+<div class="fixed inset-0 bg-black/20 overflow-y-auto h-full w-full opacity-0 transition-all duration-300 hidden z-[100] backdrop-blur-sm" id="cartModal" onclick="toggleCartModal()">
+<div class="relative min-h-screen flex items-center justify-center p-4">
+<div class="nav-cart-panel relative w-full max-w-md bg-white dark:bg-slate-900 dark:border-slate-700 rounded-2xl shadow-2xl transform scale-95 transition-all duration-300 overflow-hidden" onclick="event.stopPropagation()">
+<!-- Header du panier -->
+<div class="nav-cart-header bg-gradient-to-r from-primary to-secondary dark:from-primary-dark dark:to-secondary-dark p-6">
+<div class="flex justify-between items-center">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+ </div>
+<h2 class="text-xl font-bold text-white">Panier</h2>
+<span class="cart-timer-mini text-sm text-white border border-white rounded-sm"></span>
+</div>
+<div class="flex items-center space-x-2">
+<button class="flex items-center space-x-1 px-3 py-1.5 bg-white/20 rounded-lg text-white text-sm font-medium hover:bg-white/30 transition-colors duration-200" id="cartClearNavBtn" onclick="clearCart()" title="Vider le panier">
+
+<span class="hidden sm:inline">Vider</span>
+</button>
+<button class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors" onclick="toggleCartModal()">
+
+</button>
+</div>
+</div>
+</div>
+<!-- Contenu du panier -->
+<div class="nav-cart-items bg-white dark:bg-slate-900">
+<ul class="space-y-3 p-6 text-gray-900 dark:text-gray-100" id="cartItemsNav">
+<!-- Liste des articles -->
+</ul>
+<div class="hidden" id="emptyCartNavMessage">
+<div class="flex flex-col items-center justify-center py-12 px-6 text-center">
+<div class="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+ </div>
+<h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Panier vide</h3>
+<p class="text-gray-500 dark:text-slate-400 text-sm">
+                            Votre panier est vide</p>
+</div>
+</div>
+</div>
+<!-- Footer du panier -->
+<div class="nav-cart-footer border-t border-primary/15 dark:border-primary-dark/30 bg-gray-50 dark:bg-gray-800 p-6">
+<!-- Total -->
+<div class="flex justify-between items-center mb-4">
+<span class="text-lg font-semibold text-gray-900 dark:text-gray-100">Total</span>
+<div class="text-right">
+<span class="text-2xl font-bold text-gray-900 dark:text-gray-100" id="cartTotalNavIndex">0
+                            €</span>
+</div>
+</div>
+<!-- Bouton voir le panier -->
+<button class="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary-dark hover:to-secondary-dark text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled="" id="viewCartNavBtn" onclick="window.location.href='https://leguichetmontparnasse.vosbillets.fr/billetterie/finaliser-commande'" title="Procéder au paiement">
+ <span>Procéder au paiement</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+
+
+
+
+
+<!-- Modal Panier Web (cartWeb) -->
+<div class="fixed inset-0 bg-black/70 dark:bg-black/55 overflow-y-auto h-full w-full opacity-0 transition-all duration-300 hidden z-[100] backdrop-blur-sm" id="cartModalWebcart" onclick="toggleCartModalWebcart()">
+<div class="relative min-h-screen flex items-center justify-center p-4">
+<div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl transform scale-95 transition-all duration-300 overflow-hidden" onclick="event.stopPropagation()">
+<div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+<div class="flex justify-between items-center">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+ </div>
+<h2 class="text-xl font-bold text-white">Panier Web</h2>
+</div>
+<div class="flex items-center space-x-2">
+<button class="flex items-center space-x-1 px-3 py-1.5 bg-white/20 rounded-lg text-white text-sm font-medium hover:bg-white/30 transition-colors duration-200" onclick="clearCartWebcart()" title="Vider le panier Web">
+
+<span class="hidden sm:inline">Vider</span>
+</button>
+<button class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors" onclick="toggleCartModalWebcart()">
+
+</button>
+</div>
+</div>
+</div>
+<div class="max-h-96 overflow-y-auto">
+<ul class="space-y-3 p-6" id="cartItemsWebcart">
+<!-- Liste des articles du panier Web -->
+</ul>
+<div class="hidden" id="emptyCartWebcartMessage">
+<div class="flex flex-col items-center justify-center py-12 px-6 text-center">
+<div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+ </div>
+<h3 class="text-lg font-medium text-gray-900 mb-2">Panier Web vide</h3>
+<p class="text-gray-500 text-sm">Votre panier web est vide</p>
+</div>
+</div>
+</div>
+<div class="border-t border-gray-200 bg-gray-50 p-6">
+<div class="w-full text-center mb-3">
+<div class="whitespace-nowrap inline-flex items-center rounded-full bg-green-100 text-green-700 dark:bg-orange-900/30 dark:text-orange-300 px-3 py-1 text-xs font-medium" id="timerBasketWeb">
+
+<span>Expiration du panier : <span class="font-semibold" id="timeToDecrement">99:99</span></span>
+</div>
+</div>
+<div class="flex justify-between items-center mb-4">
+<span class="text-lg font-semibold text-gray-900">Total</span>
+<div class="text-right">
+<span class="text-2xl font-bold text-gray-900" id="cartTotalWebcart">0 €</span>
+</div>
+</div>
+<button class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled="" id="viewCartWebcartBtn" onclick="window.location.href='https://leguichetmontparnasse.vosbillets.fr/panier'" title="Procéder au paiement">
+ <span>Procéder au paiement</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Page Heading -->
+<!-- Page Content -->
+<main>
+<button class="w-full hidden bg-gradient-to-r from-tickBossTheme to-red-600 text-white font-medium py-2.5 px-4 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 transform hover:scale-[1.02] shadow-md hover:shadow-lg show-details-btn" onclick="debugLS()">DEBUG LS
+            </button>
+
+<div class="min-h-[93vh] overflow-x-hidden">
+<div class="hidden md:block relative w-full" id="pageBanner">
+<div class="w-full h-44 sm:h-52 lg:h-60 bg-cover bg-center bg-no-repeat relative shadow-md" style="background-image: url('https://vosbillets-images.s3.eu-west-par.io.cloud.ovh.net/5e40bd59-e4f0-4c50-8f00-e8f4599a1b51/bandeau.webp');" x-data="" x-init="const img = new Image();
+                
+                img.onerror = () =&gt; {
+                    $el.style.backgroundImage = 'url(/images/bandeau.webp)';
+                };
+                
+                img.src = 'https://vosbillets-images.s3.eu-west-par.io.cloud.ovh.net/5e40bd59-e4f0-4c50-8f00-e8f4599a1b51/bandeau.webp';">
+<div class="absolute inset-0 flex-col items-center justify-center text-white dark:text-gray-200 px-4" style="display: flex;">
+<div class="mb-2 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-[0.15em] text-orange-300/90 dark:text-gray-300">
+<span></span>
+</div>
+<h1 class="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-center dark:text-gray-200">
+</h1>
+</div>
+</div>
+</div>
+<div class="px-2 py-1 md:p-16 mx-auto mb-10">
+<div class="order-2 lg:order-1 w-full lg:w-3/4">
+<section class="mb-1 p-1 sm:p-5">
+<div class="flex flex-col items-center gap-2.5">
+<div aria-label="Filtrer les événements" class="inline-flex w-full max-w-xl overflow-visible rounded-xl border border-slate-300 bg-white shadow-sm dark:border-[#31486c] dark:bg-[#1f304c] dark:shadow-[0_8px_24px_rgba(0,0,0,0.35)]" id="showTypeSwitch" role="tablist">
+<button class="show-filter-btn rounded-l-xl flex-[0.75] sm:flex-1 min-w-0 sm:min-w-[108px] px-1.5 py-2 text-[10px] sm:text-sm font-semibold whitespace-nowrap border-r border-slate-200 dark:border-[#2f466a] transition-colors duration-200 bg-primary dark:bg-primary-dark text-white dark:text-white" data-show-filter="all" type="button">
+                                Tous
+                            </button>
+<button class="show-filter-btn relative flex-1 min-w-0 sm:min-w-[108px] px-2 pr-6 sm:px-5 sm:pr-5 py-2 text-[10px] sm:text-sm font-semibold whitespace-nowrap text-slate-700 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#2b3f62] transition-colors duration-200 border-r border-slate-200 dark:border-[#2f466a] inline-flex items-center justify-center gap-1.5" data-show-filter="subscription" type="button">
+<span>Abonnements</span>
+<span class="absolute right-1 top-1/2 -translate-y-1/2 sm:static sm:translate-y-0 inline-flex min-w-[1.1rem] sm:min-w-[1.4rem] h-4 sm:h-5 items-center justify-center rounded-full px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-bold leading-none bg-secondary text-white ring-1 ring-black/5 dark:ring-white/20 shadow-sm" id="showTypeBadgeSubscription">0</span>
+</button>
+<button class="show-filter-btn relative flex-1 min-w-0 sm:min-w-[108px] px-2 pr-6 sm:px-5 sm:pr-5 py-2 text-[10px] sm:text-sm font-semibold whitespace-nowrap text-slate-700 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#2b3f62] transition-colors duration-200 inline-flex items-center justify-center gap-1.5" data-show-filter="event" type="button">
+<span>Événements</span>
+<span class="absolute right-1 top-1/2 -translate-y-1/2 sm:static sm:translate-y-0 inline-flex min-w-[1.1rem] sm:min-w-[1.4rem] h-4 sm:h-5 items-center justify-center rounded-full px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-bold leading-none bg-secondary text-white ring-1 ring-black/5 dark:ring-white/20 shadow-sm" id="showTypeBadgeEvent">0</span>
+</button>
+<div class="relative rounded-r-xl flex-[1.2] min-w-0 sm:flex-none sm:min-w-[150px] border-l border-slate-200 dark:border-[#2f466a] bg-white dark:bg-[#1f304c] text-slate-700 dark:text-slate-100 text-[10px] sm:text-sm">
+<select aria-hidden="true" class="hidden" id="showFamilyFilter" tabindex="-1">
+<option value="">Toutes</option>
+</select>
+<button aria-controls="showFamilyFilterMenu" aria-expanded="false" aria-haspopup="listbox" class="inline-flex rounded-r-xl h-full w-full min-w-0 items-center justify-between gap-1 py-2 pl-1.5 pr-1.5 sm:gap-2 sm:pl-4 sm:pr-3 text-[10px] sm:text-sm font-semibold leading-tight text-slate-700 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#2b3f62] focus:outline-none" id="showFamilyFilterButton" type="button">
+<span class="block min-w-0 flex-1 truncate text-left" id="showFamilyFilterLabel">Catégories</span>
+<span class="shrink-0 text-[8px] sm:text-[10px] text-slate-500 dark:text-slate-300">▼</span>
+</button>
+<div aria-label="Catégories" class="hidden absolute left-0 top-full z-50 mt-1 min-w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-[#2f466a] dark:bg-[#1f304c]" id="showFamilyFilterMenu" role="listbox">
+<button class="block w-full px-3 py-2 text-left text-[10px] sm:text-sm font-semibold leading-tight text-slate-700 dark:text-slate-100 hover:bg-primary hover:text-white" data-family-option="" type="button">
+                                        Toutes
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-1 sm:mt-4 flex justify-center">
+<div aria-label="Calendrier de filtrage des événements" class="relative isolate w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-100 p-1.5 sm:p-2 shadow-[0_12px_28px_rgba(15,23,42,0.11)] dark:border-[#2f4e79] dark:from-[#10213d] dark:to-[#132747] dark:shadow-[0_12px_28px_rgba(2,8,23,0.38)]" id="showDateCalendar">
+<div class="relative z-10 rounded-xl border border-slate-200/70 bg-white/66 p-1 sm:p-1.5 backdrop-blur-sm dark:border-[#3a5f8e]/70 dark:bg-[#132747]/52">
+<div class="mb-1 flex justify-between items-center gap-1.5 sm:gap-2">
+<div class="hidden sm:inline-flex min-w-0 items-center gap-1.5 sm:gap-2">
+<span class="inline-flex h-6 w-6 items-center justify-center rounded-full text-white shadow-sm" style="background: linear-gradient(135deg, var(--color-nav-from, #0b1635), var(--color-nav-to, #102553));">
+ </span>
+<p class="truncate text-[0.78rem] sm:text-[0.86rem] leading-none font-bold text-slate-900 dark:text-slate-100" id="showDateSelectionLabel">
+                                                Toutes les dates</p>
+</div>
+<div class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/20 px-1 py-0.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" style="background: linear-gradient(90deg, var(--color-nav-from, #0b1635) 0%, var(--color-nav-to, #102553) 100%);">
+<button aria-label="Mois précédent" class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/20 bg-white/5 text-xs leading-none transition duration-200 hover:bg-white/15" id="showDatePrevMonth" type="button">
+                                                ‹
+                                            </button>
+<p class="px-0.5 text-[0.8rem] sm:text-[0.92rem] font-black tracking-tight" id="showDateMonthLabel">-
+                                            </p>
+<button aria-label="Mois suivant" class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/20 bg-white/5 text-xs leading-none transition duration-200 hover:bg-white/15" id="showDateNextMonth" type="button">
+                                                ›
+                                            </button>
+</div>
+<button class="inline-flex h-5 shrink-0 items-center gap-1 rounded-lg border border-slate-300/80 bg-white/90 px-2 py-0 text-[9px] sm:text-[10px] font-semibold text-slate-700 shadow-sm transition duration-200 hover:border-slate-400 hover:bg-white dark:border-[#3f5f8c] dark:bg-[#183056]/85 dark:text-slate-100 dark:hover:border-cyan-300/60 dark:hover:bg-[#1f3a66]" id="showDateResetBtn" type="button">
+                                            Réinitialiser
+                                        </button>
+</div>
+<div class="mb-0.5 grid w-full grid-cols-7 gap-1 sm:gap-1 text-center text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.06em] sm:tracking-[0.1em] text-slate-600 dark:text-slate-300/85">
+<span>Lun</span>
+<span>Mar</span>
+<span>Mer</span>
+<span>Jeu</span>
+<span>Ven</span>
+<span>Sam</span>
+<span>Dim</span>
+</div>
+<div class="grid w-full grid-cols-7 justify-items-center gap-1 sm:gap-1" id="showDateCalendarDays"></div>
+</div>
+</div>
+</div>
+</section>
+<div class="flex flex-col xl:flex-row w-full">
+<div class="order-2 xl:order-1 flex-shrink-2 w-full relative mb-4" id="shows-container">
+<div class="absolute inset-0 bg-white/80 dark:bg-gray-900/90 z-[50] hidden absolute inset-0 bg-white/80 z-[50] hidden" id="showsLoader">
+<!-- optional faint background logo -->
+
+<div class="h-full flex items-center justify-center">
+<div class="flex flex-col items-center space-y-3">
+<!-- Spinner SVG (two-tone ring + segment) -->
+
+<div class="flex">
+<div class="text-gray-500 dark:text-gray-200 text-lg font-medium mr-2">Chargement</div>
+<div aria-hidden="true" class="loader-dots mt-1 dark:text-white">
+<span>·</span><span>·</span><span>·</span></div>
+</div>
+</div>
+</div>
+</div>
+
+<div>
+<div class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-8 mb-8 border-0" data-count-event="12" data-count-subscription="0" id="showsGrid">
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-11-07,2026-11-13,2026-11-14,2026-11-20,2026-11-21,2026-11-27,2026-11-28,2026-12-04,2026-12-05,2026-12-11,2026-12-12,2026-12-18,2026-12-19" data-show-families="" data-show-id="36335" data-show-kind="event" data-show-raw-dates='["2026-11-07T20:30:00+01:00","2026-11-13T20:30:00+01:00","2026-11-14T20:30:00+01:00","2026-11-20T20:30:00+01:00","2026-11-21T20:30:00+01:00","2026-11-27T20:30:00+01:00","2026-11-28T20:30:00+01:00","2026-12-04T20:30:00+01:00","2026-12-05T20:30:00+01:00","2026-12-11T20:30:00+01:00","2026-12-12T20:30:00+01:00","2026-12-18T20:30:00+01:00","2026-12-19T20:30:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="frederique-le-banc-public" style="view-transition-name: show-36335;" title="Frédérique, Le Banc Public">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                Frédérique, Le Banc Public
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="7 novembre 2026 à 20h30 au 19 décembre 2026 à 20h30 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(13 dates)&amp;lt;/span&amp;gt;">
+                                        7 novembre 2026 à 20h30 au 19 décembre 2026 à 20h30 <span class="font-normal">(13 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/36335/frederique-le-banc-public">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-11-08,2026-11-15,2026-11-22,2026-11-29,2026-12-06,2026-12-13,2026-12-20,2026-12-27" data-show-families="" data-show-id="35550" data-show-kind="event" data-show-raw-dates='["2026-11-08T15:00:00+01:00","2026-11-15T15:00:00+01:00","2026-11-22T15:00:00+01:00","2026-11-29T15:00:00+01:00","2026-12-06T15:00:00+01:00","2026-12-13T15:00:00+01:00","2026-12-20T15:00:00+01:00","2026-12-27T15:00:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="une-mouche-dans-le-theatre" style="view-transition-name: show-35550;" title="Une mouche dans le théâtre">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                Une mouche dans le théâtre
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="8 novembre 2026 à 15h00 au 27 décembre 2026 à 15h00 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(8 dates)&amp;lt;/span&amp;gt;">
+                                        8 novembre 2026 à 15h00 au 27 décembre 2026 à 15h00 <span class="font-normal">(8 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+<div class="" title="5,0 étoiles sur 7 avis">
+<div class="review-rating-trigger border rounded-md px-0.5 py-0.5 bg-white dark:bg-gray-600 inline-flex items-center gap-0.5 text-[0.7rem] font-semibold text-slate-700 dark:text-slate-200 leading-none shadow-sm">
+<span>5,0</span>
+<div aria-hidden="true" class="flex items-center gap-[1px]">
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+</div>
+<span class="font-semibold text-primary dark:text-primary-soft">
+                (7)
+            </span>
+</div>
+</div>
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/35550/une-mouche-dans-le-theatre">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-11-08,2026-11-20,2026-11-21,2026-11-22,2026-11-27,2026-11-28,2026-11-29,2026-12-04,2026-12-05,2026-12-06,2026-12-11,2026-12-12,2026-12-13,2026-12-18,2026-12-19,2026-12-20,2026-12-26,2026-12-27" data-show-families="" data-show-id="36176" data-show-kind="event" data-show-raw-dates='["2026-11-08T16:30:00+01:00","2026-11-20T19:00:00+01:00","2026-11-21T19:00:00+01:00","2026-11-22T16:30:00+01:00","2026-11-27T19:00:00+01:00","2026-11-28T19:00:00+01:00","2026-11-29T16:30:00+01:00","2026-12-04T19:00:00+01:00","2026-12-05T19:00:00+01:00","2026-12-06T16:30:00+01:00","2026-12-11T19:00:00+01:00","2026-12-12T19:00:00+01:00","2026-12-13T16:30:00+01:00","2026-12-18T19:00:00+01:00","2026-12-19T19:00:00+01:00","2026-12-20T16:30:00+01:00","2026-12-26T19:00:00+01:00","2026-12-27T16:30:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="ca-sent-leucalyptus" style="view-transition-name: show-36176;" title="Ça sent l'eucalyptus">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                Ça sent l'eucalyptus
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="8 novembre 2026 à 16h30 au 27 décembre 2026 à 16h30 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(18 dates)&amp;lt;/span&amp;gt;">
+                                        8 novembre 2026 à 16h30 au 27 décembre 2026 à 16h30 <span class="font-normal">(18 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/36176/ca-sent-leucalyptus">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-11-08,2026-11-12,2026-11-15,2026-11-19,2026-11-22,2026-11-26,2026-11-29" data-show-families="" data-show-id="35972" data-show-kind="event" data-show-raw-dates='["2026-11-08T18:15:00+01:00","2026-11-12T20:45:00+01:00","2026-11-15T18:15:00+01:00","2026-11-19T20:45:00+01:00","2026-11-22T18:15:00+01:00","2026-11-26T20:45:00+01:00","2026-11-29T18:15:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="suzanne-valadon" style="view-transition-name: show-35972;" title="Suzanne Valadon">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                Suzanne Valadon
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="8 novembre 2026 à 18h15 au 29 novembre 2026 à 18h15 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(7 dates)&amp;lt;/span&amp;gt;">
+                                        8 novembre 2026 à 18h15 au 29 novembre 2026 à 18h15 <span class="font-normal">(7 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/35972/suzanne-valadon">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-11-08,2026-11-15,2026-11-22,2026-11-29,2026-12-06,2026-12-13,2026-12-20,2026-12-27" data-show-families="" data-show-id="34606" data-show-kind="event" data-show-raw-dates='["2026-11-08T20:00:00+01:00","2026-11-15T20:00:00+01:00","2026-11-22T20:00:00+01:00","2026-11-29T20:00:00+01:00","2026-12-06T20:00:00+01:00","2026-12-13T20:00:00+01:00","2026-12-20T20:00:00+01:00","2026-12-27T20:00:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="la-rua-madureira" style="view-transition-name: show-34606;" title="La Rua Madureira">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                La Rua Madureira
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="8 novembre 2026 à 20h00 au 27 décembre 2026 à 20h00 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(8 dates)&amp;lt;/span&amp;gt;">
+                                        8 novembre 2026 à 20h00 au 27 décembre 2026 à 20h00 <span class="font-normal">(8 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/34606/la-rua-madureira">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-11-11,2026-11-14,2026-11-18,2026-11-21,2026-11-25,2026-11-28,2026-12-02,2026-12-05,2026-12-09,2026-12-12,2026-12-16,2026-12-19" data-show-families="" data-show-id="35839" data-show-kind="event" data-show-raw-dates='["2026-11-11T15:00:00+01:00","2026-11-14T15:00:00+01:00","2026-11-18T15:00:00+01:00","2026-11-21T15:00:00+01:00","2026-11-25T15:00:00+01:00","2026-11-28T15:00:00+01:00","2026-12-02T15:00:00+01:00","2026-12-05T15:00:00+01:00","2026-12-09T15:00:00+01:00","2026-12-12T15:00:00+01:00","2026-12-16T15:00:00+01:00","2026-12-19T15:00:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="le-caillou-enchante-de-la-fee-barnabe" style="view-transition-name: show-35839;" title="Le Caillou Enchanté de la Fée Barnabé">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                Le Caillou Enchanté de la Fée Barnabé
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="11 novembre 2026 à 15h00 au 19 décembre 2026 à 15h00 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(12 dates)&amp;lt;/span&amp;gt;">
+                                        11 novembre 2026 à 15h00 au 19 décembre 2026 à 15h00 <span class="font-normal">(12 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+<div class="" title="5,0 étoiles sur 1 avis">
+<div class="review-rating-trigger border rounded-md px-0.5 py-0.5 bg-white dark:bg-gray-600 inline-flex items-center gap-0.5 text-[0.7rem] font-semibold text-slate-700 dark:text-slate-200 leading-none shadow-sm">
+<span>5,0</span>
+<div aria-hidden="true" class="flex items-center gap-[1px]">
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+</div>
+<span class="font-semibold text-primary dark:text-primary-soft">
+                (1)
+            </span>
+</div>
+</div>
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/35839/le-caillou-enchante-de-la-fee-barnabe">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-11-12,2026-11-19,2026-11-26,2026-12-03,2026-12-10,2026-12-17" data-show-families="" data-show-id="34487" data-show-kind="event" data-show-raw-dates='["2026-11-12T19:00:00+01:00","2026-11-19T19:00:00+01:00","2026-11-26T19:00:00+01:00","2026-12-03T19:00:00+01:00","2026-12-10T19:00:00+01:00","2026-12-17T19:00:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="qui-suis-je" style="view-transition-name: show-34487;" title="Qui suis-je ?">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                Qui suis-je ?
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="12 novembre 2026 à 19h00 au 17 décembre 2026 à 19h00 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(6 dates)&amp;lt;/span&amp;gt;">
+                                        12 novembre 2026 à 19h00 au 17 décembre 2026 à 19h00 <span class="font-normal">(6 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/34487/qui-suis-je">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-11-13,2026-11-14,2026-11-15" data-show-families="" data-show-id="34613" data-show-kind="event" data-show-raw-dates='["2026-11-13T19:00:00+01:00","2026-11-14T19:00:00+01:00","2026-11-15T16:30:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="eloge-du-desordre" style="view-transition-name: show-34613;" title="Éloge du désordre">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                Éloge du désordre
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="13 novembre 2026 à 19h00 au 15 novembre 2026 à 16h30 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(3 dates)&amp;lt;/span&amp;gt;">
+                                        13 novembre 2026 à 19h00 au 15 novembre 2026 à 16h30 <span class="font-normal">(3 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+<div class="" title="4,9 étoiles sur 15 avis">
+<div class="review-rating-trigger border rounded-md px-0.5 py-0.5 bg-white dark:bg-gray-600 inline-flex items-center gap-0.5 text-[0.7rem] font-semibold text-slate-700 dark:text-slate-200 leading-none shadow-sm">
+<span>4,9</span>
+<div aria-hidden="true" class="flex items-center gap-[1px]">
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+<span class="inline-block w-3.5 h-3.5">
+
+</span>
+</div>
+<span class="font-semibold text-primary dark:text-primary-soft">
+                (15)
+            </span>
+</div>
+</div>
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/34613/eloge-du-desordre">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-11-14,2026-11-28,2026-12-12,2026-12-26" data-show-families="" data-show-id="34609" data-show-kind="event" data-show-raw-dates='["2026-11-14T17:00:00+01:00","2026-11-28T17:00:00+01:00","2026-12-12T17:00:00+01:00","2026-12-26T17:00:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="next" style="view-transition-name: show-34609;" title="Next !">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                Next !
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="14 novembre 2026 à 17h00 au 26 décembre 2026 à 17h00 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(4 dates)&amp;lt;/span&amp;gt;">
+                                        14 novembre 2026 à 17h00 au 26 décembre 2026 à 17h00 <span class="font-normal">(4 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/34609/next">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-11-21,2026-12-05,2026-12-19" data-show-families="" data-show-id="34608" data-show-kind="event" data-show-raw-dates='["2026-11-21T17:00:00+01:00","2026-12-05T17:00:00+01:00","2026-12-19T17:00:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="blacksad" style="view-transition-name: show-34608;" title="Blacksad">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                Blacksad
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="21 novembre 2026 à 17h00 au 19 décembre 2026 à 17h00 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(3 dates)&amp;lt;/span&amp;gt;">
+                                        21 novembre 2026 à 17h00 au 19 décembre 2026 à 17h00 <span class="font-normal">(3 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/34608/blacksad">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2026-12-03,2026-12-06,2026-12-10,2026-12-13,2026-12-17,2026-12-20,2026-12-27" data-show-families="" data-show-id="36183" data-show-kind="event" data-show-raw-dates='["2026-12-03T20:45:00+01:00","2026-12-06T18:15:00+01:00","2026-12-10T20:45:00+01:00","2026-12-13T18:15:00+01:00","2026-12-17T20:45:00+01:00","2026-12-20T18:15:00+01:00","2026-12-27T18:15:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="histoire-de-celeste-mogador-amie-dalexandre-duma" style="view-transition-name: show-36183;" title="Histoire de Céleste Mogador, amie d'Alexandre Duma">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                Histoire de Céleste Mogador, amie d'Alexandre Duma
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="3 décembre 2026 à 20h45 au 27 décembre 2026 à 18h15 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(7 dates)&amp;lt;/span&amp;gt;">
+                                        3 décembre 2026 à 20h45 au 27 décembre 2026 à 18h15 <span class="font-normal">(7 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/36183/histoire-de-celeste-mogador-amie-dalexandre-duma">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="max-h-[70vh] lg:max-h-full box-shadow show-item group bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-300 dark:shadow-[0_0_20px_rgba(255,255,255,0.70)] hover:shadow-2xl hover:shadow-slate-400 dark:hover:shadow-[0_0_30px_rgba(255,255,255,0.45)] overflow-hidden transition-all duration-300 cursor-pointer border-gray-100 dark:border-slate-700 h-full flex flex-col relative" data-placeholder-image="0" data-show-dates="2027-01-08,2027-01-09,2027-01-10,2027-01-15,2027-01-16,2027-01-17,2027-01-22,2027-01-23,2027-01-24,2027-01-29,2027-01-30,2027-01-31" data-show-families="" data-show-id="36543" data-show-kind="event" data-show-raw-dates='["2027-01-08T19:00:00+01:00","2027-01-09T19:00:00+01:00","2027-01-10T15:00:00+01:00","2027-01-15T19:00:00+01:00","2027-01-16T19:00:00+01:00","2027-01-17T15:00:00+01:00","2027-01-22T19:00:00+01:00","2027-01-23T19:00:00+01:00","2027-01-24T15:00:00+01:00","2027-01-29T19:00:00+01:00","2027-01-30T19:00:00+01:00","2027-01-31T15:00:00+01:00"]' data-show-rooms="Guichet Montparnasse" data-show-slug="la-guerre-des-conserves" style="view-transition-name: show-36543;" title="La Guerre des Conserves">
+<div class="absolute lg:hidden bottom-4 right-[-50px] z-10 w-[192px] h-[20px] origin-center -rotate-[28deg] flex items-center justify-center px-2 select-none pointer-events-none" style="background-color: #f93acf; color: #FFFFFF;">
+<span class="block w-full text-center text-[8px] font-extrabold uppercase tracking-[0.04em] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                            Guic. Mont.
+                        </span>
+</div>
+<div class="flex flex-row items-stretch lg:flex-col flex-1 min-h-0">
+<div class="relative overflow-hidden w-[112px] shrink-0 self-stretch lg:self-auto lg:w-full">
+<div class="w-full aspect-[159/239] bg-white flex items-center justify-center overflow-hidden">
+
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 dark:from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex flex-col items-start lg:items-center justify-start lg:justify-center">
+<div class="hidden lg:flex w-full flex-col gap-px mb-1">
+<div class="px-2 py-1 text-center text-[10px] font-extrabold uppercase tracking-[0.04em] shadow-[0_-1px_0_rgba(0,0,0,0.08)]" style="background-color: #f93acf; color: #FFFFFF;">
+                                            Guichet Montparnasse
+                                        </div>
+</div>
+<h2 class="px-3 mt-2 text-base lg:text-md md:text-sm text-left lg:text-center font-extrabold text-gray-800 dark:text-white mb-1 leading-tight group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-2 lg:line-clamp-none">
+                                La Guerre des Conserves
+                            </h2>
+</div>
+<div class="px-3 flex-1 flex flex-col items-start lg:items-center justify-start min-w-0">
+<div class="flex w-full flex-col items-start lg:items-center justify-center gap-2 mt-1">
+<span class="show-dates-label text-gray-900 dark:text-white text-left lg:text-center text-sm md:text-[11px] leading-tight block w-full group-hover:text-secondary dark:group-hover:text-secondary-dark transition-colors duration-300 line-clamp-3 lg:line-clamp-none" data-default-dates-label="8 janvier 2027 à 19h00 au 31 janvier 2027 à 15h00 &amp;lt;span class=&amp;quot;font-normal&amp;quot;&amp;gt;(12 dates)&amp;lt;/span&amp;gt;">
+                                        8 janvier 2027 à 19h00 au 31 janvier 2027 à 15h00 <span class="font-normal">(12 dates)</span>
+</span>
+</div>
+<div class="h-6 flex w-full items-center justify-start lg:justify-center mt-1">
+</div>
+<div class="flex mb-3 w-full justify-start lg:justify-center mt-auto pt-2">
+<a class="show-reserve-link inline-block px-4 lg:px-5 py-2 rounded-md bg-primary text-white font-bold text-xs lg:text-sm shadow hover:bg-secondary transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/billetterie/representation/36543/la-guerre-des-conserves">
+                                        Réserver
+                                    </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="hidden mb-8 text-center text-sm text-slate-600 dark:text-slate-300" id="showTypeEmptyState">
+        Aucun événement ne correspond à ce filtre.
+    </div>
+</div>
+
+
+</div>
+</div>
+<div class="mt-6 xl:mt-0 xl:fixed xl:right-6 2xl:right-10 xl:top-[260px] xl:w-80 z-40" id="cartFixed">
+<div class="flex flex-col mb-10">
+<!-- Bouton flottant pour ouvrir le panier (mobile/tablette) -->
+<button class="flex fixed right-4 lg:right-6 2xl:right-10 top-1/2 -translate-y-1/2 z-50 bg-primary dark:bg-primary-dark text-white rounded-md whitespace-nowrap shadow-lg dark:shadow-gray-400 p-3 transition-all border-4 border-primary dark:border-primary-dark animate-[pulse-border_1.5s_ease-in-out_infinite]" id="openCartBtn" style="display: none;" title="Ouvrir le panier">
+ <span class="ml-2 font-bold">Afficher le panier</span>
+<span class="cart-count ml-2 px-2 py-1 rounded-md border-2 border-white dark:border-secondary-dark bg-secondary dark:bg-secondary-dark text-white text-xs font-bold align-middle">0</span>
+<span class="cart-timer-mini ml-3 px-2 py-1 border-2 border-white text-white text-xs rounded font-bold"></span>
+</button>
+<!-- Container Panier -->
+<div class="relative w-full rounded-none border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg dark:shadow-none shadow-gray-400 mt-4 xl:fixed xl:right-6 2xl:right-10 xl:top-1/2 xl:-translate-y-1/2 xl:w-80 xl:rounded xl:z-50 xl:ml-12 xl:max-h-[80vh] xl:overflow-hidden xl:mt-0 dark:transition-all dark:duration-500 transition-all duration-500 reduced" id="cartContainer">
+<!-- Timer du panier -->
+<div class="cart-fixed-section flex justify-center items-center border border-blue-600 bg-blue-200 dark:bg-blue-900 text-center text-gray-600 dark:text-white rounded-[3px] px-4 py-2" id="cartTimerContainer">
+<div class="w-5 h-5 mr-2 my-1">
+ </div>
+<p class="text-lg whitespace-nowrap">Votre panier expire dans <span class="cart-timer-text"></span></p>
+</div>
+<button aria-label="Réduire le panier" class="cart-fixed-section w-full inline-flex items-center py-1 border-2 border-panier-volant-border-header dark:border-panier-volant-border-header-dark bg-panier-volant-header-bg dark:bg-panier-volant-header-bg-dark text-white dark:text-white hover:bg-panier-volant-header-bg-hover dark:hover:bg-panier-volant-header-bg-hover-dark hover:text-panier-volant-header-text dark:hover:text-panier-volant-header-text-dark font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark" id="reduceCartBtn" title="Réduire le panier">
+
+            Réduire
+        </button>
+<!-- En-tête -->
+<div class="cart-fixed-section text-gray-600 dark:text-white py-2 px-6 flex justify-between items-center w-full">
+<div class="flex items-center gap-2">
+<!-- Bouton Réduire intégré dans l'en-tête -->
+<h2 class="text-xl font-medium flex items-center gap-3 dark:text-white ml-2">
+                    Panier
+                </h2>
+</div>
+<button class="flex items-center gap-2 text-secondary dark:text-secondary-dark text-sm font-semibold hover:text-primary dark:hover:text-primary-dark hover:scale-125 transition duration-200 transform" id="cart-drain-btn" title="Vider le panier ??">
+
+                Vider
+            </button>
+</div>
+<ul class="space-y-4 p-6" id="cartItemsIndex">
+<!-- Liste des articles -->
+</ul>
+<div class="text-center text-gray-400 dark:text-gray-500 py-4 hidden" id="emptyCartMessage">
+            Votre panier est vide
+        </div>
+<div class="cart-checkout-section mt-6 border-t pt-4 px-6 pb-6">
+<p class="text-xl font-medium text-gray-600 dark:text-white flex justify-between">
+                Total : <span id="cartTotalIndex"></span>
+</p>
+<button class="mt-4 w-full bg-panier-volant-button-bg dark:bg-panier-volant-button-bg-dark hover:bg-panier-volant-button-bg-hover dark:hover:bg-panier-volant-button-bg-hover-dark text-white font-bold py-3 rounded-md transition-all transform hover:scale-105 shadow-md" data-ripple-light="true" id="validateOrderBtn" title="Valider la commande">
+                Valider la commande
+            </button>
+</div>
+</div>
+</div>
+
+
+</div>
+</div>
+</div>
+</div>
+<div aria-live="assertive" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" id="cart-error-modal" role="alert" style="display:none;">
+<div class="rounded-2xl shadow-2xl max-w-xl w-full ring-1 ring-tickBossTheme/30 bg-white p-0 overflow-hidden animate-fade-in">
+<div class="flex items-center gap-2 px-6 py-4 bg-tickBossTheme">
+<span class="flex items-center justify-center bg-white/20 rounded-full w-8 h-8 mr-1">
+
+</span>
+<span class="text-white text-lg font-extrabold tracking-wide flex-1" id="cart-error-title">Oups — Un problème est survenu</span>
+<button aria-label="Fermer" class="text-white/80 hover:text-red-200 text-2xl font-bold ml-auto focus:outline-none transition" id="cart-error-close" type="button">×</button>
+</div>
+<div class="p-8 bg-gradient-to-br from-white via-gray-50 to-gray-100">
+<p class="text-gray-800 text-lg mb-6 leading-relaxed" id="cart-error-message-text">
+</p>
+<hr aria-hidden="true" class="my-6 border-t border-gray-200" role="separator"/>
+<div class="flex justify-end gap-3" id="cart-error-actions">
+<button class="px-6 py-2 bg-tickBossTheme text-white font-semibold rounded-full shadow-lg hover:bg-tickBossTheme/90 focus:outline-none focus:ring-2 focus:ring-tickBossTheme/40 transition-all duration-200" id="cart-error-close-btn" type="button">Fermer</button>
+</div>
+</div>
+</div>
+</div>
+
+<template id="pending-clear-cart-icon-template">
+ </template>
+
+
+
+
+
+
+<div aria-live="assertive" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm" id="tickboss-error-modal" role="alert" style="display:none;">
+<div class="rounded-2xl shadow-2xl max-w-md w-full ring-1 ring-primary-soft dark:ring-primary bg-white dark:bg-gray-900 p-0 overflow-hidden animate-fade-in">
+<div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-primary to-secondary dark:from-primary-dark dark:to-secondary-dark">
+<span class="flex items-center justify-center bg-white rounded-full w-8 h-8 mr-1 ring-2 ring-primary-soft">
+
+</span>
+<span class="text-white text-lg font-extrabold tracking-wide flex-1">Information</span>
+<button aria-label="Fermer" class="text-white hover:text-primary hover:bg-white text-2xl font-bold ml-auto focus:outline-none transition rounded-full w-8 h-8 leading-none flex items-center justify-center" id="tickboss-error-close">×</button>
+</div>
+<div class="p-8 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+<div class="flex items-center gap-3 mb-4">
+
+<span class="text-primary dark:text-primary-soft font-semibold text-base">Problème détecté</span>
+</div>
+<div class="text-black dark:text-gray-100 text-lg mb-8 leading-relaxed" id="tickboss-error-message">
+                Une erreur technique est survenue. Veuillez réessayer plus tard.<br/>
+</div>
+<div class="flex justify-end">
+<button class="px-6 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-offset-gray-900 transition-all duration-200" id="tickboss-error-close-btn">
+                    Fermer
+                </button>
+</div>
+</div>
+</div>
+</div>
+
+<div aria-live="assertive" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" id="cart-error-modal" role="alert" style="display:none;">
+<div class="rounded-2xl shadow-2xl max-w-xl w-full ring-1 ring-tickBossTheme/30 bg-white p-0 overflow-hidden animate-fade-in">
+<div class="flex items-center gap-2 px-6 py-4 bg-tickBossTheme">
+<span class="flex items-center justify-center bg-white/20 rounded-full w-8 h-8 mr-1">
+
+</span>
+<span class="text-white text-lg font-extrabold tracking-wide flex-1" id="cart-error-title">Oups — Un problème est survenu</span>
+<button aria-label="Fermer" class="text-white/80 hover:text-red-200 text-2xl font-bold ml-auto focus:outline-none transition" id="cart-error-close" type="button">×</button>
+</div>
+<div class="p-8 bg-gradient-to-br from-white via-gray-50 to-gray-100">
+<p class="text-gray-800 text-lg mb-6 leading-relaxed" id="cart-error-message-text">
+</p>
+<hr aria-hidden="true" class="my-6 border-t border-gray-200" role="separator"/>
+<div class="flex justify-end gap-3" id="cart-error-actions">
+<button class="px-6 py-2 bg-tickBossTheme text-white font-semibold rounded-full shadow-lg hover:bg-tickBossTheme/90 focus:outline-none focus:ring-2 focus:ring-tickBossTheme/40 transition-all duration-200" id="cart-error-close-btn" type="button">Fermer</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="fixed inset-0 z-[1200] hidden flex items-center justify-center bg-gradient-to-br from-black/60 to-black/40 backdrop-blur-sm" id="global-confirm-modal-overlay">
+<div class="relative bg-transparent w-full max-w-2xl mx-4 p-6 overflow-hidden" id="global-confirm-modal">
+<!-- card -->
+<div class="relative bg-white/95 dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black/5">
+<!-- fancy header with decorative gradient and icon -->
+<div class="flex items-center gap-4 p-6 bg-gradient-to-r from-primary via-primary to-secondary text-white">
+<div class="flex-shrink-0">
+<div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="text-xl font-semibold leading-tight" id="global-confirm-modal-title">Confirmer l'action</h3>
+<p class="text-sm opacity-90 mt-1">Cette action peut affecter vos réservations. Confirmez pour continuer.</p>
+</div>
+<div class="flex-shrink-0">
+<button class="text-white/90 hover:text-white transition" id="global-confirm-modal-close">✕</button>
+</div>
+</div>
+<!-- body -->
+<div class="flex items-center justify-center p-6 pb-8 text-center min-h-[120px]">
+<p class="text-primary dark:text-gray-200 text-base" id="global-confirm-modal-message">Message</p>
+</div>
+<div class="border-t border-gray-200 dark:border-gray-700"></div>
+<div class="flex items-center justify-end gap-3 p-4">
+<button class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-full border border-primary/20 text-primary dark:text-gray-200 hover:bg-primary/10 transition" id="global-confirm-modal-cancel" type="button">Annuler</button>
+<button class="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-primary text-white hover:bg-secondary transition shadow" id="global-confirm-modal-confirm" type="button">Confirmer</button>
+</div>
+</div>
+</div>
+</div>
+<!-- modern alert modal -->
+<div class="fixed inset-0 z-[1200] hidden items-center justify-center bg-black/40 backdrop-blur-sm" id="global-alert-modal-overlay">
+<div class="w-full max-w-lg mx-4" id="global-alert-modal">
+<div class="bg-white/95 dark:bg-gray-800 rounded-2xl shadow-xl p-6 ring-1 ring-black/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white">
+
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-lg font-semibold text-primary dark:text-white" id="global-alert-modal-title">Information</h4>
+</div>
+</div>
+<div class="mt-4">
+<p class="text-primary dark:text-gray-200 text-sm" id="global-alert-modal-message">Message</p>
+</div>
+<div class="mt-6 flex justify-end">
+<button class="px-4 py-2 rounded-md bg-primary text-white hover:bg-secondary" id="global-alert-modal-ok">OK</button>
+</div>
+</div>
+</div>
+</div>
+
+
+</main>
+<footer class="bg-gradient-to-br from-nav-from via-nav-from to-nav-to text-gray-300 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900" id="mainFooter">
+<div class="max-w-7xl mx-auto px-6 py-12">
+<!-- Section principale -->
+<div class="flex flex-col md:flex-row justify-between items-start mb-8 gap-10">
+<!-- Colonne 1: Logo et description -->
+<div class="w-full md:w-1/3 min-w-[220px] mb-8 md:mb-0">
+<a class="flex items-center space-x-4 group" href="https://leguichetmontparnasse.vosbillets.fr">
+<div class="relative">
+<div class="absolute -inset-1">
+</div>
+<div class="relative w-24 h-24 hover:border-red-500 dark:hover:border-primary-soft transition-all duration-300 flex items-center justify-center p-2">
+</div>
+</div>
+<div>
+<h3 class="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 dark:from-primary-soft dark:to-primary-soft bg-clip-text text-transparent group-hover:from-primary-soft group-hover:to-white dark:group-hover:from-primary-soft dark:group-hover:to-primary-dark transition-all duration-300">
+</h3>
+<p class="text-primary-soft dark:text-primary-soft text-sm font-medium tracking-wide">
+                            Depuis 1986 un théâtre de quartier !</p>
+</div>
+</a>
+</div>
+<!-- Colonne 2: Liens rapides -->
+<!-- Colonne 3: Contact -->
+<div class="w-full md:w-1/3 min-w-[220px] flex flex-col items-start md:items-end">
+<div class="space-y-4 w-full md:w-auto">
+<h4 class="text-lg font-semibold text-white mb-4">Nous contacter</h4>
+<div class="flex items-start space-x-3">
+<div class="w-10 h-10 bg-gray-800 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+ </div>
+<div>
+<button class="text-gray-300 hover:text-white transition-colors duration-200 text-sm leading-relaxed text-left cursor-pointer decoration-dotted" data-geo-url="geo:0,0?q=15+Rue+du+Maine+75014+Paris" id="openMapsModalBtn" type="button">
+<span class="whitespace-pre-line">15 Rue du Maine</span>
+<div class="flex flex-wrap gap-2">
+<div id="preview_footer_cp">75014</div>
+<div id="preview_footer_ville">Paris</div>
+</div>
+</button>
+</div>
+</div>
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 bg-gray-800 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+ </div>
+<a class="text-gray-300 hover:text-white transition-colors duration-200" href="tel:+331 43 27 88 61">
+                            01 43 27 88 61
+                        </a>
+</div>
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 bg-gray-800 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+ </div>
+<a class="text-gray-300 hover:text-white transition-colors duration-200" href="/cdn-cgi/l/email-protection#f796949482929e9bb790829e949f92839a9899838796859996848492d994989a">
+<span class="__cf_email__" data-cfemail="e18082829484888da1869488828984958c8e8f959180938f80929284cf828e8c">[email protected]</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<div class="border-t border-gray-400 pt-6">
+<div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+<div class="text-sm text-gray-300 dark:text-gray-400 text-center md:text-left">
+                    © 2026 <span class="font-semibold text-white">SOCIÉTÉ ARTTICK</span>. Tous droits
+                    réservés.<br/>
+<span class="block mt-1 text-xs text-white">
+                        Reproduction partielle ou totale strictement interdite
+                    </span>
+</div>
+<div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-6 text-sm text-center md:text-left">
+<a class="text-gray-300 hover:text-white transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/itr/mention_legales" title="Mentions légales">Mentions légales</a>
+<a class="text-gray-300 hover:text-white transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/itr/cgv" title="Conditions Générales de Vente">
+                        Conditions Générales de Vente
+                    </a>
+<a class="text-gray-300 hover:text-white transition-colors duration-200" href="https://leguichetmontparnasse.vosbillets.fr/itr/infos_divers" title="Informations Diverses">Informations Diverses</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Modal Maps Chooser -->
+<div class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 opacity-0 pointer-events-none transition-opacity duration-300" id="mapsModal" style="display: none;">
+<div class="relative w-full max-w-md rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/95 dark:bg-slate-900/95 shadow-[0_25px_80px_-20px_rgba(15,23,42,0.45)] overflow-hidden opacity-0 translate-y-3 scale-[0.98] transition-all duration-300" id="mapsModalPanel">
+<div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400"></div>
+<button aria-label="Fermer la modale itinéraire" class="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors duration-200" data-close-maps-modal="1" type="button">
+ </button>
+<div class="px-6 pt-7 pb-6 sm:px-7">
+<div class="flex items-start gap-3 mb-5">
+<div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
+ </div>
+<div class="pr-10">
+<h3 class="text-xl font-semibold text-slate-900 dark:text-white leading-tight">Choisir un GPS</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Ouvrir l'itinéraire avec votre application préférée.</p>
+</div>
+</div>
+<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 px-4 py-3 mb-5">
+<div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1">Destination</div>
+<div class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+<span class="whitespace-pre-line">15 Rue du Maine</span><br/>
+                            75014 Paris
+                        </div>
+</div>
+<div class="space-y-3">
+<a class="group flex items-center justify-between w-full rounded-xl px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors duration-200" data-close-maps-modal="1" href="https://www.google.com/maps/dir/?api=1&amp;destination=15+Rue+du+Maine+75014+Paris" rel="noopener" target="_blank">
+<span class="inline-flex items-center gap-2">
+                                Google Maps
+                            </span>
+ </a>
+<a class="group flex items-center justify-between w-full rounded-xl px-4 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-colors duration-200" data-close-maps-modal="1" href="https://waze.com/ul?q=15+Rue+du+Maine+75014+Paris&amp;navigate=yes&amp;utm_source=arttick" rel="noopener" target="_blank">
+<span class="inline-flex items-center gap-2">
+                                Waze
+                            </span>
+ </a>
+<a class="group flex items-center justify-between w-full rounded-xl px-4 py-3 bg-slate-700 hover:bg-slate-800 text-white font-medium transition-colors duration-200" data-close-maps-modal="1" href="https://maps.apple.com/?daddr=15+Rue+du+Maine+75014+Paris&amp;dirflg=d" rel="noopener" target="_blank">
+<span class="inline-flex items-center gap-2">
+                                Plans (Apple)
+                            </span>
+ </a>
+</div>
+<div class="mt-5 flex justify-end">
+<button class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-colors duration-200" data-close-maps-modal="1" type="button">
+                            Fermer
+                        </button>
+</div>
+</div>
+</div>
+</div>
+
+</footer>
+</div>
+
+</body>
+<!-- Scripts should be inside the body -->
+
+
+
+
+
+
+
+
+<!-- Inclure Tippy.js via CDN copie datatable -->
+
+
+
+
+
+
+</html>
