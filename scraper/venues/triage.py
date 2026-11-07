@@ -73,7 +73,7 @@ AGENDA_HINT_RE = re.compile(
     r"billetterie|reserv|evenements?|events?|expositions?|seances?|cinema|concerts?|whats-on|visites?",
     re.I,
 )
-AGENDA_AVOID_RE = re.compile(r"mentions|cookies|contact|newsletter|presse|mecenat|location|recrut|\.pdf|cgv|cgu|faq|plan-du-site|passee|archive", re.I)
+AGENDA_AVOID_RE = re.compile(r"mentions|cookies|contact|newsletter|presse|mecenat|location|recrut|\.pdf|cgv|cgu|faq|plan-du-site|passee|passes|archive|ancien", re.I)
 EXTRA_PATTERNS = {
     "distribution": re.compile(r"distribution|avec\s*:|mise en sc[eè]ne|interpr[eé]t", re.I),
     "duree": re.compile(r"dur[eé]e\s*:?\s*\d|\b\d\s?h\s?\d{0,2}\b|\b\d{2,3}\s?(?:min|mn)\b", re.I),

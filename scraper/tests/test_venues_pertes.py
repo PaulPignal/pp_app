@@ -265,6 +265,8 @@ class Iteration2Tests(unittest.TestCase):
         self.assertIsNone(html_fiche.parse_fiche(html, "https://x.fr/spectacles/hamlet/", TODAY))
         occ = html_fiche.parse_fiche(html, "https://x.fr/spectacles/hamlet/", TODAY, require_date=False)
         self.assertEqual((occ["title"], occ["date_start"], occ["performances"], occ["price_min_eur"]), ("Hamlet", None, [], 20.0))
+        passe = html.replace("Prochainement", "Du 3 janvier 2020 au 9 janvier 2020")  # spectacle terminé : écarté même sans obligation de date
+        self.assertIsNone(html_fiche.parse_fiche(passe, "https://x.fr/spectacles/hamlet/", TODAY, require_date=False))
         from scraper.venues import schemaorg
         groups = schemaorg.group_occurrences([occ])
         self.assertEqual(groups[0]["performances"], [])

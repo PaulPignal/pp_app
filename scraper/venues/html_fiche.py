@@ -61,6 +61,12 @@ def parse_dates(text: str, today: date) -> list[str]:
     return sorted(d for d in found if today.isoformat() <= d <= horizon)
 
 
+def _mentions_date(text: str, times: list[str]) -> bool:
+    """La page date quelque chose (jour + mois en français, jj/mm/aaaa, balise <time>) : si aucune de ces
+    dates n'est à venir, c'est un spectacle terminé (page « anciens spectacles »), pas une fiche sans date."""
+    return bool(times) or bool(_DATE_RE.search(text)) or bool(_NUM_DATE_RE.search(text))
+
+
 def parse_price_range(text: str) -> tuple[Optional[float], Optional[float]]:
     """Tarifs en euros du texte (0 < prix ≤ 500) ; (None, None) sinon."""
     amounts = [float(p.replace(",", ".")) for p in parsers.PRICE_RE.findall(text)]
@@ -93,8 +99,8 @@ def parse_fiche(html: str, url: str, today: Optional[date] = None, require_date:
     description = _meta(soup, "og:description", "description") or ""
     text = f"{description} {_main_text(soup)}"  # certains sites mettent la date dans la meta description
     dates = sorted({d for d in times if parsers.is_valid_iso_date(d) and d >= today.isoformat()} | set(parse_dates(text, today)))
-    if not dates and require_date:
-        return None
+    if not dates and (require_date or _mentions_date(text, times)):
+        return None  # sans date à venir : fiche écartée, sauf si elle ne date rien du tout (date facultative)
     low, high = parse_price_range(text)
     dm = _DURATION_CTX_RE.search(text)
     return {
