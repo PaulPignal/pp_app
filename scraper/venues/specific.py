@@ -333,6 +333,6 @@ ADAPTERS: dict = {
     "theatre-des-mathurins-2750": make_adapter(["https://www.theatredesmathurins.com/", "https://www.theatredesmathurins.com/reservation-groupes/"], r"^/spectacles/[a-z0-9\-]+/?$", max_fiches=60),
     "theatre-du-nord-ouest-2849": nord_ouest_adapter,
     "comedie-saint-michel-3528": csm_adapter,
-    "apollo-theatre-3239": make_adapter(["https://www.apollotheatre.fr/nos-spectacles-l.html"], r"-lo\d+\.html$", max_fiches=60),
+    "apollo-theatre-3239": make_adapter(["https://www.apollotheatre.fr/nos-spectacles-l.html"], r"-lo\d+\.html$", max_fiches=100),  # 67 fiches listées le 07/11
     "theatre-3251": make_adapter(["https://www.theatrejacquescarat.fr/la-saison"], r"^/la-saison/[a-z0-9\-]+$", filter_re=r"genres="),
 }

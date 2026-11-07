@@ -69,7 +69,7 @@ CMS_MARKERS = [
     ("gatsby", re.compile(r"___gatsby", re.I)),
 ]
 AGENDA_HINT_RE = re.compile(
-    r"agenda|programmation|programme|spectacles?|saison|calendrier|a-l-affiche|a-laffiche|"
+    r"agenda|programmation|programme|spectacles?|saison|calendrier|a-l-affiche|a-laffiche|alaffiche|affiche|"
     r"billetterie|reserv|evenements?|events?|expositions?|seances?|cinema|concerts?|whats-on|visites?",
     re.I,
 )

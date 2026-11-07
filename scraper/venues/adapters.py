@@ -13,6 +13,7 @@ except ModuleNotFoundError:  # pragma: no cover
     from venues import billetterie, generic, js_agendas, schemaorg, specific, triage  # type: ignore[no-redef]
     from venues.http import PoliteFetcher  # type: ignore[no-redef]
 
+PLATFORM_FICHES = 3  # fiches lues pour y reconnaître une billetterie absente de l'accueil
 SPECIFIC: dict[str, Callable] = {**specific.ADAPTERS, **js_agendas.ADAPTERS}  # slug offi du lieu -> fonction(fetcher, venue, today)
 
 
@@ -43,7 +44,16 @@ def venue_platforms(fetcher: PoliteFetcher, venue: dict) -> list[str]:
     """Billetteries du lieu : celles du catalogue (triage) puis celles reconnues sur l'accueil au moment du
     run (une plateforme ajoutée après le triage, comme Vosbillets, est ainsi prise en compte sans retriage)."""
     names = [p.split(":")[0] for p in (venue.get("ticketing_all") or "").split("|") if p]
-    for page in billetterie.site_pages(fetcher, venue):  # accueil + pages agenda, déjà en cache
+    pages = billetterie.site_pages(fetcher, venue)  # accueil + pages agenda, déjà en cache
+    fiches: list[str] = []
+    for page in pages[1:] or pages:  # premières fiches : Double Fond ne lie Mapado que depuis ses fiches
+        soup = BeautifulSoup(page.text, "html.parser")
+        fiches += [u for u in generic.detail_links(soup, page.final_url, set(fiches), PLATFORM_FICHES) if u not in fiches]
+    for url in fiches[:PLATFORM_FICHES]:
+        page = fetcher.get(url)  # relue par le générique ensuite (cache)
+        if page.ok:
+            pages.append(page)
+    for page in pages:
         soup = BeautifulSoup(page.text, "html.parser")
         for name in triage.detect_ticketing(triage.external_hosts(soup, page.final_url)):
             if name not in names:
