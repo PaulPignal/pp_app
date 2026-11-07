@@ -10,7 +10,7 @@ export default function LoadingDiscover() {
       </div>
 
       <div className="mx-auto w-full max-w-xl overflow-hidden rounded-xl border border-line bg-surface" aria-hidden>
-        <div className="skeleton aspect-[4/5] max-h-[28rem] w-full rounded-none sm:aspect-[3/2]" />
+        <div className="skeleton aspect-[4/5] max-h-[max(12rem,calc(100svh-31rem))] w-full rounded-none sm:aspect-[3/2] sm:max-h-[28rem]" />
         <div className="flex flex-col gap-3 p-4 sm:p-5">
           <div className="skeleton h-4 w-2/3" />
           <div className="skeleton h-4 w-1/2" />

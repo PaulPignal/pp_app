@@ -51,8 +51,10 @@ export default function CardWork({ work, counter, priority = true }: Props) {
   return (
     <article className="flex h-full w-full flex-col overflow-hidden rounded-xl bg-surface">
       {/* Affiche + surimpression. Le voile sombre en bas est fonctionnel : il garantit
-          la lisibilité du titre blanc quelle que soit l'image. */}
-      <div className="relative aspect-[4/5] max-h-[28rem] w-full overflow-hidden bg-fill sm:aspect-[3/2]">
+          la lisibilité du titre blanc quelle que soit l'image, même quand l'affiche porte
+          son propre texte. Sur mobile, la hauteur suit l'écran (100svh moins 31rem) : les
+          faits (crédits, métro, durée, tarif) tiennent au-dessus de la barre d'actions. */}
+      <div className="relative aspect-[4/5] max-h-[max(12rem,calc(100svh-31rem))] w-full overflow-hidden bg-fill sm:aspect-[3/2] sm:max-h-[28rem]">
         <WorkImage
           src={work.imageUrl}
           alt=""
@@ -66,7 +68,7 @@ export default function CardWork({ work, counter, priority = true }: Props) {
             </div>
           }
         />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/95 via-black/75 via-40% to-transparent" />
 
         {counter ? (
           <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold tabular-nums text-white">
@@ -75,7 +77,7 @@ export default function CardWork({ work, counter, priority = true }: Props) {
           </span>
         ) : null}
 
-        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 p-4 sm:p-5">
+        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 p-4 [text-shadow:0_1px_10px_rgb(0_0_0/0.8)] sm:p-5">
           {ratingLabel ? (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-white/90">
               <IconStar size={12} />

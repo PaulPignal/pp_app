@@ -34,8 +34,10 @@ export default function StreamingPlatformFilter({ available, selected }: Props) 
   }
 
   return (
-    <div role="group" aria-label="Filtrer par plateforme" className="flex flex-wrap items-center gap-2">
-      <span className="eyebrow mr-1">Plateformes</span>
+    // Une seule rangée défilable sur mobile (comme les sections) : sur trois rangées, le filtre
+    // repoussait la fiche sous la barre d'actions. Retour à la ligne à partir de 640 px.
+    <div role="group" aria-label="Filtrer par plateforme" className="pill-strip items-center sm:flex-wrap">
+      <span className="eyebrow mr-1 self-center">Plateformes</span>
       <button type="button" aria-pressed={set.size === 0} onClick={() => go([])} className="pill">
         Toutes
       </button>
