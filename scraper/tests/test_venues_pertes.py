@@ -42,6 +42,7 @@ class AppariementTests(unittest.TestCase):
         ("les 7 doigts de la main the attic les choses que jai vues allongee sur le dos", "The Attic"),
         ("minotaure", "Ciné-club Lost in Frenchlation - MINOTAURE"),
         ("focus cabaret 1 collectif dartistes", "Focus Cabaret #1"),
+        ("choeur des amants", "Chœur des amants"),                                 # ligature
     ]
     PAIRES_FAUSSES = [
         ("tango", "Tango argentin et milonga"),       # un mot court : trop fragile (règle d'origine)

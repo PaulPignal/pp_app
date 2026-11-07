@@ -38,9 +38,13 @@ _GENERIC_ALONE = {
 MIN_INCLUSION_CHARS = 8
 
 
+_LIGATURES = str.maketrans({"œ": "oe", "Œ": "OE", "æ": "ae", "Æ": "AE"})
+
+
 def normalize_title(value: str) -> str:
-    """Titre sans apostrophe d'élision, comme dans les URL d'offi."""
-    return _ELISION_RE.sub("", value or "")
+    """Titre sans apostrophe d'élision ni ligature, comme dans les URL d'offi (« chœur » -> « choeur » ;
+    la décomposition NFKD de slugify laisse « œ » de côté et donnait « chur »)."""
+    return _ELISION_RE.sub("", (value or "").translate(_LIGATURES))
 
 
 def titles_match(offi: str, direct: str) -> bool:
