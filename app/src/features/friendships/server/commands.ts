@@ -10,12 +10,10 @@ type AddFriendCommandInput = {
   input: AddFriendInput
 }
 
-export type AddFriendResult = {
-  friend: { id: string; email: string }
-  // 'accepted' : amitié mutuelle effective (lien d'invitation, ou demande croisée).
-  // 'pending'  : demande envoyée, en attente d'acceptation par le destinataire.
-  status: 'accepted' | 'pending'
-}
+// 'accepted' : amitié mutuelle effective (lien d'invitation, demande croisée, déjà amis).
+// 'pending'  : demande envoyée OU email sans compte. Réponse identique dans les deux cas,
+//              sans identifiant : elle ne révèle pas si un compte existe (audit F2).
+export type AddFriendResult = { status: 'accepted'; friend: { id: string; email: string } } | { status: 'pending' }
 
 async function makeMutual(userId: string, friendId: string) {
   await prisma.$transaction([
@@ -50,7 +48,7 @@ export async function addFriend({ userId, userEmail, input }: AddFriendCommandIn
     })
 
     if (!friend) {
-      throw new Error('friend_not_found')
+      throw new Error('invalid_invite_token')
     }
 
     await makeMutual(userId, friend.id)
@@ -68,7 +66,7 @@ export async function addFriend({ userId, userEmail, input }: AddFriendCommandIn
   })
 
   if (!friend) {
-    throw new Error('friend_not_found')
+    return { status: 'pending' }
   }
 
   // Déjà amis (arête sortante ACCEPTED) → idempotent.
@@ -97,7 +95,7 @@ export async function addFriend({ userId, userEmail, input }: AddFriendCommandIn
     create: { userId, friendId: friend.id, status: 'PENDING' },
   })
 
-  return { friend, status: 'pending' }
+  return { status: 'pending' }
 }
 
 // Le destinataire (userId) accepte une demande reçue de requesterId.
@@ -117,7 +115,7 @@ export async function acceptFriendRequest({ userId, requesterId }: { userId: str
   })
 
   if (!requester) {
-    throw new Error('friend_not_found')
+    throw new Error('request_not_found')
   }
 
   await makeMutual(userId, requesterId)

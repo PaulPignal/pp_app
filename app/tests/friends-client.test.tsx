@@ -15,7 +15,7 @@ describe('FriendsClient', () => {
 
   it('invite par email → demande en attente (consentement), notice explicite', async () => {
     vi.mocked(fetch).mockResolvedValue(
-      jsonResponse({ ok: true, friend: { id: 'friend-2', email: 'new@example.com' }, status: 'pending' }),
+      jsonResponse({ ok: true, status: 'pending' }),
     )
     const user = userEvent.setup()
     render(<FriendsClient initialFriends={[]} initialRequests={[]} inviteToken="token-1" />)
@@ -27,7 +27,7 @@ describe('FriendsClient', () => {
       '/api/friends',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ email: 'new@example.com' }) }),
     )
-    expect(await screen.findByText(/Invitation envoyée à new@example.com/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Demande envoyée. Si new@example.com a un compte Offi/i)).toBeInTheDocument()
     // pas ajouté à la liste d'amis tant que non accepté
     expect(screen.queryByText('Aucun ami pour le moment.')).toBeInTheDocument()
   }, 15000)
@@ -68,7 +68,7 @@ describe('FriendsClient', () => {
 
   it('Entrée dans le champ email envoie l’invitation (formulaire)', async () => {
     vi.mocked(fetch).mockResolvedValue(
-      jsonResponse({ ok: true, friend: { id: 'friend-2', email: 'new@example.com' }, status: 'pending' }),
+      jsonResponse({ ok: true, status: 'pending' }),
     )
     const user = userEvent.setup()
     render(<FriendsClient initialFriends={[]} initialRequests={[]} inviteToken="token-1" />)
@@ -76,7 +76,7 @@ describe('FriendsClient', () => {
     await user.type(screen.getByLabelText('Email de votre ami'), 'new@example.com{Enter}')
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/friends', expect.objectContaining({ method: 'POST' })))
-    expect(await screen.findByRole('status')).toHaveTextContent(/Invitation envoyée/)
+    expect(await screen.findByRole('status')).toHaveTextContent(/Demande envoyée/)
   }, 15000)
 
   it('refuser une demande la retire sans ajouter d’ami', async () => {
@@ -107,14 +107,14 @@ describe('FriendsClient', () => {
   }, 15000)
 
   it('erreur serveur : une alerte explicite, que l’on peut fermer', async () => {
-    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 404, text: async () => JSON.stringify({ ok: false, error: 'friend_not_found' }) } as Response)
+    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 400, text: async () => JSON.stringify({ ok: false, error: 'cannot_add_self' }) } as Response)
     const user = userEvent.setup()
     render(<FriendsClient initialFriends={[]} initialRequests={[]} inviteToken="token-1" />)
 
     await user.type(screen.getByLabelText('Email de votre ami'), 'nobody@example.com')
     await user.click(screen.getByRole('button', { name: 'Inviter' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Aucun compte Offi ne correspond à cet email.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Vous ne pouvez pas vous ajouter vous-même.')
     await user.click(screen.getByRole('button', { name: 'Fermer le message' }))
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   }, 15000)

@@ -18,10 +18,7 @@ type FriendsClientProps = {
   invitation?: InvitePreviewDto | null
 }
 
-type AddFriendPayload = JsonOk<{
-  friend: FriendSummaryDto
-  status: 'accepted' | 'pending'
-}>
+type AddFriendPayload = JsonOk<{ status: 'accepted'; friend: FriendSummaryDto } | { status: 'pending' }>
 
 type AcceptPayload = JsonOk<{ friend: FriendSummaryDto }>
 
@@ -42,8 +39,6 @@ function formatFriendsError(error: string) {
       return 'Ce lien d’invitation a expiré.'
     case 'cannot_add_self':
       return 'Vous ne pouvez pas vous ajouter vous-même.'
-    case 'friend_not_found':
-      return 'Aucun compte Offi ne correspond à cet email.'
     case 'request_not_found':
       return 'Cette demande n’existe plus.'
     case 'forbidden':
@@ -116,7 +111,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
       })
-      if (payload.friend) {
+      if (payload.status === 'accepted') {
         upsertFriend(payload.friend)
         setNotice(`${payload.friend.email} fait désormais partie de vos amis.`)
       }
@@ -146,7 +141,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
         upsertFriend(payload.friend)
         setNotice(`${payload.friend.email} fait désormais partie de vos amis.`)
       } else {
-        setNotice(`Invitation envoyée à ${payload.friend.email}. Elle apparaîtra dans vos amis une fois acceptée.`)
+        setNotice(`Demande envoyée. Si ${emailInput} a un compte Offi, la personne apparaîtra dans vos amis une fois la demande acceptée.`)
       }
       setEmailInput('')
     } catch (requestError) {

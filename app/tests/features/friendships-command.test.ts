@@ -80,7 +80,7 @@ describe('addFriend', () => {
       input: { email: 'friend@example.com' },
     })
 
-    expect(result).toEqual({ friend: { id: 'friend-1', email: 'friend@example.com' }, status: 'pending' })
+    expect(result).toEqual({ status: 'pending' })
     expect(prisma.friendship.upsert).toHaveBeenCalledTimes(1)
     expect(prisma.friendship.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -120,12 +120,13 @@ describe('addFriend', () => {
     expect(prisma.friendship.upsert).not.toHaveBeenCalled()
   })
 
-  it('email → compte introuvable', async () => {
+  it('email → compte introuvable : même réponse qu’une demande envoyée, rien d’écrit', async () => {
     prisma.user.findUnique.mockResolvedValue(null)
 
     await expect(
       addFriend({ userId: 'me', userEmail: 'me@example.com', input: { email: 'ghost@example.com' } }),
-    ).rejects.toThrow('friend_not_found')
+    ).resolves.toEqual({ status: 'pending' })
+    expect(prisma.friendship.upsert).not.toHaveBeenCalled()
   })
 })
 

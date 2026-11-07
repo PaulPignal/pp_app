@@ -1,7 +1,7 @@
 import { requireSessionUser, isUnauthorizedError } from '@/features/auth/server/session'
 import { friendRequestActionSchema } from '@/features/friendships/schemas'
 import { acceptFriendRequest, declineFriendRequest } from '@/features/friendships/server/commands'
-import { jsonError, jsonOk } from '@/shared/lib/http'
+import { jsonError, jsonKnownError, jsonOk } from '@/shared/lib/http'
 import { rateLimit } from '@/shared/lib/rate-limit'
 
 export const runtime = "nodejs";
@@ -33,10 +33,6 @@ export async function POST(req: Request) {
     return jsonOk({ declined: true })
   } catch (error) {
     if (isUnauthorizedError(error)) return jsonError('unauthorized', 401)
-    if (error instanceof Error) {
-      const status = error.message === 'request_not_found' ? 404 : 400
-      return jsonError(error.message, status)
-    }
-    return jsonError('server_error', 500)
+    return jsonKnownError(error, { request_not_found: 404 }, 'POST /api/friends/requests')
   }
 }
