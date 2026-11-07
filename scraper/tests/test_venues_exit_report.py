@@ -100,3 +100,18 @@ class ExitReportTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SelectionTest(unittest.TestCase):
+    def test_vague_1_filtre_par_plateforme(self):
+        from scraper.venues.__main__ import select_venues
+
+        rows = [
+            {"slug": "a-1", "website": "https://a", "status": "ok", "feasibility": "2", "platform": "mapado", "ticketing_all": "mapado:3"},
+            {"slug": "b-2", "website": "https://b", "status": "ok", "feasibility": "1", "platform": "site_propre/wordpress", "ticketing_all": "shotgun:1"},
+            {"slug": "c-3", "website": "https://c", "status": "ok", "feasibility": "1", "platform": "site_propre/wordpress", "ticketing_all": ""},
+            {"slug": "d-4", "website": "https://d", "status": "bloqué", "feasibility": "2", "platform": "mapado", "ticketing_all": "mapado:1"},
+        ]
+        chosen = select_venues(rows, None, True, 2, None, {"mapado", "shotgun"})
+        self.assertEqual([r["slug"] for r in chosen], ["a-1", "b-2"])
+        self.assertEqual(len(select_venues(rows, None, True, 2, None)), 3)

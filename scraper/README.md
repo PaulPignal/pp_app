@@ -58,3 +58,11 @@ Local et prod : même wrapper exécuté par cron
 ```
 
 La même stratégie fonctionne sur un hôte de prod tant que l'environnement expose `DATABASE_URL` et les dépendances système nécessaires.
+
+## Sources directes des lieux (hebdomadaire, vendredi 03:37 UTC)
+
+`.github/workflows/venues-refresh.yml` : job `scrape` (scrape direct de la vague 1, 89 lieux vendus via Mapado, Billetreduc, Tick&Live, Shotgun, puis rapport de sortie d'offi en artefact) et job `ingest` (écriture en base).
+
+- **Garde** : le job `ingest` ne tourne que si la variable de dépôt `VENUES_INGEST_ENABLED` vaut `true`. Variable absente = scrape et rapport seulement, aucune écriture en base, aucun secret utilisé.
+- **Migration** : le workflow n'en applique jamais ; `ingest` vérifie en lecture seule (`prisma migrate status`) que `20261107120000_add_work_direct_sources` est en base. `offi-refresh.yml` exécute `prisma migrate deploy` : la migration part en production au premier run d'offi-refresh après la fusion sur `main`.
+- **Sortie d'offi** : `python3 -m scraper.venues.exit_report` propose les lieux à 90 % ou plus pendant 3 semaines consécutives ; `data/venues/direct_only.csv` (colonne `venue_slug`) est modifié à la main, et un lieu listé n'est plus ingéré depuis offi.

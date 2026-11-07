@@ -36,12 +36,21 @@ def load_catalogue(path: str) -> list[dict]:
     return rows
 
 
-def select_venues(rows: list[dict], slug: Optional[str], run_all: bool, min_feasibility: int, limit: Optional[int]) -> list[dict]:
+def platforms_of(row: dict) -> set[str]:
+    """Plateformes de billetterie d'un lieu (colonne platform, sans le CMS, et ticketing_all)."""
+    names = {p.split(":")[0] for p in (row.get("ticketing_all") or "").split("|") if p}
+    names.add((row.get("platform") or "").split("/")[0])
+    return names
+
+
+def select_venues(rows: list[dict], slug: Optional[str], run_all: bool, min_feasibility: int, limit: Optional[int],
+                  platforms: Optional[set[str]] = None) -> list[dict]:
     if slug:
         return [r for r in rows if r["slug"] == slug]
     if not run_all:
         return []
-    chosen = [r for r in rows if r.get("website") and r.get("status") != "bloqué" and int(r.get("feasibility") or 3) <= min_feasibility]
+    chosen = [r for r in rows if r.get("website") and r.get("status") != "bloqué" and int(r.get("feasibility") or 3) <= min_feasibility
+              and (not platforms or platforms_of(r) & platforms)]
     return chosen[:limit] if limit else chosen
 
 
@@ -55,9 +64,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--max-feasibility", type=int, default=2, help="avec --all : ignore les lieux de faisabilité supérieure")
     ap.add_argument("--workers", type=int, default=6, help="lieux traités en parallèle (domaines distincts)")
     ap.add_argument("--limit", type=int, help="avec --all : nombre max de lieux")
+    ap.add_argument("--platforms", help="avec --all : ne garde que les lieux vendus via ces billetteries (ex. mapado,billetreduc,tick_and_live,shotgun : vague 1)")
     args = ap.parse_args(argv)
 
-    venues = select_venues(load_catalogue(args.catalogue), args.venue, args.all, args.max_feasibility, args.limit)
+    venues = select_venues(load_catalogue(args.catalogue), args.venue, args.all, args.max_feasibility, args.limit,
+                       set(args.platforms.split(",")) if args.platforms else None)
     if not venues:
         print("Aucun lieu sélectionné", file=sys.stderr)
         return 1

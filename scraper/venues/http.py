@@ -24,7 +24,13 @@ except ModuleNotFoundError:  # exécuté depuis scraper/
     from offi_scraper import USER_AGENTS  # type: ignore[no-redef]
 
 USER_AGENT = USER_AGENTS[1]
-DEFAULT_CACHE_DIR = os.path.expanduser("~/perso/pp_app-relance/t2-cache")
+DEFAULT_CACHE_DIR = os.environ.get("VENUES_CACHE_DIR") or os.path.expanduser("~/perso/pp_app-relance/t2-cache")
+# Durée de vie d'une page en cache (heures). Sans limite, un cache local rejoué des semaines
+# plus tard servirait un agenda périmé. VENUES_CACHE_TTL_HOURS=0 désactive la limite.
+DEFAULT_CACHE_TTL_HOURS = float(os.environ.get("VENUES_CACHE_TTL_HOURS", "24"))
+# User-Agent qui identifie le projet (sans adresse e-mail) : utilisé par les sources machine
+# (API JSON, iCal, sitemaps) ajoutées pour les lieux à agenda JavaScript.
+PROJECT_USER_AGENT = "pp-app-agenda-culturel/1.0 (+https://github.com/PaulPignal/pp_app)"
 MIN_INTERVAL_S = 1.0
 MAX_BYTES = 3_000_000
 BLOCK_STATUS = {401, 403, 429, 503}
@@ -50,13 +56,15 @@ class Page:
 
 
 class PoliteFetcher:
-    def __init__(self, cache_dir: str = DEFAULT_CACHE_DIR, min_interval: float = MIN_INTERVAL_S, timeout: float = 20):
+    def __init__(self, cache_dir: str = DEFAULT_CACHE_DIR, min_interval: float = MIN_INTERVAL_S, timeout: float = 20,
+                 user_agent: str = USER_AGENT, cache_ttl_hours: float = DEFAULT_CACHE_TTL_HOURS):
         self.cache_dir = cache_dir
+        self.cache_ttl_hours = cache_ttl_hours
         self.min_interval = min_interval
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update({
-            "User-Agent": USER_AGENT,
+            "User-Agent": user_agent,
             "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
             "Accept": "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,*/*;q=0.8",
         })
@@ -72,6 +80,8 @@ class PoliteFetcher:
     def _read_cache(self, url: str) -> Optional[Page]:
         path = self._cache_path(url)
         if not os.path.exists(path):
+            return None
+        if self.cache_ttl_hours and time.time() - os.path.getmtime(path) > self.cache_ttl_hours * 3600:
             return None
         try:
             with open(path, encoding="utf-8") as f:
