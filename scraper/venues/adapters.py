@@ -37,6 +37,20 @@ def merge_records(batches: list[list[dict]]) -> list[dict]:
     return list(merged.values())
 
 
+def _platform_batches(fetcher: PoliteFetcher, venue: dict, info: dict, today) -> tuple[list[list[dict]], list[str]]:
+    """Lots d'enregistrements des billetteries tierces reconnues sur le site du lieu."""
+    batches: list[list[dict]] = []
+    used: list[str] = []
+    for platform in [p.split(":")[0] for p in (venue.get("ticketing_all") or "").split("|") if p]:
+        if platform in billetterie.PLATFORMS:
+            records, sub = billetterie.platform_records(fetcher, venue, platform, today)
+            info[f"{platform}"] = sub["status"]
+            if records:
+                batches.append(records)
+                used.append(platform)
+    return batches, used
+
+
 def run_venue(fetcher: PoliteFetcher, venue: dict, today=None) -> tuple[list[dict], dict]:
     info: dict = {"adapter": "", "status": ""}
     if venue["slug"] in SPECIFIC:
@@ -45,7 +59,18 @@ def run_venue(fetcher: PoliteFetcher, venue: dict, today=None) -> tuple[list[dic
         records, sub = SPECIFIC[venue["slug"]](active, venue, today)
         info.update(sub)
         info["adapter"] = f"specifique:{venue['slug']}"
-        return records, info
+        # Les billetteries tierces du lieu complètent l'adaptateur (prix, disponibilité, spectacles
+        # absents de l'agenda du site) ; l'adaptateur fait foi en cas de doublon.
+        batches, used = ([records] if records else []), []
+        if venue.get("website") and venue.get("status") in ("ok", "", None):
+            site = dict(venue, website=triage.normalize_website(venue["website"]))
+            more, used = _platform_batches(fetcher, site, info, today)
+            batches += more
+        if used:
+            info["adapter"] += "+" + "+".join(used)
+        if batches:
+            info["status"] = "ok"
+        return merge_records(batches), info
     if not venue.get("website"):
         info["status"] = "sans_site"
         return [], info
@@ -53,16 +78,7 @@ def run_venue(fetcher: PoliteFetcher, venue: dict, today=None) -> tuple[list[dic
     if venue.get("status") not in ("ok", "", None):
         info["status"] = venue["status"]
         return [], info
-    platforms = [p.split(":")[0] for p in (venue.get("ticketing_all") or "").split("|") if p]
-    batches: list[list[dict]] = []
-    used: list[str] = []
-    for platform in platforms:
-        if platform in billetterie.PLATFORMS:
-            records, sub = billetterie.platform_records(fetcher, venue, platform, today)
-            info[f"{platform}"] = sub["status"]
-            if records:
-                batches.append(records)
-                used.append(platform)
+    batches, used = _platform_batches(fetcher, venue, info, today)
     records, sub = generic.generic_records(fetcher, venue, today)
     if records:
         batches.insert(0, records)

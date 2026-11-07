@@ -47,23 +47,7 @@ def _clean(text: Optional[str]) -> str:
 
 def occurrence(title: str, url: str, day: date, start: Optional[str] = None, end_day: Optional[date] = None, **extra) -> dict:
     """Occurrence au format attendu par `schemaorg.group_occurrences` (mêmes clés que html_fiche.parse_fiche)."""
-    occ = {
-        "title": title, "url": url, "date_start": day.isoformat(), "date_end": (end_day or day).isoformat(),
-        "venue": None, "address": None, "description": None, "image": None, "duration_min": None, "cast": [],
-        "director": None, "age_range": None, "language": None, "event_status": None, "accessibility": [],
-        "type": "Event", "availability": None, "currency": None, "booking_url": None,
-        "price_min_eur": None, "price_max_eur": None, "performances": [],
-    }
-    occ.update(extra)
-    if occ["price_min_eur"] is not None and not occ["currency"]:
-        occ["currency"] = "EUR"
-    if not occ["performances"]:
-        perf = {"start": start or day.isoformat()}
-        for key, source in (("availability", "availability"), ("price_min_eur", "price_min_eur"), ("url", "booking_url")):
-            if occ.get(source) is not None:
-                perf[key] = occ[source]
-        occ["performances"] = [perf]
-    return occ
+    return schemaorg.blank_occurrence(title, url, day, start=start, end_day=end_day, **extra)
 
 
 def _finish(occurrences: list[dict], venue: dict, source: str, today: Optional[date], info: dict) -> tuple[list[dict], dict]:
