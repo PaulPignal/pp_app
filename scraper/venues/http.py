@@ -111,6 +111,11 @@ class PoliteFetcher:
         if slot > now:
             time.sleep(slot - now)
 
+    def delay_for(self, url: str) -> float:
+        """Intervalle effectif entre deux requêtes sur l'hôte de `url` (1 s, ou le Crawl-delay de robots.txt)."""
+        self._robots_for(url)
+        return max(self.min_interval, self._crawl_delay.get(urlparse(url).netloc, 0.0))
+
     def project_fetcher(self) -> "PoliteFetcher":
         """Fetcher partagé, User-Agent du projet : pour les sources machine (API JSON, calendriers)."""
         with self._lock:

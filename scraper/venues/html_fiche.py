@@ -20,7 +20,8 @@ except ModuleNotFoundError:  # pragma: no cover
     from offi_scraper import MONTH_PATTERN, MONTHS  # type: ignore[no-redef]
 
 _DATE_RE = re.compile(rf"(?<![\d/])(\d{{1,2}})(?:er)?\s+({MONTH_PATTERN})(?:\s+(\d{{4}}))?", re.IGNORECASE)
-_NUM_DATE_RE = re.compile(r"(?<![\d/])(\d{1,2})/(\d{1,2})/(20\d{2})(?![\d/])")
+# Année sur 4 chiffres ou sur 2 (« Du 12/01/27 au 16/05/27 » chez TPA).
+_NUM_DATE_RE = re.compile(r"(?<![\d/])(\d{1,2})/(\d{1,2})/(20\d{2}|\d{2})(?![\d/])")
 _DURATION_CTX_RE = re.compile(r"dur[ée]e\s*:?\s*(?:environ\s*|approx\.?\s*)?([0-9]+\s*h\s*[0-9]*|[0-9]+\s*(?:min|mn))", re.IGNORECASE)
 _TITLE_SUFFIX_RE = re.compile(r"\s+[|\-–—]\s+[^|\-–—]{3,60}$")
 _SKIP_TAGS = ("script", "style", "nav", "footer", "noscript", "svg", "form")
@@ -54,11 +55,18 @@ def parse_dates(text: str, today: date) -> list[str]:
                 break
     for m in _NUM_DATE_RE.finditer(text):
         try:
-            found.add(date(int(m.group(3)), int(m.group(2)), int(m.group(1))).isoformat())
+            year = int(m.group(3))
+            found.add(date(year if year >= 100 else 2000 + year, int(m.group(2)), int(m.group(1))).isoformat())
         except ValueError:
             continue
     horizon = date.fromordinal(today.toordinal() + MAX_HORIZON_DAYS).isoformat()
     return sorted(d for d in found if today.isoformat() <= d <= horizon)
+
+
+def _mentions_date(text: str, times: list[str]) -> bool:
+    """La page date quelque chose (jour + mois en français, jj/mm/aaaa, balise <time>) : si aucune de ces
+    dates n'est à venir, c'est un spectacle terminé (page « anciens spectacles »), pas une fiche sans date."""
+    return bool(times) or bool(_DATE_RE.search(text)) or bool(_NUM_DATE_RE.search(text))
 
 
 def parse_price_range(text: str) -> tuple[Optional[float], Optional[float]]:
@@ -93,8 +101,8 @@ def parse_fiche(html: str, url: str, today: Optional[date] = None, require_date:
     description = _meta(soup, "og:description", "description") or ""
     text = f"{description} {_main_text(soup)}"  # certains sites mettent la date dans la meta description
     dates = sorted({d for d in times if parsers.is_valid_iso_date(d) and d >= today.isoformat()} | set(parse_dates(text, today)))
-    if not dates and require_date:
-        return None
+    if not dates and (require_date or _mentions_date(text, times)):
+        return None  # sans date à venir : fiche écartée, sauf si elle ne date rien du tout (date facultative)
     low, high = parse_price_range(text)
     dm = _DURATION_CTX_RE.search(text)
     return {

@@ -80,7 +80,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     # Faisabilité 3 incluse par défaut depuis le 07/11/2026 : les sites « HTML sur mesure » sont lus par le repli
     # HTML de l'extracteur générique et par les adaptateurs spécifiques (MC93, Nord-Ouest…), qui sont tous notés 3.
     ap.add_argument("--max-feasibility", type=int, default=3, help="avec --all : ignore les lieux de faisabilité supérieure")
-    ap.add_argument("--workers", type=int, default=6, help="lieux traités en parallèle (domaines distincts)")
+    ap.add_argument("--workers", type=int, default=10, help="lieux traités en parallèle (domaines distincts ; la politesse est par domaine)")
     ap.add_argument("--limit", type=int, help="avec --all : nombre max de lieux")
     ap.add_argument("--platforms", help="avec --all : ne garde que les lieux vendus via ces billetteries (ex. mapado,billetreduc,tick_and_live,shotgun : vague 1)")
     ap.add_argument("--sections", help="avec --all : ne garde que les lieux de ces sections offi (ex. theatre)")

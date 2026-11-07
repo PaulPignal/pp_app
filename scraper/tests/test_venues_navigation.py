@@ -22,3 +22,10 @@ def test_filtre_par_section():
     ]
     assert [r["slug"] for r in select_venues(rows, None, True, 3, None, None, {"theatre"})] == ["a"]
     assert len(select_venues(rows, None, True, 3, None)) == 2
+
+
+def test_dates_a_annee_sur_deux_chiffres():
+    from datetime import date
+    from scraper.venues.html_fiche import parse_dates
+    assert parse_dates("Du 12/01/27 au 16/05/27", date(2026, 11, 7)) == ["2027-01-12", "2027-05-16"]
+    assert parse_dates("Avis du 18/07/2026", date(2026, 11, 7)) == []
