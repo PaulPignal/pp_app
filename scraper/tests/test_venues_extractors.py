@@ -183,6 +183,18 @@ class HtmlFicheTests(unittest.TestCase):
         occ = self.check("mathurins_listing", "https://www.theatredesmathurins.com/reservation-groupes/", r"^/spectacles/[a-z0-9\-]+/?$", "mathurins_fiche", "https://www.theatredesmathurins.com/spectacles/veronique-gallo/", "gallo", "2027-01-08")
         self.assertEqual(occ["duration_min"], 80)
 
+    def test_cartoucherie_epee_de_bois(self):
+        occ = self.check("cartoucherie_listing", "https://www.epeedebois.com/saison/", r"^/un-spectacle/[a-z0-9\-]+/?$", "cartoucherie_fiche", "https://www.epeedebois.com/un-spectacle/ubu-roi/", "ubu roi", "2027-03-27")
+        self.assertEqual(occ["duration_min"], 100)
+
+    def test_theatre_71_malakoff(self):
+        occ = self.check("theatre71_listing", "https://malakoffscenenationale.fr/calendrier", r"^/theatre-71/programme/[a-z0-9\-]+$", "theatre71_fiche", "https://malakoffscenenationale.fr/theatre-71/programme/rodolphe-burger", "burger", "2026-11-07")
+        self.assertEqual(occ["duration_min"], 60)
+
+    def test_gaite_rive_gauche(self):
+        occ = self.check("rivegauche_listing", "https://lagaiterivegauche.com/spectacles/paris-is-magique/", r"^/spectacles/[a-z0-9\-]+/?$", "rivegauche_fiche", "https://lagaiterivegauche.com/spectacles/the-opera-locos/", "opera locos", "2026-12-31")
+        self.assertEqual(occ["duration_min"], 75)
+
     def test_dates_francaises(self):
         self.assertEqual(html_fiche.parse_dates("Samedi 7 novembre 2026 et 1er décembre à 20h", TODAY), ["2026-11-07", "2026-12-01"])
         self.assertEqual(html_fiche.parse_dates("du 3 janvier 2020 au 9 janvier 2020", TODAY), [])
@@ -216,6 +228,17 @@ class MergeTests(unittest.TestCase):
         self.assertEqual(merged[0]["url"], "https://a")
         self.assertEqual(merged[0]["price_min_eur"], 10.0)
         self.assertEqual(merged[0]["source"], "direct:jsonld+billetreduc")
+
+
+class CoverageTests(unittest.TestCase):
+    def test_titre_offi_depuis_l_url_et_appariement(self):
+        from scraper.venues.coverage import offi_title, titles_match
+
+        self.assertEqual(offi_title("https://www.offi.fr/theatre/la-grande-comedie-2410/restons-calme-107668.html"), "restons calme")
+        self.assertTrue(titles_match("restons calme", "Restons calme !"))
+        self.assertTrue(titles_match("le tour du monde en 80 jours", "Le Tour du monde en 80 jours - Théâtre X"))
+        self.assertFalse(titles_match("hamlet", "Macbeth"))
+        self.assertFalse(titles_match("tango", "Tango argentin et milonga"))  # un seul mot : trop fragile
 
 
 if __name__ == "__main__":

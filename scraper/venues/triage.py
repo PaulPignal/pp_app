@@ -12,6 +12,7 @@ Faisabilité :
 from __future__ import annotations
 
 import csv
+import os
 import re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
@@ -206,15 +207,26 @@ def analyse_site(fetcher: PoliteFetcher, website: str) -> dict:
     return result
 
 
-TRIAGE_COLUMNS = ["platform", "cms", "signal", "signal_detail", "feasibility", "extras", "agenda_url", "status", "ticketing_all"]
+def load_overrides() -> dict[str, str]:
+    """Sites retrouvés à la main pour des lieux dont offi ne donne pas l'URL (website_overrides.csv)."""
+    path = os.path.join(os.path.dirname(__file__), "website_overrides.csv")
+    with open(path, encoding="utf-8", newline="") as f:
+        return {r["slug"]: r["website"] for r in csv.DictReader(f)}
+
+
+TRIAGE_COLUMNS = ["platform", "cms", "signal", "signal_detail", "feasibility", "extras", "agenda_url", "status", "ticketing_all", "website_source"]
 
 
 def triage_catalogue(csv_in: str, csv_out: str, fetcher: PoliteFetcher, limit: Optional[int] = None, log=print, workers: int = 6) -> None:
     with open(csv_in, encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
     base_cols = [c for c in rows[0].keys() if c not in TRIAGE_COLUMNS] if rows else []
+    overrides = load_overrides()
     todo = []
     for row in rows:
+        row["website_source"] = "offi" if row.get("website") else ""
+        if not row.get("website") and row["slug"] in overrides:
+            row["website"], row["website_source"] = overrides[row["slug"]], "recherche"
         website = row.get("website") or ""
         if not website:
             row.update({c: "" for c in TRIAGE_COLUMNS})

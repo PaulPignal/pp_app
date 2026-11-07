@@ -78,5 +78,8 @@ ADAPTERS: dict = {
     "petit-bain-5136": make_adapter(["https://petitbain.org/agenda/"], r"^/evenement/\d+/?$"),
     "le-brady-1580": make_adapter(["https://www.lebrady.fr/les-evenements-du-brady/"], r"^/events/\d+-[a-z0-9\-]+/?$"),
     "cave-du-38-riv-4381": make_adapter(["https://38riv.com/concerts"], r"^/concerts/[a-z0-9\-]+-\d+$"),
+    "cartoucherie-theatre-de-lepee-de-bois-1631": make_adapter(["https://www.epeedebois.com/saison/"], r"^/un-spectacle/[a-z0-9\-]+/?$"),
+    "theatre-71-3268": make_adapter(["https://malakoffscenenationale.fr/calendrier"], r"^/theatre-71/programme/[a-z0-9\-]+$"),
+    "theatre-rive-gauche-3077": make_adapter(["https://lagaiterivegauche.com/spectacles/paris-is-magique/"], r"^/spectacles/[a-z0-9\-]+/?$"),
     "theatre-des-mathurins-2750": make_adapter(["https://www.theatredesmathurins.com/reservation-groupes/"], r"^/spectacles/[a-z0-9\-]+/?$"),
 }

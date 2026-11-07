@@ -189,6 +189,14 @@ def extract_platform(fetcher: PoliteFetcher, venue: dict, platform_name: str, ma
         ev, en = classify_links(BeautifulSoup(page.text, "html.parser"), page.final_url, platform)
         events |= ev
         entries |= en
+    pages: dict[str, Page] = {}
+    # 1re passe : quelques fiches ouvrent la page boutique/salle de la billetterie (liens vers les autres spectacles du lieu)
+    for url in sorted(events)[:3]:
+        page = fetcher.get(url)
+        pages[url] = page
+        if page.ok:
+            _, more_entries = classify_links(BeautifulSoup(page.text, "html.parser"), page.final_url, platform)
+            entries |= {e for e in more_entries if e != url}
     for entry in sorted(entries)[:MAX_ENTRY_PAGES]:
         page = fetcher.get(entry)
         if page.ok:
@@ -196,7 +204,7 @@ def extract_platform(fetcher: PoliteFetcher, venue: dict, platform_name: str, ma
             events |= ev
     occurrences: list[dict] = []
     for url in sorted(events)[:max_events]:
-        page = fetcher.get(url)
+        page = pages.get(url) or fetcher.get(url)
         info["event_pages"] += 1
         if page.ok:
             occurrences += occurrences_for(platform, page)
