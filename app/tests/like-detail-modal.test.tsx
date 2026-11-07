@@ -111,6 +111,7 @@ describe('LikeDetailModal', () => {
 
     await user.tab({ shift: true })
     expect(dialog.contains(document.activeElement)).toBe(true)
-    expect(screen.getByRole('button', { name: 'Retirer' })).toHaveFocus()
+    // Dernier élément focalisable : l'action principale (billetterie), dans le pied fixe de la boîte.
+    expect(screen.getByRole('link', { name: /Réserver des billets/ })).toHaveFocus()
   })
 })

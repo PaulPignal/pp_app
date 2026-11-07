@@ -19,7 +19,7 @@ export default function AppShell({ children }: AppShellProps) {
   if (isAuthRoute) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
-        <div className="mb-6">
+        <div className="mb-6 [&_.display]:text-3xl">
           <Wordmark tagline />
         </div>
         <div className="w-full max-w-sm">{children}</div>

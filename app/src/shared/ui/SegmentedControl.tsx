@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRef, type KeyboardEvent } from 'react'
+import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { cn } from '@/shared/lib/cn'
 
 type SegmentedItem = {
@@ -27,8 +27,20 @@ type SegmentedControlProps = {
 // - items avec `onChange` : choix unique (radiogroup + flèches, tabulation unique).
 export default function SegmentedControl({ items, value, ariaLabel, onChange, wrap = false, className }: SegmentedControlProps) {
   const groupRef = useRef<HTMLDivElement>(null)
+  const navRef = useRef<HTMLElement>(null)
   const stripClass = cn('pill-strip', wrap && 'flex-wrap overflow-visible', className)
   const isNav = items.some((item) => item.href)
+
+  // Bande défilable : la pilule active est amenée dans la zone visible (sinon, sur
+  // mobile, la section courante peut être coupée au bord droit).
+  useEffect(() => {
+    if (wrap) return
+    const root = navRef.current ?? groupRef.current
+    const active = root?.querySelector<HTMLElement>('[aria-current="page"], [aria-checked="true"]')
+    if (active && typeof active.scrollIntoView === 'function') {
+      active.scrollIntoView({ inline: 'center', block: 'nearest' })
+    }
+  }, [value, wrap])
 
   const content = (item: SegmentedItem) => (
     <>
@@ -41,7 +53,7 @@ export default function SegmentedControl({ items, value, ariaLabel, onChange, wr
 
   if (isNav) {
     return (
-      <nav aria-label={ariaLabel} className={stripClass}>
+      <nav ref={navRef} aria-label={ariaLabel} className={stripClass}>
         {items.map((item) => {
           const active = item.value === value
           return (

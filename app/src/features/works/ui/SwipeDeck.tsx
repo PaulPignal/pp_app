@@ -345,10 +345,10 @@ export default function SwipeDeck({ items, totalCount }: Props) {
     <section aria-label="Découvertes à balayer" className="mx-auto flex w-full max-w-xl flex-col gap-4 select-none">
       {/* Marge basse sur mobile : la fin de la carte peut défiler au-dessus de la barre d'actions. */}
       <div className="relative pb-20 lg:pb-0">
-        {/* Carte suivante, déjà rendue sous la carte courante : son affiche se charge
-            pendant la lecture, et la pile se devine. Inerte pour le clavier et les lecteurs d'écran. */}
+        {/* Carte suivante, déjà rendue sous la carte courante (invisible) : son affiche
+            se charge pendant la lecture. Inerte pour le clavier et les lecteurs d'écran. */}
         {next ? (
-          <div aria-hidden inert className="absolute inset-x-3 -top-2 bottom-[5.5rem] overflow-hidden rounded-xl border border-line bg-surface opacity-70 lg:bottom-2">
+          <div aria-hidden inert className="absolute inset-0 overflow-hidden opacity-0">
             <CardWork work={next} priority={false} />
           </div>
         ) : null}
@@ -363,7 +363,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           style={{ transform, pointerEvents: pending ? 'none' : 'auto' }}
-          className="relative z-10 w-full cursor-grab touch-none overflow-hidden rounded-xl border border-line bg-surface shadow-float will-change-transform active:cursor-grabbing"
+          className="relative z-10 w-full cursor-grab touch-none overflow-hidden rounded-xl border border-line bg-surface will-change-transform active:cursor-grabbing"
         >
           <CardWork work={current} counter={`${Math.min(index + 1, visibleTotal)} / ${visibleTotal}`} />
           <div className="pointer-events-none absolute inset-x-5 top-5 flex items-start justify-between">
@@ -382,8 +382,9 @@ export default function SwipeDeck({ items, totalCount }: Props) {
       </div>
 
       {/* Barre d'actions : sous la carte sur grand écran ; collée au-dessus de la barre
-          de navigation sur mobile, pour rester sous le pouce sans défilement. */}
-      <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 mx-auto flex w-fit items-center gap-4 lg:static">
+          de navigation sur mobile, pour rester sous le pouce sans défilement. Le voile
+          dégradé derrière les boutons garde le texte de la carte lisible. */}
+      <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 flex items-center justify-center gap-4 bg-gradient-to-t from-page via-page/85 to-transparent px-4 pb-3 pt-8 lg:static lg:mx-auto lg:w-fit lg:bg-none lg:p-0">
         <button
           type="button"
           onClick={() => void undo()}

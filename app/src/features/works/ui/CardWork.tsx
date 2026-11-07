@@ -181,7 +181,7 @@ export default function CardWork({ work, counter, priority = true }: Props) {
 
         {/* Repli Offi : seulement quand aucune source (lien dédié ni site du lieu). */}
         {work.sourceUrl && !officialUrl && !venueWebsite ? (
-          <a href={work.sourceUrl} target="_blank" rel="noopener noreferrer" className="link inline-flex min-h-11 w-fit items-center text-xs">
+          <a href={work.sourceUrl} target="_blank" rel="noopener noreferrer" className="link inline-flex min-h-11 w-fit items-center text-sm">
             Voir sur Offi.fr
           </a>
         ) : null}

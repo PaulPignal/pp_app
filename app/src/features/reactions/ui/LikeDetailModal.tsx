@@ -106,23 +106,12 @@ export default function LikeDetailModal({ work, fallbackTitle, friends, bucket, 
             ) : null}
 
             <div className="flex flex-col gap-2 border-t border-line pt-4">
-              {ctaHref ? (
-                <a
-                  href={ctaHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`btn w-full ${soldOut && !isStreaming ? 'btn-secondary' : 'btn-primary'}`}
-                >
-                  {ctaLabel}
-                  <IconArrowUpRight size={16} />
-                </a>
-              ) : null}
               {work && !isStreaming && (work.venue || work.address) ? (
                 <a href={mapsUrl(work)} target="_blank" rel="noopener noreferrer" className="btn btn-secondary w-full">
                   <IconPin size={16} /> Itinéraire
                 </a>
               ) : null}
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2">
                 {bucket === 'like' ? (
                   <button type="button" className="btn flex-1" onClick={onSeen}>
                     Marquer comme vu
@@ -135,6 +124,21 @@ export default function LikeDetailModal({ work, fallbackTitle, friends, bucket, 
             </div>
           </WorkSummaryCard>
         </div>
+
+        {/* Action principale toujours visible, hors de la zone qui défile. */}
+        {ctaHref ? (
+          <div className="shrink-0 border-t border-line bg-page px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
+            <a
+              href={ctaHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`btn w-full ${soldOut && !isStreaming ? 'btn-secondary' : 'btn-primary'}`}
+            >
+              {ctaLabel}
+              <IconArrowUpRight size={16} />
+            </a>
+          </div>
+        ) : null}
       </div>
     </div>
   )

@@ -334,7 +334,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
               return (
                 <li key={request.id} className="flex flex-wrap items-center gap-3 py-3">
                   <Avatar email={request.email} />
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{request.email}</span>
+                  <span className="min-w-0 flex-1 basis-40 truncate text-sm font-semibold text-ink">{request.email}</span>
                   <div className="flex shrink-0 items-center gap-1">
                     <button className="btn btn-primary px-4" onClick={() => void respondToRequest(request.id, 'accept')} disabled={pending !== null}>
                       {isAccepting ? 'Ajout…' : 'Accepter'}
@@ -370,7 +370,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                 <li key={friend.id} className="py-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <Avatar email={friend.email} />
-                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{friend.email}</span>
+                    <span className="min-w-0 flex-1 basis-40 truncate text-sm font-semibold text-ink">{friend.email}</span>
                     <div className="flex shrink-0 items-center gap-1">
                       <button
                         className="btn btn-secondary px-4"
