@@ -8,7 +8,7 @@ import { DUMMY_PASSWORD_HASH, upgradePasswordHash } from '@/features/auth/server
 import { normalizeEmail } from '@/features/auth/schemas'
 import { prisma } from '@/server/db'
 import { env } from '@/server/env'
-import { rateLimit } from '@/shared/lib/rate-limit'
+import { clientIp, rateLimit } from '@/shared/lib/rate-limit'
 import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
 function isDev() {
@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: { email: {}, password: {} },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const rawEmail = (credentials?.email ?? '').toString()
         const password = (credentials?.password ?? '').toString()
 
@@ -37,8 +37,11 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
+        // Deux clés : l'email (force brute sur un compte) et l'IP (un script qui balaie des
+        // milliers d'emails, chaque essai coûtant un bcrypt de coût 12).
         const limit = rateLimit(`login:${email}`, 10, 5 * 60_000)
-        if (!limit.ok) {
+        const ipLimit = rateLimit(`login-ip:${clientIp({ headers: req?.headers ?? {} })}`, 50, 5 * 60_000)
+        if (!limit.ok || !ipLimit.ok) {
           if (isDev()) console.warn('[auth] rate limited for', email)
           return null
         }
