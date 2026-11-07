@@ -27,3 +27,8 @@ app-backup.tgz
 offi-app_dump.txt.gz
 *.tgz
 *.txt.gz
+
+# Paquets d’audit générés et fichiers d’environnement : seul .env.example est versionné.
+AUDIT_PACK*.md
+.env*
+!.env.example

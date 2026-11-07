@@ -54,7 +54,7 @@ Local et prod : même wrapper exécuté par cron
 - activation : lancer `./scripts/install-offi-cron.sh`
 
 ```cron
-0 7 * * * cd /Users/paulpignal/Desktop/offi-app && /bin/bash ./scripts/offi-pipeline.sh >> /Users/paulpignal/Desktop/offi-app/scraper/logs/cron.log 2>&1
+0 7 * * * cd /path/to/offi-app && /bin/bash ./scripts/offi-pipeline.sh >> /path/to/offi-app/scraper/logs/cron.log 2>&1
 ```
 
 La même stratégie fonctionne sur un hôte de prod tant que l'environnement expose `DATABASE_URL` et les dépendances système nécessaires.

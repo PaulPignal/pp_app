@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "offi-app",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd /Users/paulpignal/Desktop/offi-app/app && exec pnpm dev"],
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "app", "dev"],
       "port": 3000
     }
   ]
