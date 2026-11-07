@@ -1,18 +1,12 @@
 'use client'
 
-import type { FriendSummaryDto } from '@/features/friendships/dto'
+import type { FriendLikerDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
 import { isWorkCurrentlyShowing } from '@/features/works/availability'
 import { workSectionLabel } from '@/features/works/section'
 import WorkImage from '@/features/works/ui/WorkImage'
 import { formatAvailability, formatDateRange, formatEndsIn, formatPriceRange } from '@/features/works/ui/work-formatters'
 import { IconClock, IconImage, IconUsers, IconX } from '@/shared/ui/icons'
-
-// Prénom lisible à partir d'un email (« lea.martin@… » → « Lea »).
-export function friendDisplayName(email: string) {
-  const local = (email.split('@')[0] ?? email).split(/[._-]/)[0] ?? email
-  return local.charAt(0).toUpperCase() + local.slice(1, 14)
-}
 
 const AVAILABILITY_CHIP: Record<'success' | 'danger' | 'warning', string> = {
   success: 'chip chip-success',
@@ -23,7 +17,7 @@ const AVAILABILITY_CHIP: Record<'success' | 'danger' | 'warning', string> = {
 type Props = {
   work: WorkCardDto | null
   fallbackTitle: string
-  friends: FriendSummaryDto[]
+  friends: FriendLikerDto[]
   /** Ouvre le détail (la carte entière devient un bouton). Absent : carte en lecture seule. */
   onOpen?: () => void
   /** Retire l'œuvre (croix en haut à droite). Absent : pas de croix. */
@@ -44,7 +38,7 @@ export default function CompactLikeCard({ work, fallbackTitle, friends, onOpen, 
     work?.section === 'cinema'
       ? [work?.country, work?.year].filter(Boolean).join(' · ')
       : [work?.venue, work?.arrondissement].filter(Boolean).join(' · ')
-  const friendsLabel = friends.length === 1 ? friendDisplayName(friends[0].email) : friends.length > 1 ? `${friends.length} amis` : null
+  const friendsLabel = friends.length === 1 ? friends[0].name : friends.length > 1 ? `${friends.length} amis` : null
 
   return (
     <article className="card relative flex gap-3 p-3 transition-colors duration-150 hover:border-line-strong">
@@ -85,7 +79,7 @@ export default function CompactLikeCard({ work, fallbackTitle, friends, onOpen, 
             {endedLabel ? <li className="text-xs text-ink-muted">Terminé le {endedLabel}</li> : null}
             {availability ? <li className={AVAILABILITY_CHIP[availability.tone]}>{availability.label}</li> : null}
             {friendsLabel ? (
-              <li className="chip chip-accent" title={friends.map((f) => f.email).join(', ')}>
+              <li className="chip chip-accent" title={friends.map((f) => f.name).join(', ')}>
                 <IconUsers size={12} />
                 <span className="sr-only">Aimé aussi par </span>
                 {friendsLabel}

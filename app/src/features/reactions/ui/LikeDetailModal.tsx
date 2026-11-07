@@ -1,10 +1,9 @@
 'use client'
 
 import { useEffect, useId, useRef } from 'react'
-import type { FriendSummaryDto } from '@/features/friendships/dto'
+import type { FriendLikerDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
 import WorkSummaryCard from '@/features/works/ui/WorkSummaryCard'
-import { friendDisplayName } from '@/features/reactions/ui/CompactLikeCard'
 import { IconArrowUpRight, IconPin, IconUsers, IconX } from '@/shared/ui/icons'
 import { formatAvailability } from '@/features/works/ui/work-formatters'
 
@@ -13,7 +12,7 @@ export type LikeBucket = 'like' | 'seen'
 type Props = {
   work: WorkCardDto | null
   fallbackTitle: string
-  friends: FriendSummaryDto[]
+  friends: FriendLikerDto[]
   bucket: LikeBucket
   onClose: () => void
   onSeen: () => void
@@ -101,7 +100,7 @@ export default function LikeDetailModal({ work, fallbackTitle, friends, bucket, 
               <p className="inline-flex items-center gap-1.5 text-sm text-ink">
                 <IconUsers size={15} className="text-ink-muted" />
                 <span className="text-ink-muted">Aimé aussi par </span>
-                <span className="font-semibold">{friends.map((f) => friendDisplayName(f.email)).join(', ')}</span>
+                <span className="font-semibold">{friends.map((f) => f.name).join(', ')}</span>
               </p>
             ) : null}
 

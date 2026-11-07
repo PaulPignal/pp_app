@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { prisma } from '@/server/db'
-import type { FriendSummaryDto } from '@/features/friendships/dto'
+import { friendDisplayName, type FriendLikerDto } from '@/features/friendships/dto'
 import { mapWorkToCardDto, workCardSelect } from '@/features/works/dto'
 
 export type LikedWorkItem = {
@@ -34,8 +34,8 @@ export async function listLibraryWorks(userId: string): Promise<{ likes: LikedWo
 export async function friendsWhoLiked(
   userId: string,
   workIds: string[],
-): Promise<Record<string, FriendSummaryDto[]>> {
-  const result: Record<string, FriendSummaryDto[]> = {}
+): Promise<Record<string, FriendLikerDto[]>> {
+  const result: Record<string, FriendLikerDto[]> = {}
   if (workIds.length === 0) return result
 
   const friendships = await prisma.friendship.findMany({
@@ -51,7 +51,7 @@ export async function friendsWhoLiked(
   })
 
   for (const r of reactions) {
-    ;(result[r.workId] ??= []).push(r.user)
+    ;(result[r.workId] ??= []).push({ id: r.user.id, name: friendDisplayName(r.user.email) })
   }
   return result
 }

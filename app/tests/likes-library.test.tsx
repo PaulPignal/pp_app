@@ -191,7 +191,7 @@ describe('LikesLibrary', () => {
         current={[makeItem('w1', 'Hamlet')]}
         archived={[]}
         seen={[]}
-        friendsByWork={{ w1: [{ id: 'f1', email: 'lea@example.com' }] }}
+        friendsByWork={{ w1: [{ id: 'f1', name: 'Lea' }] }}
         view="all"
       />,
     )

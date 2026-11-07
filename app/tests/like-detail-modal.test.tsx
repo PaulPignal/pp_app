@@ -46,7 +46,7 @@ function renderModal(work: WorkCardDto, onClose = vi.fn()) {
   const utils = render(
     <>
       <button type="button">Ouvreur</button>
-      <LikeDetailModal work={work} fallbackTitle="x" friends={[{ id: 'f1', email: 'lea@example.com' }]} bucket="like" onClose={onClose} onSeen={vi.fn()} onRemove={vi.fn()} />
+      <LikeDetailModal work={work} fallbackTitle="x" friends={[{ id: 'f1', name: 'Lea' }]} bucket="like" onClose={onClose} onSeen={vi.fn()} onRemove={vi.fn()} />
     </>,
   )
   return { ...utils, onClose }

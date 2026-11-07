@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import Link from 'next/link'
-import type { FriendSummaryDto } from '@/features/friendships/dto'
+import type { FriendLikerDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
 import CompactLikeCard from '@/features/reactions/ui/CompactLikeCard'
 import LikeDetailModal, { type LikeBucket } from '@/features/reactions/ui/LikeDetailModal'
@@ -23,7 +23,7 @@ type Props = {
   current: LikedItem[]
   archived: LikedItem[]
   seen: LikedItem[]
-  friendsByWork: Record<string, FriendSummaryDto[]>
+  friendsByWork: Record<string, FriendLikerDto[]>
   view: LikesView
 }
 
