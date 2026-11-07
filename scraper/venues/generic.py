@@ -162,7 +162,7 @@ def extract_generic(fetcher: PoliteFetcher, venue: dict, max_detail: int = MAX_D
     def titles() -> int:  # spectacles distincts déjà lus (une fiche de 8 séances ne vaut qu'un spectacle)
         return len({re.sub(r"\W+", "", o["title"].lower()) for o in occurrences})
 
-    if is_wordpress and titles() < MIN_LISTED_TITLES:
+    if is_wordpress:  # The Events Calendar liste toute la saison, même quand l'accueil n'en met que quelques-uns en avant
         found = wordpress.tribe_occurrences(fetcher.project_fetcher(), home.final_url, today)
         if found:
             occurrences += found
