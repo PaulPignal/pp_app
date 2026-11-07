@@ -83,6 +83,14 @@ export function formatAvailability(availability: string | null): AvailabilityBad
   }
 }
 
+// Note publique (films, /10) : affichée seulement à partir de 20 votes, sinon trop bruitée.
+export const RATING_MIN_VOTES = 20
+
+export function formatRating(rating: number | null | undefined, ratingCount: number | null | undefined) {
+  if (rating == null || rating <= 0 || (ratingCount ?? 0) < RATING_MIN_VOTES) return null
+  return rating.toFixed(1).replace('.', ',')
+}
+
 export function formatDuration(durationMin: number | null) {
   if (!durationMin) {
     return null

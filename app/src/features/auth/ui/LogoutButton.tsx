@@ -1,14 +1,22 @@
 'use client'
 
 import { signOut } from 'next-auth/react'
+import { IconLogout } from '@/shared/ui/icons'
 import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
-export default function LogoutButton() {
+type Props = { variant?: 'text' | 'icon' }
+
+export default function LogoutButton({ variant = 'text' }: Props) {
+  const onClick = () => signOut({ callbackUrl: SIGN_IN_PATH })
+  if (variant === 'icon') {
+    return (
+      <button type="button" onClick={onClick} className="btn-icon" aria-label="Se déconnecter" title="Se déconnecter">
+        <IconLogout size={20} />
+      </button>
+    )
+  }
   return (
-    <button
-      onClick={() => signOut({ callbackUrl: SIGN_IN_PATH })}
-      className="btn btn-ghost px-3 py-1.5 text-xs"
-    >
+    <button type="button" onClick={onClick} className="btn btn-ghost">
       Se déconnecter
     </button>
   )

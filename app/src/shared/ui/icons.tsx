@@ -1,6 +1,6 @@
-// Jeu d'icônes maison (style « line », trait régulier). Remplace les emoji, qui
-// faisaient « template » et cassaient la cohérence visuelle. SVG inline → zéro
-// dépendance, couleur via currentColor, taille via la prop `size`.
+// Jeu d'icônes maison (style « line », trait régulier). SVG inline → zéro
+// dépendance, couleur via currentColor, taille via la prop `size`. Toujours
+// décoratives (aria-hidden) : le libellé accessible est porté par l'élément hôte.
 import type { SVGProps } from 'react'
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number }
@@ -17,6 +17,7 @@ function Svg({ size = 16, children, ...props }: IconProps & { children: React.Re
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
+      focusable="false"
       {...props}
     >
       {children}
@@ -26,7 +27,7 @@ function Svg({ size = 16, children, ...props }: IconProps & { children: React.Re
 
 export function IconStar({ filled = true, size = 16, ...props }: IconProps & { filled?: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" aria-hidden {...props}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" aria-hidden focusable="false" {...props}>
       <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L4.5 9.7l5.9-.9z" />
     </svg>
   )
@@ -36,6 +37,13 @@ export const IconClock = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="8.5" />
     <path d="M12 7.5V12l3 1.8" />
+  </Svg>
+)
+
+export const IconCalendar = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="5" width="17" height="15" rx="2" />
+    <path d="M3.5 10h17M8 3.5V7M16 3.5V7" />
   </Svg>
 )
 
@@ -117,7 +125,7 @@ export const IconCompass = (p: IconProps) => (
 )
 
 export const IconHeart = ({ filled = false, size = 16, ...props }: IconProps & { filled?: boolean }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...props}>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false" {...props}>
     <path d="M12 20s-7-4.6-9.1-9C1.4 7.7 3.1 4.6 6.2 4.6c1.9 0 3.1 1 3.8 2 .7-1 1.9-2 3.8-2 3.1 0 4.8 3.1 3.3 6.4C19 15.4 12 20 12 20z" />
   </svg>
 )
@@ -138,5 +146,59 @@ export const IconMoon = (p: IconProps) => (
 export const IconCheck = (p: IconProps) => (
   <Svg strokeWidth={2.2} {...p}>
     <path d="M20 6 9 17l-5-5" />
+  </Svg>
+)
+
+export const IconX = (p: IconProps) => (
+  <Svg strokeWidth={2} {...p}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </Svg>
+)
+
+export const IconUndo = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 10h9a5 5 0 0 1 0 10h-3" />
+    <path d="M8 6 4 10l4 4" />
+  </Svg>
+)
+
+export const IconSearch = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m20 20-4.3-4.3" />
+  </Svg>
+)
+
+export const IconPlus = (p: IconProps) => (
+  <Svg strokeWidth={2} {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+)
+
+export const IconLink = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2" />
+    <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" />
+  </Svg>
+)
+
+export const IconMail = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="5.5" width="18" height="13" rx="2" />
+    <path d="m3.5 7 8.5 6 8.5-6" />
+  </Svg>
+)
+
+export const IconLogout = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 8l-4 4 4 4M6 12h11" />
+  </Svg>
+)
+
+export const IconImage = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+    <circle cx="9" cy="10" r="1.6" />
+    <path d="m20.5 16-4.5-4.5-7 7" />
   </Svg>
 )
