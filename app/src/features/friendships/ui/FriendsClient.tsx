@@ -336,10 +336,10 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                   <Avatar email={request.email} />
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{request.email}</span>
                   <div className="flex shrink-0 items-center gap-1">
-                    <button className="btn btn-primary min-h-10 px-4" onClick={() => void respondToRequest(request.id, 'accept')} disabled={pending !== null}>
+                    <button className="btn btn-primary px-4" onClick={() => void respondToRequest(request.id, 'accept')} disabled={pending !== null}>
                       {isAccepting ? 'Ajout…' : 'Accepter'}
                     </button>
-                    <button className="btn btn-ghost min-h-10 px-3" onClick={() => void respondToRequest(request.id, 'decline')} disabled={pending !== null}>
+                    <button className="btn btn-ghost px-3" onClick={() => void respondToRequest(request.id, 'decline')} disabled={pending !== null}>
                       {isDeclining ? 'Refus…' : 'Refuser'}
                     </button>
                   </div>
@@ -373,7 +373,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                     <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{friend.email}</span>
                     <div className="flex shrink-0 items-center gap-1">
                       <button
-                        className="btn btn-secondary min-h-10 px-4"
+                        className="btn btn-secondary px-4"
                         onClick={() => void loadCommon(friend.id)}
                         disabled={pending !== null && !isLoadingCommon}
                         aria-expanded={isExpanded}
@@ -381,7 +381,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                         {isLoadingCommon ? 'Chargement…' : isExpanded ? 'Masquer' : 'En commun'}
                       </button>
                       <button
-                        className="btn btn-ghost min-h-10 px-3"
+                        className="btn btn-ghost px-3"
                         onClick={() => void removeFriendById(friend)}
                         disabled={pending !== null}
                         aria-label={`Retirer ${friend.email}`}
