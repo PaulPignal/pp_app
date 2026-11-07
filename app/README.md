@@ -35,8 +35,8 @@ L'app écoute par défaut sur [http://localhost:3000](http://localhost:3000).
 Copier `app/.env.example` vers `app/.env.local` puis renseigner :
 
 - `DATABASE_URL`: URL PostgreSQL/Neon.
-- `NEXTAUTH_SECRET`: secret long et aléatoire pour signer les sessions.
-- `INVITE_TOKEN_SECRET`: secret long et aléatoire pour signer les invitations amis. Si absent, le code retombe sur `NEXTAUTH_SECRET`, mais ce n'est pas recommandé.
+- `NEXTAUTH_SECRET`: secret aléatoire de 32 caractères ou plus pour signer les sessions (`openssl rand -base64 32`). L'app refuse de démarrer avec un secret plus court ou la valeur `replace-with…` de l'exemple.
+- `INVITE_TOKEN_SECRET`: second secret, distinct, de 32 caractères ou plus, pour signer les invitations amis. Obligatoire en production ; hors production, le code retombe sur `NEXTAUTH_SECRET`.
 - `NEXTAUTH_URL`: URL canonique de l'app.
 - `NEXT_PUBLIC_APP_URL`: URL publique utilisée côté serveur pour certaines requêtes internes.
 
