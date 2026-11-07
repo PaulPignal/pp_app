@@ -70,6 +70,59 @@ describe('FriendsClient', () => {
     await waitFor(() => expect(screen.queryByText('friend@example.com')).not.toBeInTheDocument())
   }, 15000)
 
+  it('Entrée dans le champ email envoie l’invitation (formulaire)', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ ok: true, friend: { id: 'friend-2', email: 'new@example.com' }, status: 'pending' }),
+    )
+    const user = userEvent.setup()
+    render(<FriendsClient initialFriends={[]} initialRequests={[]} inviteToken="token-1" />)
+
+    await user.type(screen.getByLabelText('Email de votre ami'), 'new@example.com{Enter}')
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/friends', expect.objectContaining({ method: 'POST' })))
+    expect(await screen.findByRole('status')).toHaveTextContent(/Invitation envoyée/)
+  }, 15000)
+
+  it('refuser une demande la retire sans ajouter d’ami', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ ok: true, declined: true }))
+    const user = userEvent.setup()
+    render(
+      <FriendsClient initialFriends={[]} initialRequests={[{ id: 'req-1', email: 'req@example.com' }]} inviteToken="token-1" />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Refuser' }))
+
+    await waitFor(() => expect(screen.queryByText('req@example.com')).not.toBeInTheDocument())
+    expect(screen.getByText('Aucun ami pour le moment.')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Demande refusée.')
+  }, 15000)
+
+  it('mode lien : le lien d’invitation est lisible et « Copier » confirme la copie', async () => {
+    // user-event installe son propre presse-papier : on relit ce qui a été copié.
+    const user = userEvent.setup()
+    render(<FriendsClient initialFriends={[]} initialRequests={[]} inviteToken="token-1" />)
+
+    await user.click(screen.getByRole('radio', { name: 'Par lien' }))
+    expect(screen.getByLabelText('Mon lien d’invitation')).toHaveValue(`${window.location.origin}/friends?token=token-1`)
+
+    await user.click(screen.getByRole('button', { name: 'Copier' }))
+    expect(await screen.findByRole('button', { name: 'Copié' })).toBeInTheDocument()
+    expect(await navigator.clipboard.readText()).toContain('token=token-1')
+  }, 15000)
+
+  it('erreur serveur : une alerte explicite, que l’on peut fermer', async () => {
+    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 404, text: async () => JSON.stringify({ ok: false, error: 'friend_not_found' }) } as Response)
+    const user = userEvent.setup()
+    render(<FriendsClient initialFriends={[]} initialRequests={[]} inviteToken="token-1" />)
+
+    await user.type(screen.getByLabelText('Email de votre ami'), 'nobody@example.com')
+    await user.click(screen.getByRole('button', { name: 'Inviter' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Aucun compte Offi ne correspond à cet email.')
+    await user.click(screen.getByRole('button', { name: 'Fermer le message' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  }, 15000)
+
   it('loads common works inline for a selected friend', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({

@@ -1,7 +1,10 @@
+import type { Metadata } from 'next'
 import { requireSessionUserOrRedirect } from '@/features/auth/server/session'
 import { createInviteToken } from '@/features/friendships/server/invite'
 import { listFriends, listIncomingRequests } from '@/features/friendships/server/queries'
 import FriendsClient from '@/features/friendships/ui/FriendsClient'
+
+export const metadata: Metadata = { title: 'Amis' }
 
 export default async function FriendsPage() {
   const sessionUser = await requireSessionUserOrRedirect()

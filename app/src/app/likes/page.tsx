@@ -1,7 +1,10 @@
+import type { Metadata } from 'next'
 import { requireSessionUserOrRedirect } from '@/features/auth/server/session'
 import { friendsWhoLiked, listLibraryWorks } from '@/features/reactions/server/queries'
 import LikesLibrary from '@/features/reactions/ui/LikesLibrary'
 import { isWorkCurrentlyShowing } from '@/features/works/availability'
+
+export const metadata: Metadata = { title: 'Mes likes' }
 
 type LikesPageProps = {
   searchParams?: Promise<{
@@ -34,7 +37,7 @@ export default async function LikesPage({ searchParams }: LikesPageProps = {}) {
   const friendsByWork = await friendsWhoLiked(sessionUser.id, allWorkIds)
 
   return (
-    <div className="page-shell">
+    <div className="flex flex-col gap-4">
       <LikesLibrary current={current} archived={archived} seen={seen} friendsByWork={friendsByWork} view={view} />
     </div>
   )

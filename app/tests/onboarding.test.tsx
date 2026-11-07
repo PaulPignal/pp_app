@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event'
 // Visiteur anonyme.
 vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }))
 
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), replace: vi.fn(), push: vi.fn() }) }))
+
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
 
 const items = [

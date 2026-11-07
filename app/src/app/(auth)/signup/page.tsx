@@ -1,26 +1,23 @@
-// src/app/(auth)/signup/page.tsx
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useId, useState, FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { registerUserSchema } from '@/features/auth/schemas'
+import { PASSWORD_MIN_LENGTH, PASSWORD_RULE, isPasswordAcceptable } from '@/features/auth/password-policy'
 import StatusBanner from '@/shared/ui/StatusBanner'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
-
-const PASSWORD_RULE = '12 caractères minimum, avec une majuscule, une minuscule et un chiffre.'
 
 function registerErrorMessage(code?: string) {
   switch (code) {
     case 'email_exists':
-      return 'Un compte existe déjà avec cet email. Connecte-toi plutôt.'
+      return 'Un compte existe déjà avec cet email. Connectez-vous plutôt.'
     case 'rate_limited':
-      return 'Trop de tentatives. Réessaie dans une minute.'
+      return 'Trop de tentatives. Réessayez dans une minute.'
     case 'invalid_body':
       return `Mot de passe trop faible : ${PASSWORD_RULE}`
     default:
-      return 'Inscription impossible pour le moment. Réessaie.'
+      return 'Inscription impossible pour le moment. Réessayez.'
   }
 }
 
@@ -30,16 +27,22 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const emailId = useId()
+  const passwordId = useId()
+  const hintId = useId()
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
 
-    // Validation client via le même schéma que l'API (source de vérité unique).
-    const parsed = registerUserSchema.safeParse({ email, password })
-    if (!parsed.success) {
-      const onPassword = parsed.error.issues.some((issue) => issue.path[0] === 'password')
-      setError(onPassword ? `Mot de passe : ${PASSWORD_RULE}` : 'Entre une adresse email valide.')
+    // Contrôle immédiat (la même règle que le serveur, sans embarquer le schéma zod côté client).
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail.includes('@')) {
+      setError('Entrez une adresse email valide.')
+      return
+    }
+    if (!isPasswordAcceptable(password)) {
+      setError(`Mot de passe : ${PASSWORD_RULE}`)
       return
     }
 
@@ -47,7 +50,7 @@ export default function SignUpPage() {
     const res = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(parsed.data),
+      body: JSON.stringify({ email: normalizedEmail, password }),
     })
 
     if (!res.ok) {
@@ -58,65 +61,61 @@ export default function SignUpPage() {
     }
 
     // Connexion auto
-    await signIn('credentials', { email: parsed.data.email, password, redirect: false })
+    await signIn('credentials', { email: normalizedEmail, password, redirect: false })
     router.replace('/')
   }
 
   return (
-    <div className="flex h-full items-center">
-      <SurfaceCard tone="accent" className="mx-auto w-full max-w-xl space-y-6 p-6 sm:p-8">
-        <h1 className="sr-only">Créer un compte</h1>
-        <form onSubmit={onSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label className="label" htmlFor="signup-email">
-              Email
-            </label>
-            <input
-              id="signup-email"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="input"
-              required
-              autoComplete="email"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="label" htmlFor="signup-password">
-              Mot de passe
-            </label>
-            <input
-              id="signup-password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="input"
-              required
-              minLength={12}
-              autoComplete="new-password"
-              aria-describedby="signup-password-hint"
-            />
-            <p id="signup-password-hint" className="field-hint">
-              {PASSWORD_RULE}
-            </p>
-          </div>
-          {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn btn-primary w-full justify-center"
-          >
-            {loading ? 'Création…' : 'Créer le compte'}
-          </button>
-        </form>
+    <SurfaceCard className="p-6 sm:p-8">
+      <h1 className="display text-2xl text-ink">Créer un compte</h1>
+      <p className="mt-1 text-sm text-ink-muted">Pour garder vos coups de cœur et les partager avec vos amis.</p>
 
-        <div className="space-y-2 border-t border-[color:var(--color-border)] pt-5">
-          <p className="text-sm text-muted-foreground">Déjà inscrit ?</p>
-          <Link href="/signin" className="text-sm font-semibold text-[color:var(--color-accent)] transition hover:underline">
-            Se connecter
-          </Link>
+      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4" noValidate>
+        <div>
+          <label className="label" htmlFor={emailId}>
+            Email
+          </label>
+          <input
+            id={emailId}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="input"
+            required
+            autoComplete="email"
+          />
         </div>
-      </SurfaceCard>
-    </div>
+        <div>
+          <label className="label" htmlFor={passwordId}>
+            Mot de passe
+          </label>
+          <input
+            id={passwordId}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="input"
+            required
+            minLength={PASSWORD_MIN_LENGTH}
+            autoComplete="new-password"
+            aria-describedby={hintId}
+          />
+          <p id={hintId} className="field-hint">
+            {PASSWORD_RULE}
+          </p>
+        </div>
+        {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
+        <button type="submit" disabled={loading} className="btn btn-primary mt-2 w-full">
+          {loading ? 'Création…' : 'Créer le compte'}
+        </button>
+      </form>
+
+      <p className="mt-6 border-t border-line pt-5 text-sm text-ink-muted">
+        Déjà inscrit ?{' '}
+        <Link href="/signin" className="link">
+          Se connecter
+        </Link>
+      </p>
+    </SurfaceCard>
   )
 }
