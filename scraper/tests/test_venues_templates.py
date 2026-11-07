@@ -111,6 +111,31 @@ class FichesFamilleTests(unittest.TestCase):
         self.assertTrue(all(u == "https://theatredepassy.fr/" for u in fetcher.requested[:1]))
 
 
+class FichesCartesTests(unittest.TestCase):
+    def test_cartes_de_l_accueil_saint_georges(self):
+        home = Page("https://theatre-saint-georges.com/", "https://theatre-saint-georges.com/", 200, fixture("saintgeorges_accueil"))
+        links = templates.card_links(home)
+        slugs = {u.rstrip("/").rsplit("/", 1)[-1].lower() for u in links}
+        self.assertTrue({"the-loop", "telephone-moi", "blind-date"} <= slugs, slugs)
+        self.assertFalse({"faq", "carte-cadeau", "lequipe", "photos"} & slugs)  # pages de service écartées
+
+    def test_pas_de_cartes_sans_lien_reserver(self):
+        html = "".join(f'<div><a href="/page-{c}-xxx/">Titre {c}</a></div>' for c in "abcd")
+        home = Page("https://x.fr/", "https://x.fr/", 200, html)
+        self.assertEqual(templates.card_links(home), [])
+
+    def test_extraction_depuis_les_cartes(self):
+        home = fixture("saintgeorges_accueil")
+        pages = {"https://theatre-saint-georges.com/": home}
+        for url in templates.card_links(Page("https://theatre-saint-georges.com/", "https://theatre-saint-georges.com/", 200, home)):
+            pages[url] = fixture("saintgeorges_fiche")
+        venue = {"slug": "theatre-saint-georges-3109", "name": "Théâtre Saint-Georges", "website": "https://theatre-saint-georges.com/",
+                 "sections": ["theatre"], "address": "", "postal_code": "75009", "city": "Paris", "offi_url": "x"}
+        records, info = templates.complement(FakeFetcher(pages), venue, TODAY)
+        self.assertEqual(info["fiches_cartes"], "ok")
+        self.assertTrue(any(r["source"] == "direct:gabarit_fiches_cartes" for r in records))
+
+
 class BilletreducSalleTests(unittest.TestCase):
     SALLE = (
         '<html><head><script type="application/ld+json">[{"@type":"TheaterEvent","name":"Hamlet","startDate":"2026-12-01T20:00:00",'

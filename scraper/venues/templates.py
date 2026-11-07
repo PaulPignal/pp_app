@@ -11,6 +11,8 @@ Gabarits actifs :
   - `billetreduc_salle` : la page « salle » de BilletReduc (/<id>/salle.htm) liste en JSON-LD tous les spectacles
     du lieu avec leurs dates ; son identifiant se lit sur le site du lieu (/S/171/salle.htm) ou sur une fiche
     BilletReduc que le site relie. Le générique ne suivait que les fiches liées depuis le site.
+  - `fiches_cartes` : sites dont les spectacles sont des « cartes » de l'accueil (lien /<titre>/ à la racine,
+    à côté d'un lien « Réserver » ou « Infos ») : Saint-Georges et Tristan-Bernard, sans chemin commun.
   - `fiches_famille` : le site publie ses spectacles sous un même chemin (/spectacle/<titre>/,
     /spectacles-tout-public/<titre>/) ; les liens de cette famille sont pris sur l'accueil ET sur chaque
     page de liste (le générique ne classe que les liens des pages agenda, et lit comme « agenda » une
@@ -21,7 +23,7 @@ from __future__ import annotations
 import re
 from datetime import date
 from typing import Callable, Optional
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
@@ -138,9 +140,70 @@ def billetreduc_salle(fetcher: PoliteFetcher, venue: dict, today: Optional[date]
     return groups, info
 
 
+BOOKING_TEXT_RE = re.compile(r"r[ée]serv|billet|infos?\b|en savoir plus|r[ée]sa\b|acheter|book", re.I)
+NOT_A_SHOW_RE = re.compile(r"cadeau|abonnement|privatis|black-friday|printemps-du|faq|photos?|partenaires?|actualit|equipe|histoire|informations?-pratiques|contact|mentions|cgv|cgu|carte-|cours|stage|atelier|location|recrut|presse|newsletter|accessib|plan|pratique|reservation|groupes|^theatre$|^spectacles?$|^programm", re.I)
+CARD_DEPTH = 4  # niveaux d'ancêtres examinés pour trouver le lien « Réserver » de la carte
+MIN_CARDS = 3
+
+
+def card_links(home: Page) -> list[str]:
+    """Liens /<titre>/ de l'accueil (hors navigation) dont la carte contient aussi un lien « Réserver » ou « Infos »."""
+    soup = BeautifulSoup(home.text, "html.parser")
+    host = urlparse(home.final_url).netloc
+    found: list[str] = []
+    for a in soup.find_all("a", href=True):
+        url = urljoin(home.final_url, triage.clean_href(a["href"])).split("#", 1)[0].split("?", 1)[0]
+        parsed = urlparse(url)
+        segments = [x for x in parsed.path.split("/") if x]
+        if parsed.netloc != host or len(segments) != 1 or len(segments[0]) < 4 or NOT_A_SHOW_RE.search(segments[0]):
+            continue
+        if a.find_parent(["nav", "header", "footer"]) is not None or url in found:
+            continue
+        card, hit = a, False
+        for _ in range(CARD_DEPTH):
+            card = card.parent
+            if card is None or card.name in ("body", "html", "main"):
+                break
+            others = [b for b in card.find_all("a", href=True) if b is not a]
+            if len(card.find_all("a", href=True)) > 6:  # conteneur trop large : plusieurs cartes mélangées
+                break
+            if any(BOOKING_TEXT_RE.search(b.get_text(" ", strip=True)) for b in others):
+                hit = True
+                break
+        if hit:
+            found.append(url)
+    return found
+
+
+def fiches_cartes(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = None, known: int = 0) -> tuple[list[dict], dict]:
+    info = {"pages": 0, "status": ""}
+    home = fetcher.get(venue["website"])
+    if not home.ok:
+        info["status"] = home.note or f"http {home.status}"
+        return [], info
+    links = card_links(home)
+    if len(links) < MIN_CARDS or len(links) <= known:
+        info["status"] = "pas_de_cartes" if len(links) < MIN_CARDS else "deja_couvert"
+        return [], info
+    occurrences: list[dict] = []
+    for url in links[:MAX_FAMILY_FICHES]:
+        page = fetcher.get(url)
+        info["pages"] += 1
+        if not page.ok:
+            continue
+        found, _ = schemaorg.occurrences_from_html(page.text, page.final_url)
+        if not found:
+            occ = html_fiche.parse_fiche(page.text, page.final_url, today, require_date=False)
+            found = [occ] if occ else []
+        occurrences += found
+    info["status"] = "ok" if occurrences else "aucun_event"
+    return schemaorg.group_occurrences(occurrences), info
+
+
 EXTRACTORS: dict[str, Callable] = {
     "billetreduc_salle": billetreduc_salle,
     "fiches_famille": fiches_famille,
+    "fiches_cartes": fiches_cartes,
 }
 
 
