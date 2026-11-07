@@ -76,6 +76,7 @@ vi.stubGlobal(
   vi.fn().mockResolvedValue({
     ok: true,
     json: async () => ({}),
+    text: async () => '{}',
   } as any),
 )
 

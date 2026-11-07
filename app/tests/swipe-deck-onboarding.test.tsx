@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), replace: vi.fn(), push: vi.fn() }) }))
 // Visiteur anonyme.
-vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }))
 
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
 
@@ -21,7 +20,7 @@ describe('SwipeDeck : onboarding anonyme', () => {
 
   it('la boîte de dialogue est nommée, reçoit le focus, se ferme par Échap et rend le focus au bouton Aimer', async () => {
     const user = userEvent.setup()
-    render(<SwipeDeck items={items} />)
+    render(<SwipeDeck authed={false} items={items} />)
 
     const like = screen.getByRole('button', { name: 'Aimer' })
     await user.click(like)
@@ -39,7 +38,7 @@ describe('SwipeDeck : onboarding anonyme', () => {
 
   it('« Plus tard » oublie le like mémorisé et passe à la carte suivante sans appel serveur', async () => {
     const user = userEvent.setup()
-    render(<SwipeDeck items={items} />)
+    render(<SwipeDeck authed={false} items={items} />)
 
     await user.click(screen.getByRole('button', { name: 'Aimer' }))
     expect(localStorage.getItem('offi:pendingLike')).toBe('w1')
@@ -52,7 +51,7 @@ describe('SwipeDeck : onboarding anonyme', () => {
 
   it('un « passer » anonyme avance sans rien enregistrer', async () => {
     const user = userEvent.setup()
-    render(<SwipeDeck items={items} />)
+    render(<SwipeDeck authed={false} items={items} />)
 
     await user.click(screen.getByRole('button', { name: 'Passer' }))
     await screen.findByLabelText('Œuvre 2')

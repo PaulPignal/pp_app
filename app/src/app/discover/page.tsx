@@ -80,7 +80,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
 
       {isStreaming ? <StreamingPlatformFilter available={availablePlatforms} selected={selectedPlatforms} /> : null}
 
-      <SwipeDeck key={`${section}:${selectedPlatforms.join(',')}`} items={works.items} totalCount={works.total} />
+      <SwipeDeck key={`${section}:${selectedPlatforms.join(',')}`} items={works.items} totalCount={works.total} authed={Boolean(sessionUser)} />
     </div>
   )
 }

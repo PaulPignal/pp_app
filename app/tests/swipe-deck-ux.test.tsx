@@ -5,7 +5,6 @@ import userEvent from '@testing-library/user-event'
 const refreshMock = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: refreshMock, replace: vi.fn(), push: vi.fn() }) }))
 // Utilisateur connecté : les swipes persistent.
-vi.mock('next-auth/react', () => ({ useSession: () => ({ data: { user: { email: 'a@b.c' } }, status: 'authenticated' }) }))
 
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
 import type { WorkCardDto } from '@/features/works/dto'
@@ -48,7 +47,7 @@ function work(id: string, title: string): WorkCardDto {
 const items = [work('w1', 'Œuvre 1'), work('w2', 'Œuvre 2')]
 
 function okResponse() {
-  return { ok: true, json: async () => ({}) } as Response
+  return { ok: true, json: async () => ({}), text: async () => '{}' } as Response
 }
 
 describe('SwipeDeck : interactions', () => {
@@ -60,7 +59,7 @@ describe('SwipeDeck : interactions', () => {
 
   it('clavier : flèche droite aime, flèche gauche passe', async () => {
     const user = userEvent.setup()
-    render(<SwipeDeck items={[...items, work('w3', 'Œuvre 3')]} />)
+    render(<SwipeDeck authed items={[...items, work('w3', 'Œuvre 3')]} />)
 
     await user.keyboard('{ArrowRight}')
     await screen.findByLabelText('Œuvre 2')
@@ -76,7 +75,7 @@ describe('SwipeDeck : interactions', () => {
     render(
       <>
         <input aria-label="Recherche" />
-        <SwipeDeck items={items} />
+        <SwipeDeck authed items={items} />
       </>,
     )
     await user.click(screen.getByLabelText('Recherche'))
@@ -89,7 +88,7 @@ describe('SwipeDeck : interactions', () => {
     // Geste lent (1 s) et court (30 px) : ni la distance ni la vitesse ne valident le swipe.
     let clock = 0
     const now = vi.spyOn(performance, 'now').mockImplementation(() => (clock += 1000))
-    render(<SwipeDeck items={items} />)
+    render(<SwipeDeck authed items={items} />)
     const card = screen.getByLabelText('Œuvre 1')
 
     fireEvent.pointerDown(card, { clientX: 100, pointerId: 1 })
@@ -102,7 +101,7 @@ describe('SwipeDeck : interactions', () => {
   })
 
   it('glisser loin vers la droite : aime et passe à la carte suivante', async () => {
-    render(<SwipeDeck items={items} />)
+    render(<SwipeDeck authed items={items} />)
     const card = screen.getByLabelText('Œuvre 1')
 
     fireEvent.pointerDown(card, { clientX: 100, pointerId: 1 })
@@ -116,9 +115,9 @@ describe('SwipeDeck : interactions', () => {
   })
 
   it('échec serveur : la carte revient et une alerte explique quoi faire', async () => {
-    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 500, json: async () => ({ error: 'server_error' }) } as Response)
+    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 500, text: async () => JSON.stringify({ error: 'server_error' }) } as Response)
     const user = userEvent.setup()
-    render(<SwipeDeck items={items} />)
+    render(<SwipeDeck authed items={items} />)
 
     await user.click(screen.getByRole('button', { name: 'Aimer' }))
 
@@ -129,7 +128,7 @@ describe('SwipeDeck : interactions', () => {
 
   it('fin de pile : un état vide propose de recharger', async () => {
     const user = userEvent.setup()
-    render(<SwipeDeck items={[work('w1', 'Seule')]} />)
+    render(<SwipeDeck authed items={[work('w1', 'Seule')]} />)
 
     await user.click(screen.getByRole('button', { name: 'Passer' }))
 
@@ -144,7 +143,7 @@ describe('SwipeDeck : interactions', () => {
     )
     const animate = vi.spyOn(Element.prototype, 'animate')
     const user = userEvent.setup()
-    render(<SwipeDeck items={items} />)
+    render(<SwipeDeck authed items={items} />)
 
     await user.click(screen.getByRole('button', { name: 'Aimer' }))
     await screen.findByLabelText('Œuvre 2')
@@ -155,7 +154,7 @@ describe('SwipeDeck : interactions', () => {
   })
 
   it('la carte suivante est déjà rendue sous la carte courante, hors de l’arbre accessible', () => {
-    render(<SwipeDeck items={items} />)
+    render(<SwipeDeck authed items={items} />)
     const hidden = document.querySelector('[inert]')
     expect(hidden).not.toBeNull()
     expect(hidden).toHaveTextContent('Œuvre 2')

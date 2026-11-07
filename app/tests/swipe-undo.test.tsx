@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event'
 
 // Utilisateur connecté : les swipes persistent (sinon, anonyme, le like ouvrirait
 // la modale d'inscription au lieu de POSTer).
-vi.mock('next-auth/react', () => ({ useSession: () => ({ data: { user: { email: 'a@b.c' } }, status: 'authenticated' }) }))
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), replace: vi.fn(), push: vi.fn() }) }))
 
@@ -16,7 +15,7 @@ const items = [
 ]
 
 test('annule le dernier swipe : revient à la carte précédente et DELETE /api/reactions', async () => {
-  render(<SwipeDeck items={items} />)
+  render(<SwipeDeck authed items={items} />)
   const user = userEvent.setup()
 
   // Au départ, rien à annuler.

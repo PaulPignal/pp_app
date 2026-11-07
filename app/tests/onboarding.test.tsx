@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 // Visiteur anonyme.
-vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }))
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), replace: vi.fn(), push: vi.fn() }) }))
 
@@ -23,7 +22,7 @@ test("anonyme : le 1er like ouvre la modale d'inscription, sans POST, et mémori
     /* ignore */
   }
 
-  render(<SwipeDeck items={items} />)
+  render(<SwipeDeck authed={false} items={items} />)
   await userEvent.click(screen.getByRole('button', { name: 'Aimer' }))
 
   // La modale d'inscription apparaît

@@ -1,13 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import type { WorkCardDto } from '@/features/works/dto'
 import CardWork from '@/features/works/ui/CardWork'
 import EmptyState from '@/shared/ui/EmptyState'
 import { IconHeart, IconUndo, IconX } from '@/shared/ui/icons'
+import { fetchJson } from '@/shared/lib/fetch-json'
 import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
 // Like mémorisé pendant le swipe anonyme : rejoué après création de compte.
@@ -15,6 +15,8 @@ const PENDING_LIKE_KEY = 'offi:pendingLike'
 
 type Props = {
   items: WorkCardDto[]
+  /** Session connue côté serveur : pas d'attente de /api/auth/session avant le premier like. */
+  authed: boolean
   totalCount?: number
 }
 
@@ -55,21 +57,19 @@ function isTypingTarget(target: EventTarget | null) {
   return Boolean(target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]'))
 }
 
-export default function SwipeDeck({ items, totalCount }: Props) {
+export default function SwipeDeck({ items, totalCount, authed }: Props) {
   const router = useRouter()
   const [index, setIndex] = useState(0)
   const [dragX, setDragX] = useState(0)
-  const [dragStartTs, setDragStartTs] = useState<number | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<{ workId: string; status: 'LIKE' | 'DISLIKE' }[]>([])
   const [showSignup, setShowSignup] = useState(false)
 
-  const { status: authStatus } = useSession()
-  const authed = authStatus === 'authenticated'
-
   const dragging = useRef(false)
   const startX = useRef(0)
+  // Début du geste : sert seulement au calcul de vitesse, aucun rendu à déclencher.
+  const dragStartTs = useRef<number | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const likeButtonRef = useRef<HTMLButtonElement>(null)
   const signupFirstRef = useRef<HTMLAnchorElement>(null)
@@ -78,39 +78,29 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   const hasMore = index < items.length
   const visibleTotal = totalCount ?? items.length
 
-  const rotation = useMemo(() => dragX * 0.05, [dragX])
-  const transform = useMemo(() => transformCss(dragX, rotation), [dragX, rotation])
+  const transform = transformCss(dragX, dragX * 0.05)
 
+  // Écriture serveur : true si enregistrée ; l'appelant gère le retour arrière sinon.
   const react = useCallback(async (workId: string, status: 'LIKE' | 'DISLIKE'): Promise<boolean> => {
     try {
-      const response = await fetch('/api/reactions', {
+      await fetchJson('/api/reactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workId, status }),
       })
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}))
-        console.error('reaction failed', response.status, payload)
-        return false
-      }
       return true
     } catch (requestError) {
-      console.error(requestError)
+      console.error('reaction failed', requestError)
       return false
     }
   }, [])
 
   const clearReaction = useCallback(async (workId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`/api/reactions?workId=${encodeURIComponent(workId)}`, { method: 'DELETE' })
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}))
-        console.error('undo failed', response.status, payload)
-        return false
-      }
+      await fetchJson(`/api/reactions?workId=${encodeURIComponent(workId)}`, { method: 'DELETE' })
       return true
     } catch (requestError) {
-      console.error(requestError)
+      console.error('undo failed', requestError)
       return false
     }
   }, [])
@@ -179,7 +169,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
         // Avance optimiste pour garder un rythme fluide…
         setIndex((value) => value + 1)
         setDragX(0)
-        setDragStartTs(null)
+        dragStartTs.current = null
 
         // …puis confirmation serveur (utilisateur connecté uniquement). Un dislike
         // anonyme ne fait qu'avancer (rien à persister). Rollback si l'écriture échoue.
@@ -210,7 +200,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
     setHistory((value) => value.slice(0, -1))
     setIndex(restoreIndex)
     setDragX(0)
-    setDragStartTs(null)
+    dragStartTs.current = null
 
     try {
       const ok = await clearReaction(last.workId)
@@ -277,7 +267,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
       if (pending) return
       dragging.current = true
       startX.current = event.clientX
-      setDragStartTs(performance.now())
+      dragStartTs.current = performance.now()
       // Capture sur la carte (et non l'enfant touché) → tous les déplacements lui
       // sont routés, le geste ne « fuit » pas vers le scroll/retour navigateur.
       cardRef.current?.setPointerCapture?.(event.pointerId)
@@ -298,7 +288,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   const onPointerUp = useCallback(() => {
     if (!dragging.current || pending) return
     dragging.current = false
-    const duration = dragStartTs ? performance.now() - dragStartTs : 1
+    const duration = dragStartTs.current ? performance.now() - dragStartTs.current : 1
     const velocity = dragX / duration
     const goRight = dragX > SWIPE_THRESHOLD_PX || velocity > SWIPE_VELOCITY_PX_MS
     const goLeft = dragX < -SWIPE_THRESHOLD_PX || velocity < -SWIPE_VELOCITY_PX_MS
@@ -310,10 +300,10 @@ export default function SwipeDeck({ items, totalCount }: Props) {
     } else {
       void animateBackOnce().then(() => {
         setDragX(0)
-        setDragStartTs(null)
+        dragStartTs.current = null
       })
     }
-  }, [advance, animateBackOnce, dragStartTs, dragX, pending])
+  }, [advance, animateBackOnce, dragX, pending])
 
   if (!hasMore) {
     return (
