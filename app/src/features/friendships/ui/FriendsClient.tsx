@@ -1,26 +1,24 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import type { FriendRequestDto, FriendSummaryDto } from '@/features/friendships/dto'
+import { useId, useMemo, useState, type FormEvent } from 'react'
+import type { FriendRequestDto, FriendSummaryDto, InvitePreviewDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
-import WorkSummaryCard from '@/features/works/ui/WorkSummaryCard'
+import CompactLikeCard from '@/features/reactions/ui/CompactLikeCard'
 import { fetchJson } from '@/shared/lib/fetch-json'
 import type { JsonOk } from '@/shared/lib/http'
+import EmptyState from '@/shared/ui/EmptyState'
+import { IconCheck, IconCopy } from '@/shared/ui/icons'
 import SegmentedControl from '@/shared/ui/SegmentedControl'
 import StatusBanner from '@/shared/ui/StatusBanner'
-import SurfaceCard from '@/shared/ui/SurfaceCard'
 
 type FriendsClientProps = {
   initialFriends: FriendSummaryDto[]
   initialRequests: FriendRequestDto[]
   inviteToken: string
+  invitation?: InvitePreviewDto | null
 }
 
-type AddFriendPayload = JsonOk<{
-  friend: FriendSummaryDto
-  status: 'accepted' | 'pending'
-}>
+type AddFriendPayload = JsonOk<{ status: 'accepted'; friend: FriendSummaryDto } | { status: 'pending' }>
 
 type AcceptPayload = JsonOk<{ friend: FriendSummaryDto }>
 
@@ -31,39 +29,51 @@ type CommonPayload = JsonOk<{
 function formatFriendsError(error: string) {
   switch (error) {
     case 'unauthorized':
-      return 'Session expirée. Recharge la page puis reconnecte-toi.'
+      return 'Session expirée. Rechargez la page puis reconnectez-vous.'
     case 'invalid_invite_token':
-      return "Le lien d'invitation est invalide."
+      return 'Ce lien d’invitation est invalide.'
     case 'invalid_friend_input':
     case 'invalid_body':
-      return 'Entre un email valide.'
+      return 'Entrez une adresse email valide.'
     case 'expired_invite_token':
-      return "Le lien d'invitation a expiré."
+      return 'Ce lien d’invitation a expiré.'
     case 'cannot_add_self':
-      return "Tu ne peux pas t'ajouter toi-même."
-    case 'friend_not_found':
-      return "Aucun compte Offi ne correspond à cet email."
+      return 'Vous ne pouvez pas vous ajouter vous-même.'
     case 'request_not_found':
-      return "Cette demande n'existe plus."
+      return 'Cette demande n’existe plus.'
     case 'forbidden':
-      return "Cette personne n'est pas encore dans ta liste d'amis."
+      return 'Cette personne n’est pas encore dans votre liste d’amis.'
     default:
-      return 'Une erreur est survenue. Réessaie.'
+      return 'Une erreur est survenue. Réessayez.'
   }
 }
 
-export default function FriendsClient({ initialFriends, initialRequests, inviteToken }: FriendsClientProps) {
-  const searchParams = useSearchParams()
+function initialsFromEmail(email: string) {
+  const local = email.split('@')[0] ?? email
+  return local.slice(0, 2).toUpperCase()
+}
+
+function Avatar({ email }: { email: string }) {
+  return (
+    <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-fill text-xs font-semibold text-ink-muted">
+      {initialsFromEmail(email)}
+    </span>
+  )
+}
+
+export default function FriendsClient({ initialFriends, initialRequests, inviteToken, invitation: initialInvitation = null }: FriendsClientProps) {
   const [friends, setFriends] = useState(initialFriends)
   const [requests, setRequests] = useState(initialRequests)
   const [commons, setCommons] = useState<CommonPayload['works']>([])
   const [emailInput, setEmailInput] = useState('')
-  const [error, setError] = useState('')
+  const [invitation, setInvitation] = useState(initialInvitation && 'token' in initialInvitation ? initialInvitation : null)
+  const [error, setError] = useState(initialInvitation && 'error' in initialInvitation ? formatFriendsError(initialInvitation.error) : '')
   const [notice, setNotice] = useState('')
   const [pending, setPending] = useState<string | null>(null)
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null)
   const [addMode, setAddMode] = useState<'email' | 'link'>('email')
-  const acceptedTokenRef = useRef(false)
+  const [copied, setCopied] = useState(false)
+  const emailId = useId()
 
   const inviteUrl = useMemo(() => {
     if (typeof window === 'undefined' || !inviteToken) return ''
@@ -83,41 +93,40 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
     setRequests((current) => current.filter((item) => item.id !== requesterId))
   }
 
-  // Arrivée via un lien d'invitation (?token=) → consentement explicite par le clic :
-  // on accepte automatiquement, une seule fois, puis on nettoie l'URL.
-  useEffect(() => {
-    const token = searchParams.get('token')
-    if (!token || acceptedTokenRef.current) return
-    acceptedTokenRef.current = true
+  // Lien d'invitation : rien n'est créé à l'ouverture, l'amitié attend le clic sur « Accepter ».
+  function closeInvitation() {
+    setInvitation(null)
+    const url = new URL(window.location.href)
+    url.searchParams.delete('token')
+    window.history.replaceState({}, '', url)
+  }
 
-    void (async () => {
-      setPending('token')
-      setError('')
-      setNotice('')
-      try {
-        const payload = await fetchJson<AddFriendPayload>('/api/friends', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        })
+  async function acceptInvitation(token: string) {
+    setPending('token')
+    setError('')
+    setNotice('')
+    try {
+      const payload = await fetchJson<AddFriendPayload>('/api/friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      if (payload.status === 'accepted') {
         upsertFriend(payload.friend)
-        setNotice(`${payload.friend.email} fait désormais partie de tes amis.`)
-      } catch (requestError) {
-        const message = requestError instanceof Error ? requestError.message : 'unknown_error'
-        setError(formatFriendsError(message))
-      } finally {
-        setPending(null)
-        if (typeof window !== 'undefined') {
-          const url = new URL(window.location.href)
-          url.searchParams.delete('token')
-          window.history.replaceState({}, '', url)
-        }
+        setNotice(`${payload.friend.email} fait désormais partie de vos amis.`)
       }
-    })()
-  }, [searchParams])
+      closeInvitation()
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'unknown_error'
+      setError(formatFriendsError(message))
+    } finally {
+      setPending(null)
+    }
+  }
 
-  async function addFriendByEmail() {
-    if (!emailInput) return
+  async function addFriendByEmail(event: FormEvent) {
+    event.preventDefault()
+    if (!emailInput || pending) return
 
     setPending('email')
     setError('')
@@ -130,9 +139,9 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
       })
       if (payload.status === 'accepted') {
         upsertFriend(payload.friend)
-        setNotice(`${payload.friend.email} fait désormais partie de tes amis.`)
+        setNotice(`${payload.friend.email} fait désormais partie de vos amis.`)
       } else {
-        setNotice(`Invitation envoyée à ${payload.friend.email}. Elle apparaîtra dans tes amis une fois acceptée.`)
+        setNotice(`Demande envoyée. Si ${emailInput} a un compte Offi, la personne apparaîtra dans vos amis une fois la demande acceptée.`)
       }
       setEmailInput('')
     } catch (requestError) {
@@ -156,7 +165,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
         })
         upsertFriend(payload.friend)
         removeRequest(requesterId)
-        setNotice(`${payload.friend.email} fait désormais partie de tes amis.`)
+        setNotice(`${payload.friend.email} fait désormais partie de vos amis.`)
       } else {
         await fetchJson<JsonOk<{ declined: boolean }>>('/api/friends/requests', {
           method: 'POST',
@@ -187,7 +196,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
         setSelectedFriendId(null)
         setCommons([])
       }
-      setNotice(`${friend.email} a été retiré de tes amis.`)
+      setNotice(`${friend.email} a été retiré de vos amis.`)
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'unknown_error'
       setError(formatFriendsError(message))
@@ -202,10 +211,11 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
     setPending('copy')
     try {
       await navigator.clipboard.writeText(inviteUrl)
-      setNotice('Lien copié.')
+      setCopied(true)
       setError('')
+      setTimeout(() => setCopied(false), 2000)
     } catch {
-      setError('Impossible de copier le lien automatiquement.')
+      setError('Impossible de copier le lien automatiquement. Sélectionnez-le et copiez-le à la main.')
     } finally {
       setPending(null)
     }
@@ -235,176 +245,196 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
   }
 
   return (
-    <div className="page-shell">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <h1 className="sr-only">Amis</h1>
 
-      {error ? <StatusBanner tone="error" floating>{error}</StatusBanner> : null}
-      {notice ? <StatusBanner tone="success" floating>{notice}</StatusBanner> : null}
+      {error ? (
+        <StatusBanner tone="error" floating onDismiss={() => setError('')}>
+          {error}
+        </StatusBanner>
+      ) : null}
+      {notice ? (
+        <StatusBanner tone="success" floating onDismiss={() => setNotice('')}>
+          {notice}
+        </StatusBanner>
+      ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-        <div className="space-y-5">
-          <SurfaceCard tone="accent" className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold tracking-[-0.02em]">➕ Ajouter un ami</h2>
-              <SegmentedControl
-                ariaLabel="Choisir un mode d'ajout"
-                value={addMode}
-                onChange={(value) => setAddMode(value as 'email' | 'link')}
-                items={[
-                  { label: '✉️ Email', value: 'email' },
-                  { label: '🔗 Lien', value: 'link' },
-                ]}
-              />
-            </div>
+      {invitation ? (
+        <section className="card flex flex-col gap-3 p-5" aria-labelledby="friends-invite-title">
+          <h2 id="friends-invite-title" className="display text-xl text-ink">
+            Invitation
+          </h2>
+          <p className="text-sm text-ink-muted">
+            <span className="font-semibold text-ink">{invitation.inviterEmail}</span> vous invite à devenir amis : chacun verra les
+            sorties aimées par l’autre.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn btn-primary" onClick={() => void acceptInvitation(invitation.token)} disabled={pending !== null}>
+              {pending === 'token' ? 'Ajout…' : `Accepter l’invitation de ${invitation.inviterEmail}`}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={closeInvitation} disabled={pending !== null}>
+              Ignorer
+            </button>
+          </div>
+        </section>
+      ) : null}
 
-            {addMode === 'email' ? (
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <input
-                  className="input flex-1"
-                  placeholder="email@exemple.com"
-                  type="email"
-                  value={emailInput}
-                  onChange={(event) => setEmailInput(event.target.value)}
-                />
-                <button className="btn btn-primary" onClick={() => void addFriendByEmail()} disabled={!emailInput || pending !== null}>
-                  {pending === 'email' ? 'Envoi…' : 'Inviter'}
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <input className="input flex-1" readOnly value={inviteUrl} aria-label="Mon lien d'invitation" />
-                <button className="btn btn-secondary" onClick={() => void copyInviteUrl()} disabled={!inviteUrl || pending !== null}>
-                  {pending === 'copy' ? 'Copie…' : 'Copier'}
-                </button>
-              </div>
-            )}
-          </SurfaceCard>
-
-          {requests.length > 0 ? (
-            <SurfaceCard tone="muted" className="space-y-4">
-              <h2 className="text-base font-semibold tracking-[-0.02em]">📨 Demandes reçues</h2>
-              <ul className="space-y-2">
-                {requests.map((request) => {
-                  const isAccepting = pending === `accept:${request.id}`
-                  const isDeclining = pending === `decline:${request.id}`
-                  return (
-                    <li
-                      key={request.id}
-                      className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--color-accent-soft)] text-sm font-semibold text-[color:var(--color-accent)]">
-                          {initialsFromEmail(request.email)}
-                        </div>
-                        <div className="text-sm font-semibold tracking-[-0.02em]">{request.email}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="btn btn-primary px-3 py-1.5 text-xs"
-                          onClick={() => void respondToRequest(request.id, 'accept')}
-                          disabled={pending !== null}
-                        >
-                          {isAccepting ? 'Ajout…' : 'Accepter'}
-                        </button>
-                        <button
-                          className="btn btn-ghost px-3 py-1.5 text-xs"
-                          onClick={() => void respondToRequest(request.id, 'decline')}
-                          disabled={pending !== null}
-                        >
-                          {isDeclining ? 'Refus…' : 'Refuser'}
-                        </button>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </SurfaceCard>
-          ) : null}
+      <section className="card flex flex-col gap-4 p-5" aria-labelledby="friends-add-title">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="friends-add-title" className="display text-xl text-ink">
+            Ajouter un ami
+          </h2>
+          <SegmentedControl
+            ariaLabel="Mode d’ajout"
+            value={addMode}
+            wrap
+            onChange={(value) => setAddMode(value as 'email' | 'link')}
+            items={[
+              { label: 'Par email', value: 'email' },
+              { label: 'Par lien', value: 'link' },
+            ]}
+          />
         </div>
 
-        <SurfaceCard className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold tracking-[-0.02em]">👥 Mes amis</h2>
-            <span className="chip">{friends.length}</span>
-          </div>
-
-          {friends.length === 0 ? (
-            <div className="empty-state rounded-[var(--radius-lg)] border border-dashed border-[color:var(--color-border)] bg-[color:var(--color-surface)]">
-              <strong>Aucun ami pour le moment.</strong>
-              <p className="text-sm leading-7 text-muted-foreground">Commence par partager ton lien ou par inviter un email.</p>
+        {addMode === 'email' ? (
+          <form onSubmit={addFriendByEmail} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label htmlFor={emailId} className="label">
+                Email de votre ami
+              </label>
+              <input
+                id={emailId}
+                className="input"
+                placeholder="email@exemple.com"
+                type="email"
+                autoComplete="off"
+                value={emailInput}
+                onChange={(event) => setEmailInput(event.target.value)}
+              />
+              <p className="field-hint">Il doit déjà avoir un compte Offi. Il recevra votre demande à sa prochaine visite.</p>
             </div>
-          ) : (
-            <ul className="space-y-4">
-              {friends.map((friend) => {
-                const isExpanded = selectedFriendId === friend.id
-                const isLoadingCommon = pending === 'common' && isExpanded
-                const isRemoving = pending === `remove:${friend.id}`
+            <button type="submit" className="btn btn-primary sm:mb-6" disabled={!emailInput || pending !== null}>
+              {pending === 'email' ? 'Envoi…' : 'Inviter'}
+            </button>
+          </form>
+        ) : (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label htmlFor="friends-invite-url" className="label">
+                Mon lien d’invitation
+              </label>
+              <input id="friends-invite-url" className="input text-sm" readOnly value={inviteUrl} onFocus={(e) => e.currentTarget.select()} />
+              <p className="field-hint">Qui ouvre ce lien connecté à son compte pourra accepter votre invitation.</p>
+            </div>
+            <button type="button" className="btn btn-secondary sm:mb-6" onClick={() => void copyInviteUrl()} disabled={!inviteUrl || pending !== null}>
+              {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+              {copied ? 'Copié' : 'Copier'}
+            </button>
+          </div>
+        )}
+      </section>
 
-                return (
-                  <li
-                    key={friend.id}
-                    className="rounded-[var(--radius-lg)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
-                  >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--color-accent-soft)] text-sm font-semibold text-[color:var(--color-accent)]">
-                          {initialsFromEmail(friend.email)}
-                        </div>
-                        <div className="min-w-0 truncate text-sm font-semibold tracking-[-0.02em]">{friend.email}</div>
-                      </div>
+      {requests.length > 0 ? (
+        <section className="card flex flex-col gap-4 p-5" aria-labelledby="friends-requests-title">
+          <h2 id="friends-requests-title" className="display text-xl text-ink">
+            Demandes reçues <span className="text-ink-muted">{requests.length}</span>
+          </h2>
+          <ul className="flex flex-col divide-y divide-line">
+            {requests.map((request) => {
+              const isAccepting = pending === `accept:${request.id}`
+              const isDeclining = pending === `decline:${request.id}`
+              return (
+                <li key={request.id} className="flex flex-wrap items-center gap-3 py-3">
+                  <Avatar email={request.email} />
+                  <span className="min-w-0 flex-1 basis-40 truncate text-sm font-semibold text-ink">{request.email}</span>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button className="btn btn-primary px-4" onClick={() => void respondToRequest(request.id, 'accept')} disabled={pending !== null}>
+                      {isAccepting ? 'Ajout…' : 'Accepter'}
+                    </button>
+                    <button className="btn btn-ghost px-3" onClick={() => void respondToRequest(request.id, 'decline')} disabled={pending !== null}>
+                      {isDeclining ? 'Refus…' : 'Refuser'}
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ) : null}
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          className={`btn ${isExpanded ? 'btn-primary' : 'btn-secondary'} px-3 py-1.5 text-sm`}
-                          onClick={() => void loadCommon(friend.id)}
-                          disabled={pending !== null && !isLoadingCommon}
-                        >
-                          {isLoadingCommon ? '…' : isExpanded ? 'Masquer' : '🎭 En commun'}
-                        </button>
-                        <button
-                          className="btn btn-ghost px-3 py-1.5 text-xs"
-                          onClick={() => void removeFriendById(friend)}
-                          disabled={pending !== null}
-                          aria-label={`Retirer ${friend.email}`}
-                        >
-                          {isRemoving ? 'Retrait…' : 'Retirer'}
-                        </button>
-                      </div>
+      <section className="card flex flex-col gap-4 p-5" aria-labelledby="friends-list-title">
+        <h2 id="friends-list-title" className="display text-xl text-ink">
+          Mes amis <span className="text-ink-muted">{friends.length}</span>
+        </h2>
+
+        {friends.length === 0 ? (
+          <EmptyState variant="inline" title="Aucun ami pour le moment.">
+            Invitez quelqu’un par email ou partagez votre lien : vous verrez ensuite les sorties que vous aimez tous les deux.
+          </EmptyState>
+        ) : (
+          <ul className="flex flex-col divide-y divide-line">
+            {friends.map((friend) => {
+              const isExpanded = selectedFriendId === friend.id
+              const isLoadingCommon = pending === 'common' && isExpanded
+              const isRemoving = pending === `remove:${friend.id}`
+
+              return (
+                <li key={friend.id} className="py-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Avatar email={friend.email} />
+                    <span className="min-w-0 flex-1 basis-40 truncate text-sm font-semibold text-ink">{friend.email}</span>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        className="btn btn-secondary px-4"
+                        onClick={() => void loadCommon(friend.id)}
+                        disabled={pending !== null && !isLoadingCommon}
+                        aria-expanded={isExpanded}
+                      >
+                        {isLoadingCommon ? 'Chargement…' : isExpanded ? 'Masquer' : 'En commun'}
+                      </button>
+                      <button
+                        className="btn btn-ghost px-3"
+                        onClick={() => void removeFriendById(friend)}
+                        disabled={pending !== null}
+                        aria-label={`Retirer ${friend.email}`}
+                      >
+                        {isRemoving ? 'Retrait…' : 'Retirer'}
+                      </button>
                     </div>
+                  </div>
 
-                    {isExpanded ? (
-                      <div className="mt-5 space-y-4 border-t border-[color:var(--color-border)] pt-5">
-                        {isLoadingCommon ? <p className="text-sm text-muted-foreground">Chargement…</p> : null}
-
-                        {!isLoadingCommon && commons.length === 0 ? (
-                          <div className="empty-state rounded-[var(--radius-md)] border border-dashed border-[color:var(--color-border)] bg-[rgba(255,255,255,0.65)]">
-                            <strong>Aucune œuvre commune pour le moment.</strong>
-                          </div>
-                        ) : null}
-
-                        {commons.length > 0 ? (
-                          <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {isExpanded ? (
+                    <div className="mt-3 flex flex-col gap-3">
+                      {isLoadingCommon ? (
+                        <p role="status" className="text-sm text-ink-muted">
+                          Recherche des œuvres en commun…
+                        </p>
+                      ) : commons.length === 0 ? (
+                        <EmptyState variant="inline" title="Aucune œuvre en commun pour le moment.">
+                          Dès que vous aimerez tous les deux la même sortie, elle apparaîtra ici.
+                        </EmptyState>
+                      ) : (
+                        <>
+                          <p className="text-sm text-ink-muted">
+                            {commons.length} {commons.length > 1 ? 'œuvres aimées' : 'œuvre aimée'} par vous deux.
+                          </p>
+                          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             {commons.map((work) => (
                               <li key={work?.id ?? `${friend.id}-${work?.sourceUrl ?? work?.title ?? 'work'}`}>
-                                <WorkSummaryCard work={work} fallbackTitle="Œuvre commune" />
+                                <CompactLikeCard work={work} fallbackTitle="Œuvre commune" friends={[]} />
                               </li>
                             ))}
                           </ul>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </SurfaceCard>
-      </div>
+                        </>
+                      )}
+                    </div>
+                  ) : null}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   )
-}
-
-function initialsFromEmail(email: string) {
-  const local = email.split('@')[0] ?? email
-  return local.slice(0, 2).toUpperCase()
 }

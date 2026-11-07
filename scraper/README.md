@@ -6,7 +6,7 @@
 - Point d'entrée ingestion DB: `app/scripts/ingest-offi.ts`
 - Sortie standard du pipeline: `data/offi.jsonl`
 - Logs pipeline: `scraper/logs/offi-pipeline-YYYYMMDD-HHMMSS.log`
-- Dépendances Python: `requests`, `beautifulsoup4`, `lxml`
+- Dépendances Python: `requests`, `beautifulsoup4`
 - Dépendances DB/app: `pnpm --dir app ...` avec `DATABASE_URL`
 
 Le scraper applique désormais un throttling, des retries exponentiels sur `403/429/5xx/timeouts`, une validation stricte des enregistrements, et renvoie un code non nul si aucune donnée exploitable n'est extraite.
@@ -54,7 +54,15 @@ Local et prod : même wrapper exécuté par cron
 - activation : lancer `./scripts/install-offi-cron.sh`
 
 ```cron
-0 7 * * * cd /Users/paulpignal/Desktop/offi-app && /bin/bash ./scripts/offi-pipeline.sh >> /Users/paulpignal/Desktop/offi-app/scraper/logs/cron.log 2>&1
+0 7 * * * cd /path/to/offi-app && /bin/bash ./scripts/offi-pipeline.sh >> /path/to/offi-app/scraper/logs/cron.log 2>&1
 ```
 
 La même stratégie fonctionne sur un hôte de prod tant que l'environnement expose `DATABASE_URL` et les dépendances système nécessaires.
+
+## Sources directes des lieux (hebdomadaire, vendredi 03:37 UTC)
+
+`.github/workflows/venues-refresh.yml` : job `scrape` (scrape direct de la vague 1, 89 lieux vendus via Mapado, Billetreduc, Tick&Live, Shotgun, puis rapport de sortie d'offi en artefact) et job `ingest` (écriture en base).
+
+- **Garde** : le job `ingest` ne tourne que si la variable de dépôt `VENUES_INGEST_ENABLED` vaut `true`. Variable absente = scrape et rapport seulement, aucune écriture en base, aucun secret utilisé.
+- **Migration** : le workflow n'en applique jamais ; `ingest` vérifie en lecture seule (`prisma migrate status`) que `20261107120000_add_work_direct_sources` est en base. `offi-refresh.yml` exécute `prisma migrate deploy` : la migration part en production au premier run d'offi-refresh après la fusion sur `main`.
+- **Sortie d'offi** : `python3 -m scraper.venues.exit_report` propose les lieux à 90 % ou plus pendant 3 semaines consécutives ; `data/venues/direct_only.csv` (colonne `venue_slug`) est modifié à la main, et un lieu listé n'est plus ingéré depuis offi.

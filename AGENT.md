@@ -239,7 +239,7 @@ Hard-won, repo-specific facts. Read before touching scraper, ingestion, CI, or t
 
 - `Venue.website` = venue official site (offi marks it `rel="external"` on the **venue** page; `parsers.extract_official_website` + social/share host filter). `Work.officialUrl` = the **show-specific** external link when offi exposes one **on the show page** (`rel="external"`) — present for expo/concert, **absent for theatre** (offi handles theatre booking in-house).
 - UI priority (`SourceLink`): title → `officialUrl` (dedicated page) when present; venue name → `Venue.website`; else fall back to the offi link. Copy button sits on the primary source.
-- **Theatre deep links are discovered, not built**: there is no common URL scheme across venue sites (`/spectacle/`, `/project/`, slug-at-root…). `scraper/discover.py` (`slugify`/`tokens`/`match_titles`, unit-tested) inspects the venue homepage and matches each title **conservatively** (exact-slug, or ≥2 significant tokens) — a wrong link is worse than none. `app/scripts/backfill-official-url-from-venue.ts` fetches the venue site, matches, and writes `officialUrl` **only if the URL returns 200**. Coverage is partial (only shows listed on the homepage; some sites 403/SSL-fail).
+- **Theatre deep links are discovered, not built**: there is no common URL scheme across venue sites (`/spectacle/`, `/project/`, slug-at-root…). `scraper/discover.py` (`slugify`/`tokens`/`match_titles`, unit-tested) inspects the venue homepage and matches each title **conservatively** (exact-slug, or ≥2 significant tokens) — a wrong link is worse than none. The former backfill script that wrote `officialUrl` from these matches was removed on 07/11/2026 (recoverable from git history). Coverage is partial (only shows listed on the homepage; some sites 403/SSL-fail).
 
 ## Streaming (TMDB)
 
@@ -247,7 +247,7 @@ Hard-won, repo-specific facts. Read before touching scraper, ingestion, CI, or t
 - `app/scripts/ingest-tmdb-streaming.ts` (needs `TMDB_API_KEY`, v3 key): resolves provider IDs **by name** from the FR list, then `/discover/movie` per platform with `with_watch_monetization_types=flatrate|free|ads` (= no extra cost; excludes rent/buy), **aggregating platforms per film**. No per-film detail call (fast, large catalogue). Idempotent: after the run, films not seen get `platforms=[]` (→ hidden, not deleted — reactions preserved).
 - Targeted platforms: Netflix, Prime Video, Disney+, Canal+, Arte, TF1+, M6+. **France TV is NOT a TMDB movie provider in FR** (only "France TV Amazon Channel") → absent.
 - Query (`listDiscoverWorks`): streaming filters `platforms: { isEmpty: false }` (hide departed) + optional `platforms hasSome` filter; `listStreamingPlatforms()` powers the filter UI (`StreamingPlatformFilter`, state in the URL). Card/modal show platform chips; modal CTA is "Où regarder".
-- TMDB poster URLs (`image.tmdb.org`) pass through `image-loader.ts` unchanged (only offi URLs are rewritten).
+- TMDB poster URLs (`image.tmdb.org/t/p/<size>/…`) are rewritten by `image-loader.ts` to the nearest TMDB size (w92, w154, w185, w342, w500), capped at w500 (w780 weighs about twice as much).
 
 ## Mobile / touch UX
 

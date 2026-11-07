@@ -1,6 +1,6 @@
-// Jeu d'icônes maison (style « line », trait régulier). Remplace les emoji, qui
-// faisaient « template » et cassaient la cohérence visuelle. SVG inline → zéro
-// dépendance, couleur via currentColor, taille via la prop `size`.
+// Jeu d'icônes maison (style « line », trait régulier). SVG inline → zéro
+// dépendance, couleur via currentColor, taille via la prop `size`. Toujours
+// décoratives (aria-hidden) : le libellé accessible est porté par l'élément hôte.
 import type { SVGProps } from 'react'
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number }
@@ -17,6 +17,7 @@ function Svg({ size = 16, children, ...props }: IconProps & { children: React.Re
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
+      focusable="false"
       {...props}
     >
       {children}
@@ -26,7 +27,7 @@ function Svg({ size = 16, children, ...props }: IconProps & { children: React.Re
 
 export function IconStar({ filled = true, size = 16, ...props }: IconProps & { filled?: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" aria-hidden {...props}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" aria-hidden focusable="false" {...props}>
       <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L4.5 9.7l5.9-.9z" />
     </svg>
   )
@@ -96,12 +97,6 @@ export const IconArrowUpRight = (p: IconProps) => (
   </Svg>
 )
 
-export const IconPhone = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M6.5 3.5h3l1.5 4-2 1.4a11 11 0 0 0 4.6 4.6l1.4-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7 2 2 0 0 1 6.5 3.5z" />
-  </Svg>
-)
-
 export const IconCopy = (p: IconProps) => (
   <Svg {...p}>
     <rect x="9" y="9" width="11" height="11" rx="2" />
@@ -117,7 +112,7 @@ export const IconCompass = (p: IconProps) => (
 )
 
 export const IconHeart = ({ filled = false, size = 16, ...props }: IconProps & { filled?: boolean }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...props}>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false" {...props}>
     <path d="M12 20s-7-4.6-9.1-9C1.4 7.7 3.1 4.6 6.2 4.6c1.9 0 3.1 1 3.8 2 .7-1 1.9-2 3.8-2 3.1 0 4.8 3.1 3.3 6.4C19 15.4 12 20 12 20z" />
   </svg>
 )
@@ -138,5 +133,39 @@ export const IconMoon = (p: IconProps) => (
 export const IconCheck = (p: IconProps) => (
   <Svg strokeWidth={2.2} {...p}>
     <path d="M20 6 9 17l-5-5" />
+  </Svg>
+)
+
+export const IconX = (p: IconProps) => (
+  <Svg strokeWidth={2} {...p}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </Svg>
+)
+
+export const IconUndo = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 10h9a5 5 0 0 1 0 10h-3" />
+    <path d="M8 6 4 10l4 4" />
+  </Svg>
+)
+
+export const IconSearch = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m20 20-4.3-4.3" />
+  </Svg>
+)
+
+export const IconLogout = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 8l-4 4 4 4M6 12h11" />
+  </Svg>
+)
+
+export const IconImage = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+    <circle cx="9" cy="10" r="1.6" />
+    <path d="m20.5 16-4.5-4.5-7 7" />
   </Svg>
 )

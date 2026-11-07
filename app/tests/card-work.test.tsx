@@ -43,16 +43,16 @@ const base: WorkCardDto = {
 }
 
 describe('CardWork', () => {
-  it('affiche la durée en emoji, n’affiche pas le genre ni la date', () => {
+  it('affiche la durée avec une icône, n’affiche pas le genre ni la date', () => {
     render(<CardWork work={base} />)
 
     expect(screen.getByRole('heading', { name: 'Wendy et Lucy' })).toBeInTheDocument()
     // le genre n'est plus affiché (page Découverte condensée)
     expect(screen.queryByText('drame')).not.toBeInTheDocument()
     expect(screen.queryByText('road-movie')).not.toBeInTheDocument()
-    // durée en emoji, pas de label "DURÉE"
+    // durée avec une icône ; le libellé « Durée » n'existe que pour les lecteurs d'écran
     expect(screen.getByText(/1 h 20/)).toBeInTheDocument()
-    expect(screen.queryByText(/DURÉE/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('DURÉE')).not.toBeInTheDocument()
     // la date est retirée
     expect(screen.queryByText(/2009/)).not.toBeInTheDocument()
     expect(screen.queryByText(/avr\./)).not.toBeInTheDocument()

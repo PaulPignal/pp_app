@@ -22,52 +22,52 @@ function useActive() {
   return (href: string) => pathname === href || pathname.startsWith(`${href}/`)
 }
 
-function Logo({ compact = false }: { compact?: boolean }) {
+// Marque : un mot en Newsreader, pas de pictogramme. Le lien porte un libellé complet.
+export function Wordmark({ tagline = false }: { tagline?: boolean }) {
   return (
-    <Link href="/discover" className="flex items-center gap-3">
-      <span className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-[color:var(--color-accent)] text-sm font-bold text-white">
-        O
+    <Link href="/discover" aria-label="Offi, retour à la découverte" className="inline-flex min-h-11 flex-col justify-center leading-none">
+      <span aria-hidden className="display text-2xl text-ink">
+        Offi
       </span>
-      {compact ? (
-        <span className="text-base font-semibold tracking-[-0.03em] text-[color:var(--color-text)]">Offi</span>
-      ) : (
-        <span className="flex flex-col leading-tight">
-          <span className="text-base font-semibold tracking-[-0.03em] text-[color:var(--color-text)]">Offi</span>
-          <span className="text-xs text-[color:var(--color-text-muted)]">Découvertes à Paris</span>
+      {tagline ? (
+        <span aria-hidden className="mt-1 text-xs text-ink-muted">
+          Sorties à Paris
         </span>
-      )}
+      ) : null}
     </Link>
   )
 }
 
 function AccountBlock() {
   const { data: session, status } = useSession()
-  if (status === 'loading') return null
+  if (status === 'loading') return <div className="skeleton h-11" aria-hidden />
   if (!session) {
     return (
-      <Link href={SIGN_IN_PATH} className="btn btn-primary w-full justify-center">
+      <Link href={SIGN_IN_PATH} className="btn btn-primary w-full">
         Se connecter
       </Link>
     )
   }
-  const name = (session.user?.email ?? '').split('@')[0]
+  const email = session.user?.email ?? ''
   return (
-    <div className="flex items-center justify-between gap-2 rounded-[var(--radius-control)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 py-2">
-      <span className="truncate text-xs text-[color:var(--color-text-muted)]">{name}</span>
-      <LogoutButton />
+    <div className="flex items-center justify-between gap-2 border-t border-line pt-3">
+      <span className="truncate text-xs text-ink-muted" title={email}>
+        {email}
+      </span>
+      <LogoutButton variant="icon" />
     </div>
   )
 }
 
-// Sidebar verticale (desktop ≥ lg). Structure constante d'une page à l'autre.
+// Barre latérale (desktop ≥ lg). Structure constante d'une page à l'autre.
 export function Sidebar() {
   const isActive = useActive()
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-1 border-r border-[color:var(--color-border)] px-3 py-5 lg:flex">
-      <div className="px-2 pb-4">
-        <Logo />
+    <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line px-4 py-6 lg:flex">
+      <div className="px-3 pb-8">
+        <Wordmark tagline />
       </div>
-      <nav className="flex flex-col gap-1">
+      <nav aria-label="Navigation principale" className="flex flex-col gap-1">
         {NAV.map(({ href, label, Icon }) => {
           const active = isActive(href)
           return (
@@ -76,10 +76,8 @@ export function Sidebar() {
               href={href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-sm font-semibold transition',
-                active
-                  ? 'border border-[color:var(--color-border-strong)] bg-[color:var(--color-surface-strong)] text-[color:var(--color-text)]'
-                  : 'text-[color:var(--color-text-muted)] hover:bg-[color:var(--color-surface)] hover:text-[color:var(--color-text)]',
+                'flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold transition-colors duration-150',
+                active ? 'bg-fill text-ink' : 'text-ink-muted hover:bg-fill hover:text-ink',
               )}
             >
               <Icon size={18} />
@@ -88,20 +86,20 @@ export function Sidebar() {
           )
         })}
       </nav>
-      <div className="mt-auto flex flex-col gap-3 px-1">
-        <ThemeToggle />
+      <div className="mt-auto flex flex-col gap-3">
+        <ThemeToggle variant="row" />
         <AccountBlock />
       </div>
     </aside>
   )
 }
 
-// Bandeau haut compact (mobile < lg) : logo + thème + compte.
+// Bandeau haut compact (mobile < lg) : marque + thème + compte.
 export function MobileTopBar() {
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[color:var(--color-border)] bg-[color:var(--color-topbar)] px-4 py-3 backdrop-blur-xl lg:hidden">
-      <Logo compact />
-      <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-topbar px-4 backdrop-blur-md lg:hidden">
+      <Wordmark />
+      <div className="flex items-center gap-1">
         <ThemeToggle />
         <MobileAccount />
       </div>
@@ -114,19 +112,22 @@ function MobileAccount() {
   if (status === 'loading') return null
   if (!session) {
     return (
-      <Link href={SIGN_IN_PATH} className="btn btn-primary px-3 py-1.5 text-xs">
+      <Link href={SIGN_IN_PATH} className="btn btn-primary min-h-10 px-4">
         Se connecter
       </Link>
     )
   }
-  return <LogoutButton />
+  return <LogoutButton variant="icon" />
 }
 
 // Barre d'onglets en bas (mobile < lg) : navigation principale au pouce.
 export function BottomNav() {
   const isActive = useActive()
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-[color:var(--color-border)] bg-[color:var(--color-topbar)] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+    <nav
+      aria-label="Navigation principale"
+      className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-line bg-topbar pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+    >
       {NAV.map(({ href, label, Icon }) => {
         const active = isActive(href)
         return (
@@ -135,11 +136,11 @@ export function BottomNav() {
             href={href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[0.66rem] font-semibold transition',
-              active ? 'text-[color:var(--color-accent)]' : 'text-[color:var(--color-text-muted)]',
+              'flex h-14 flex-1 flex-col items-center justify-center gap-1 text-xs font-semibold transition-colors duration-150',
+              active ? 'text-accent' : 'text-ink-muted',
             )}
           >
-            <Icon size={21} />
+            <Icon size={22} />
             {label}
           </Link>
         )

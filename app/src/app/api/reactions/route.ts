@@ -1,48 +1,39 @@
-import { z } from 'zod'
-import { requireSessionUser, isUnauthorizedError } from '@/features/auth/server/session'
-import { reactionUpsertSchema } from '@/features/reactions/schemas'
+import { requireSessionUser } from '@/features/auth/server/session'
+import { reactionUpsertSchema, reactionWorkQuerySchema } from '@/features/reactions/schemas'
 import { clearReaction, setReactionStatus } from '@/features/reactions/server/commands'
-import { jsonError, jsonOk } from '@/shared/lib/http'
+import { jsonError, jsonKnownError, jsonOk } from '@/shared/lib/http'
+import { rateLimit } from '@/shared/lib/rate-limit'
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-export const fetchCache = 'force-no-store'
+// Un swipe humain dépasse rarement 1 par seconde : 120/min borne un script qui like tout le catalogue.
+const REACTIONS_PER_MINUTE = 120
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => null)
-    const parsed = reactionUpsertSchema.safeParse(body)
-    if (!parsed.success) return jsonError('invalid_body', 400, parsed.error.flatten())
+    const parsed = reactionUpsertSchema.safeParse(await req.json().catch(() => null))
+    if (!parsed.success) return jsonError('invalid_body', 400)
 
     const sessionUser = await requireSessionUser()
-    const { reaction } = await setReactionStatus({
-      userId: sessionUser.id,
-      workId: parsed.data.workId,
-      status: parsed.data.status,
-    })
+    if (!rateLimit(`reactions:${sessionUser.id}`, REACTIONS_PER_MINUTE, 60_000).ok) return jsonError('rate_limited', 429)
 
-    return jsonOk({ reaction }, 200)
-  } catch (e: unknown) {
-    if (isUnauthorizedError(e)) return jsonError('unauthorized', 401)
-    return jsonError('server_error', 500)
+    const { reaction } = await setReactionStatus({ userId: sessionUser.id, ...parsed.data })
+    return jsonOk({ reaction })
+  } catch (error) {
+    return jsonKnownError(error, { unauthorized: 401 }, 'POST /api/reactions')
   }
 }
 
-// DELETE /api/reactions?workId=...
-// Annule un swipe : efface la réaction → l'œuvre revient dans le deck Discover.
+// DELETE /api/reactions?workId=... : annule un swipe, l'œuvre revient dans le deck Discover.
 export async function DELETE(req: Request) {
   try {
-    const url = new URL(req.url)
-    const parsed = z.object({ workId: z.string().min(1) }).safeParse({ workId: url.searchParams.get('workId') })
-    if (!parsed.success) return jsonError('invalid_query', 400, parsed.error.flatten())
+    const parsed = reactionWorkQuerySchema.safeParse({ workId: new URL(req.url).searchParams.get('workId') })
+    if (!parsed.success) return jsonError('invalid_query', 400)
 
     const sessionUser = await requireSessionUser()
-    await clearReaction({ userId: sessionUser.id, workId: parsed.data.workId })
+    if (!rateLimit(`reactions:${sessionUser.id}`, REACTIONS_PER_MINUTE, 60_000).ok) return jsonError('rate_limited', 429)
 
-    return jsonOk({ cleared: true }, 200)
-  } catch (e: unknown) {
-    if (isUnauthorizedError(e)) return jsonError('unauthorized', 401)
-    return jsonError('server_error', 500)
+    await clearReaction({ userId: sessionUser.id, workId: parsed.data.workId })
+    return jsonOk({ cleared: true })
+  } catch (error) {
+    return jsonKnownError(error, { unauthorized: 401 }, 'DELETE /api/reactions')
   }
 }

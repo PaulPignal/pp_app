@@ -356,6 +356,22 @@ _SOCIAL_HOSTS = (
 )
 
 
+def _is_social_host(host: str) -> bool:
+    """Réseaux sociaux / partage. Comparaison sur le libellé de domaine entier : un simple
+    « x.com in host » écartait à tort lesgemeaux.com (fini par « x.com »)."""
+    labels = host.removeprefix("www.")
+    for s in _SOCIAL_HOSTS:
+        if s.endswith("."):  # préfixe de TLD variable (google.fr, google.com)
+            if re.search(rf"(^|\.){re.escape(s)}", labels):
+                return True
+        elif "." in s:
+            if labels == s or labels.endswith("." + s):
+                return True
+        elif re.search(rf"(^|\.){re.escape(s)}(\.|$)", labels):
+            return True
+    return False
+
+
 def extract_official_website(soup) -> Optional[str]:
     """URL du site officiel du lieu (lien rel="external" non social), ou None."""
     for a in soup.find_all("a", href=True):
@@ -366,7 +382,7 @@ def extract_official_website(soup) -> Optional[str]:
         if not href.startswith(("http://", "https://")):
             continue
         host = urlparse(href).netloc.lower()
-        if any(s in host for s in _SOCIAL_HOSTS):
+        if _is_social_host(host):
             continue
         return href
     return None

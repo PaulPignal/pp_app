@@ -34,6 +34,7 @@ export function buildWorkUpsert(record: OffiWorkRecord): {
     cinemaVenues: record.cinema_venues ?? [],
     officialUrl: record.official_url ?? null,
     sourceUrl: record.url,
+    dataSource: 'offi',
   }
 
   const update: Prisma.WorkUpdateInput = {

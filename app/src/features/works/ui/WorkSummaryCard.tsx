@@ -1,158 +1,141 @@
 import type { ReactNode } from 'react'
 import type { WorkCardDto } from '@/features/works/dto'
 import { workDirectorLabel, workSectionLabel } from '@/features/works/section'
-import BadgeCategory from '@/features/works/ui/BadgeCategory'
 import WorkImage from '@/features/works/ui/WorkImage'
 import SourceLink from '@/features/works/ui/SourceLink'
-import { IconTv } from '@/shared/ui/icons'
-import { formatDateRange, formatDuration, formatPriceRange } from '@/features/works/ui/work-formatters'
-import { cn } from '@/shared/lib/cn'
-import SurfaceCard from '@/shared/ui/SurfaceCard'
+import { IconImage, IconTv } from '@/shared/ui/icons'
+import { formatDateRange, formatDuration, formatPriceRange, formatRating } from '@/features/works/ui/work-formatters'
 
 type WorkSummaryCardProps = {
   work: WorkCardDto | null
   fallbackTitle: string
-  actions?: ReactNode
-  className?: string
+  /** Identifiant du titre (pour aria-labelledby d'une boîte de dialogue). */
+  titleId?: string
+  children?: ReactNode
 }
 
-export default function WorkSummaryCard({ work, fallbackTitle, actions, className }: WorkSummaryCardProps) {
+// Fiche complète d'une œuvre : affiche, titre, crédits, description entière et
+// liste de faits (dates, lieu, tarif, durée, accès). Les actions viennent en `children`.
+export default function WorkSummaryCard({ work, fallbackTitle, titleId, children }: WorkSummaryCardProps) {
   const title = work?.title ?? fallbackTitle
   const dateLabel = work ? formatDateRange(work.startDate, work.endDate) : null
   const priceLabel = work ? formatPriceRange(work.priceMin, work.priceMax) : null
   const durationLabel = work ? formatDuration(work.durationMin) : null
-  const ratingLabel =
-    work?.rating != null && work.rating > 0 && (work.ratingCount ?? 0) >= 20
-      ? work.rating.toFixed(1).replace('.', ',')
-      : null
-  const description = (work?.venueDescription ?? work?.description)?.trim()
+  const ratingLabel = formatRating(work?.rating, work?.ratingCount)
+  const description = work?.description
   const director = work?.director?.trim()
   const castNames = work?.cast?.slice(0, 5) ?? []
   const directorLabel = workDirectorLabel(work?.section)
-  const venueLine = work
-    ? [work.venue, work.section !== 'cinema' ? work.arrondissement : null].filter(Boolean).join(' · ')
-    : ''
-  const cinemaMeta = work?.section === 'cinema' ? [work.country, work.year].filter(Boolean).join(' · ') : ''
+  const isCinema = work?.section === 'cinema'
+  const venueLine = work ? [work.venue, !isCinema ? work.arrondissement : null].filter(Boolean).join(' · ') : ''
+  const cinemaMeta = isCinema ? [work.country, work.year].filter(Boolean).join(' · ') : ''
   // Titre → page événement du lieu, sinon lien rel=external d'Offi.
-  const officialUrl = work?.officialUrl ?? work?.externalUrl ?? null
+  const officialUrl = work?.officialUrl ?? null
   const venueWebsite = work?.venueInfo?.website ?? null
   const cinemaVenuesLine =
-    work?.section === 'cinema' && work.cinemaVenueCount
+    isCinema && work.cinemaVenueCount
       ? `${work.cinemaVenueCount} salle${work.cinemaVenueCount > 1 ? 's' : ''}${
           work.cinemaVenues.length ? ' · ' + work.cinemaVenues.slice(0, 3).join(', ') : ''
         }`
       : ''
+  const address = [work?.address, isCinema ? null : work?.arrondissement].filter(Boolean).join(', ')
+  const venueMetro = work?.venueInfo?.metro?.trim()
+  const venueAccess = work?.venueInfo?.access?.trim()
+  const venuePhone = work?.venueInfo?.phone?.trim()
+
+  const facts: Array<[string, ReactNode]> = []
+  if (dateLabel) facts.push(['Dates', dateLabel])
+  if (venueLine || address) {
+    facts.push([
+      'Lieu',
+      <>
+        {venueLine ? <SourceLink label={venueLine} href={venueWebsite} copy={false} /> : null}
+        {address ? <span className="block text-ink-muted">{address}</span> : null}
+      </>,
+    ])
+  }
+  if (cinemaVenuesLine) facts.push(['Salles', cinemaVenuesLine])
+  if (priceLabel) facts.push(['Tarif', priceLabel])
+  if (durationLabel) facts.push(['Durée', durationLabel])
+  if (venueMetro) facts.push(['Métro', venueMetro])
+  if (venueAccess) facts.push(['Accès', venueAccess])
+  if (venuePhone) facts.push(['Téléphone', <a key="tel" href={`tel:${venuePhone.replace(/\s/g, '')}`} className="link">{venuePhone}</a>])
+  if (ratingLabel) facts.push(['Note', `${ratingLabel} / 10`])
 
   return (
-    <SurfaceCard className={cn('flex h-full flex-col overflow-hidden p-0', className)} tone="muted">
-      <div className="relative h-48 w-full overflow-hidden bg-muted">
+    <article className="flex flex-col gap-4">
+      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg bg-fill">
         <WorkImage
           src={work?.imageUrl}
-          alt={title}
-          sizes="(max-width: 768px) 100vw, 420px"
+          alt=""
+          sizes="(max-width: 640px) 100vw, 576px"
           className="object-cover"
           fallback={
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Pas d&apos;image</div>
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-ink-muted">
+              <IconImage size={28} />
+              Pas d’image
+            </div>
           }
         />
+      </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent" />
-
-        <div className="absolute left-4 top-4">
-          {work?.category ? <BadgeCategory category={work.category} /> : null}
-        </div>
-
-        {work?.section ? (
-          <span className="absolute bottom-4 right-4 rounded-full border border-white/35 bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-white backdrop-blur-sm">
-            {workSectionLabel(work.section)}
-          </span>
+      <div className="flex flex-col gap-1">
+        {work?.section ? <p className="eyebrow">{workSectionLabel(work.section)}</p> : null}
+        <h2 id={titleId} className="display text-2xl text-ink">
+          {officialUrl ? <SourceLink label={title} href={officialUrl} /> : title}
+        </h2>
+        {cinemaMeta ? <p className="text-sm text-ink-muted">{cinemaMeta}</p> : null}
+        {director || castNames.length > 0 ? (
+          <div className="mt-1 text-sm leading-6">
+            {director ? (
+              <p>
+                <span className="text-ink-muted">{directorLabel} </span>
+                <span className="font-semibold text-ink">{director}</span>
+              </p>
+            ) : null}
+            {castNames.length > 0 ? (
+              <p>
+                <span className="text-ink-muted">Avec </span>
+                <span className="text-ink">{castNames.join(', ')}</span>
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        {work?.platforms && work.platforms.length > 0 ? (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1.5 text-sm text-ink-muted">
+              <IconTv size={15} /> Disponible sur
+            </span>
+            {work.platforms.map((p) => (
+              <span key={p} className="chip">
+                {p}
+              </span>
+            ))}
+          </div>
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="space-y-2">
-          <h3 className="line-clamp-2 text-lg font-semibold tracking-[-0.03em] text-[color:var(--color-text)]">
-            {officialUrl ? (
-              <SourceLink label={title} href={officialUrl} textClassName="text-[color:var(--color-text)]" />
-            ) : (
-              title
-            )}
-          </h3>
-          {venueLine ? (
-            <SourceLink
-              label={venueLine}
-              href={venueWebsite}
-              copy={!officialUrl}
-              textClassName="text-sm font-medium text-muted-foreground"
-            />
-          ) : null}
-          {cinemaMeta ? <p className="text-sm font-medium text-muted-foreground">{cinemaMeta}</p> : null}
-          {cinemaVenuesLine ? <p className="text-sm text-muted-foreground">{cinemaVenuesLine}</p> : null}
-          {work?.platforms && work.platforms.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                <IconTv size={14} /> Dispo sur
-              </span>
-              {work.platforms.map((p) => (
-                <span key={p} className="rounded-full bg-[color:var(--color-fill)] px-2.5 py-0.5 text-xs font-medium text-[color:var(--color-text)]">
-                  {p}
-                </span>
-              ))}
+      {description ? <p className="text-sm leading-6 text-ink-muted">{description}</p> : null}
+
+      {facts.length > 0 ? (
+        <dl className="facts border-t border-line pt-4">
+          {facts.map(([label, value]) => (
+            <div key={label} className="contents">
+              <dt>{label}</dt>
+              <dd>{value}</dd>
             </div>
-          ) : null}
-          {director || castNames.length > 0 ? (
-            <div className="space-y-0.5 text-sm leading-6">
-              {director ? (
-                <p>
-                  <span className="text-muted-foreground">{directorLabel} </span>
-                  <span className="font-semibold text-[color:var(--color-text)]">{director}</span>
-                </p>
-              ) : null}
-              {castNames.length > 0 ? (
-                <p>
-                  <span className="text-muted-foreground">Avec </span>
-                  <span className="font-medium text-[color:var(--color-text)]">{castNames.join(', ')}</span>
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-          {description ? <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{description}</p> : null}
-        </div>
+          ))}
+        </dl>
+      ) : null}
 
-        <div className="grid gap-2 text-sm text-[color:var(--color-text)]">
-          {ratingLabel ? <SummaryRow label="Note" value={`${ratingLabel} / 10`} /> : null}
-          {dateLabel ? <SummaryRow label="Dates" value={dateLabel} /> : null}
-          {priceLabel ? <SummaryRow label="Budget" value={priceLabel} /> : null}
-          {durationLabel ? <SummaryRow label="Durée" value={durationLabel} /> : null}
-          {work?.address ? <SummaryRow label="Adresse" value={work.address} /> : null}
-        </div>
+      {/* Repli Offi : uniquement si aucune source (lien dédié ni site du lieu). */}
+      {work?.sourceUrl && !officialUrl && !venueWebsite ? (
+        <a href={work.sourceUrl} target="_blank" rel="noreferrer" className="link inline-flex min-h-11 w-fit items-center text-sm">
+          Voir sur Offi.fr
+        </a>
+      ) : null}
 
-        <div className="mt-auto flex flex-col gap-3 border-t border-[color:var(--color-border)] pt-4">
-          {/* Fallback Offi : uniquement si aucune source (lien dédié de la fiche ni site
-              du lieu) n'est disponible. */}
-          {work?.sourceUrl && !officialUrl && !venueWebsite ? (
-            <a
-              href={work.sourceUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm font-semibold text-[color:var(--color-accent)] transition hover:underline"
-            >
-              Voir sur Offi.fr ↗
-            </a>
-          ) : null}
-
-          {actions}
-        </div>
-      </div>
-    </SurfaceCard>
-  )
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-3 rounded-[var(--radius-panel)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 py-2">
-      <span className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</span>
-      <span className="text-right font-medium leading-6">{value}</span>
-    </div>
+      {children}
+    </article>
   )
 }

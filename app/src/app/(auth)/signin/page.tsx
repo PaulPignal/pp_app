@@ -1,16 +1,16 @@
-// src/app/(auth)/signin/page.tsx
 'use client'
 
-import { FormEvent, Suspense, useState } from 'react'
+import { FormEvent, Suspense, useId, useState } from 'react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { safeCallbackUrl } from '@/features/auth/callback-url'
 import StatusBanner from '@/shared/ui/StatusBanner'
 import SurfaceCard from '@/shared/ui/SurfaceCard'
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="skeleton h-[28rem] rounded-[var(--radius-xl)]" />}>
+    <Suspense fallback={<div className="skeleton h-96 rounded-lg" aria-hidden />}>
       <SignInInner />
     </Suspense>
   )
@@ -23,7 +23,9 @@ function SignInInner() {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const params = useSearchParams()
-  const callbackUrl = params.get('callbackUrl') || '/'
+  const callbackUrl = safeCallbackUrl(params.get('callbackUrl'))
+  const emailId = useId()
+  const passwordId = useId()
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -39,49 +41,53 @@ function SignInInner() {
   }
 
   return (
-    <div className="flex h-full items-center">
-      <SurfaceCard tone="accent" className="mx-auto w-full max-w-xl space-y-6 p-6 sm:p-8">
-        <h1 className="sr-only">Se connecter</h1>
-        <form onSubmit={onSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label className="label">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="input"
-              required
-              autoComplete="email"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="label">Mot de passe</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="input"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-          {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn btn-primary w-full justify-center"
-          >
-            {loading ? 'Connexion…' : 'Se connecter'}
-          </button>
-        </form>
+    <SurfaceCard className="p-6 sm:p-8">
+      <h1 className="display text-2xl text-ink">Connexion</h1>
+      <p className="mt-1 text-sm text-ink-muted">Retrouvez vos likes et ce que vos amis aiment.</p>
 
-        <div className="space-y-2 border-t border-[color:var(--color-border)] pt-5">
-          <p className="text-sm text-muted-foreground">Pas encore de compte ?</p>
-          <Link href="/signup" className="text-sm font-semibold text-[color:var(--color-accent)] transition hover:underline">
-            Créer un compte
-          </Link>
+      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+        <div>
+          <label className="label" htmlFor={emailId}>
+            Email
+          </label>
+          <input
+            id={emailId}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="input"
+            required
+            autoComplete="email"
+            aria-invalid={error ? true : undefined}
+          />
         </div>
-      </SurfaceCard>
-    </div>
+        <div>
+          <label className="label" htmlFor={passwordId}>
+            Mot de passe
+          </label>
+          <input
+            id={passwordId}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="input"
+            required
+            autoComplete="current-password"
+            aria-invalid={error ? true : undefined}
+          />
+        </div>
+        {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
+        <button type="submit" disabled={loading} className="btn btn-primary mt-2 w-full">
+          {loading ? 'Connexion…' : 'Se connecter'}
+        </button>
+      </form>
+
+      <p className="mt-6 border-t border-line pt-5 text-sm text-ink-muted">
+        Pas encore de compte ?{' '}
+        <Link href="/signup" className="link">
+          Créer un compte
+        </Link>
+      </p>
+    </SurfaceCard>
   )
 }

@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { redirect } from 'next/navigation'
-import { auth } from '@/auth'
+import { auth } from '@/server/auth/config'
 import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
 export type SessionUser = {
@@ -9,6 +9,7 @@ export type SessionUser = {
   email: string
 }
 
+// Le message est le code renvoyé au client : les routes le déclarent `{ unauthorized: 401 }` dans jsonKnownError.
 export class UnauthorizedError extends Error {
   constructor() {
     super('unauthorized')
@@ -36,10 +37,6 @@ export async function requireSessionUser(): Promise<SessionUser> {
   }
 
   return user
-}
-
-export function isUnauthorizedError(error: unknown): error is UnauthorizedError {
-  return error instanceof UnauthorizedError
 }
 
 /** Pour les Server Components : renvoie l'utilisateur connecté ou redirige vers la connexion. */

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from bs4 import BeautifulSoup
 
+from scraper import parsers
 from scraper.offi_scraper import OffiScraper, Show
 
 
@@ -12,7 +13,7 @@ class OffiScraperTests(unittest.TestCase):
 
     def test_extract_category_from_rubric(self):
         text = "Le spectacle X est référencé dans notre rubrique Humour & Shows ."
-        self.assertEqual(self.scraper._extract_category(text), "humour")
+        self.assertEqual(self.scraper._extract_theatre_category(text), "humour")
 
     def test_validate_show_normalizes_ranges(self):
         show = Show(
@@ -55,8 +56,8 @@ class OffiScraperTests(unittest.TestCase):
         self.assertFalse(self.scraper._looks_like_venue_text("Pièces de théâtre"))
 
     def test_time_of_day_is_not_parsed_as_duration_without_context(self):
-        self.assertFalse(self.scraper._looks_like_duration_text("Représentation à 20h30"))
-        self.assertTrue(self.scraper._looks_like_duration_text("Durée : 1h30"))
+        self.assertFalse(parsers.looks_like_duration_text("Représentation à 20h30"))
+        self.assertTrue(parsers.looks_like_duration_text("Durée : 1h30"))
 
     def test_complete_recent_cache_can_be_reused(self):
         show = Show(

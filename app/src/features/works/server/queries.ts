@@ -12,7 +12,7 @@ type ListDiscoverWorksInput = Partial<ListDiscoverWorksParams> & {
 }
 
 export async function listDiscoverWorks(input: ListDiscoverWorksInput = {}) {
-  const { per, since, category, section, platforms } = listDiscoverWorksParamsSchema.parse(input)
+  const { per, section, platforms } = listDiscoverWorksParamsSchema.parse(input)
   const where: Prisma.WorkWhereInput = {
     AND: [
       // Encore à l'affiche d'après la date de fin fournie par offi.
@@ -26,14 +26,6 @@ export async function listDiscoverWorks(input: ListDiscoverWorksInput = {}) {
       // rafraîchissement (TMDB) est indépendant du crawl offi.
       { OR: [{ section: 'streaming' }, { updatedAt: { gte: getStaleCutoff() } }] },
     ],
-  }
-
-  if (since) {
-    where.createdAt = { gte: since }
-  }
-
-  if (category) {
-    where.category = category
   }
 
   if (section) {

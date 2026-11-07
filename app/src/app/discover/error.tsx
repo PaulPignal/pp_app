@@ -1,28 +1,21 @@
-"use client";
-export default function DiscoverError({
-  error,
-  reset,
-}: { error: Error & { digest?: string }, reset: () => void }) {
+'use client'
+
+import EmptyState from '@/shared/ui/EmptyState'
+
+export default function DiscoverError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="surface-card space-y-4">
-        <span className="chip">Découverte interrompue</span>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-[-0.03em]">Impossible de charger le deck</h1>
-          <p className="text-sm leading-7 text-[color:var(--color-text-muted)]">
-            Le chargement des œuvres a échoué. Réessaie dans un instant.
-          </p>
-          {error?.digest ? (
-            <p className="text-xs text-[color:var(--color-text-muted)]">Référence&nbsp;: {error.digest}</p>
-          ) : null}
-        </div>
-      </div>
-      <button
-        onClick={() => reset()}
-        className="btn btn-primary mt-4"
-      >
-        Réessayer
-      </button>
-    </div>
+    <EmptyState
+      headingLevel="h1"
+      title="La sélection n’a pas pu être chargée"
+      className="mx-auto max-w-xl"
+      action={
+        <button type="button" onClick={() => reset()} className="btn btn-primary">
+          Réessayer
+        </button>
+      }
+    >
+      Un problème est survenu en préparant les cartes. Réessayez dans un instant.
+      {error?.digest ? <span className="mt-2 block text-xs">Référence : {error.digest}</span> : null}
+    </EmptyState>
   )
 }

@@ -2,7 +2,6 @@
 
 import { useOptimistic, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { cn } from '@/shared/lib/cn'
 
 type Props = {
   /** Plateformes disponibles dans le catalogue. */
@@ -34,24 +33,19 @@ export default function StreamingPlatformFilter({ available, selected }: Props) 
     })
   }
 
-  const pill = (active: boolean) =>
-    cn(
-      'rounded-full px-3 py-1 text-xs font-medium transition',
-      active
-        ? 'bg-[color:var(--color-accent)] text-white'
-        : 'bg-[color:var(--color-fill)] text-[color:var(--color-text)] hover:bg-[color:var(--color-fill-hover)]',
-    )
-
   return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer par plateforme">
-      <button type="button" onClick={() => go([])} className={pill(set.size === 0)}>
+    // Une seule rangée défilable sur mobile (comme les sections) : sur trois rangées, le filtre
+    // repoussait la fiche sous la barre d'actions. Retour à la ligne à partir de 640 px.
+    <div role="group" aria-label="Filtrer par plateforme" className="pill-strip items-center sm:flex-wrap">
+      <span className="eyebrow mr-1 self-center">Plateformes</span>
+      <button type="button" aria-pressed={set.size === 0} onClick={() => go([])} className="pill">
         Toutes
       </button>
       {available.map((platform) => {
         const active = set.has(platform)
         const next = active ? optimistic.filter((p) => p !== platform) : [...optimistic, platform]
         return (
-          <button key={platform} type="button" aria-pressed={active} onClick={() => go(next)} className={pill(active)}>
+          <button key={platform} type="button" aria-pressed={active} onClick={() => go(next)} className="pill">
             {platform}
           </button>
         )

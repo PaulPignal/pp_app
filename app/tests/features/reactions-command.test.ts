@@ -19,17 +19,18 @@ describe('setReactionStatus', () => {
     vi.clearAllMocks()
   })
 
-  it('returns alreadyExisted when the previous status matches', async () => {
-    prisma.reaction.findUnique.mockResolvedValue({ status: 'LIKE' })
-    prisma.reaction.upsert.mockResolvedValue({ id: 'reaction-1', status: 'LIKE' })
+  it('écrit en un seul upsert, sans lecture préalable', async () => {
+    prisma.reaction.upsert.mockResolvedValue({ workId: 'work-1', status: 'LIKE' })
 
     const result = await setReactionStatus({ userId: 'user-1', workId: 'work-1', status: 'LIKE' })
 
-    expect(result.alreadyExisted).toBe(true)
+    expect(result).toEqual({ reaction: { workId: 'work-1', status: 'LIKE' } })
+    expect(prisma.reaction.findUnique).not.toHaveBeenCalled()
     expect(prisma.reaction.upsert).toHaveBeenCalledWith({
       where: { userId_workId: { userId: 'user-1', workId: 'work-1' } },
       update: { status: 'LIKE' },
       create: { userId: 'user-1', workId: 'work-1', status: 'LIKE' },
+      select: { workId: true, status: true },
     })
   })
 })

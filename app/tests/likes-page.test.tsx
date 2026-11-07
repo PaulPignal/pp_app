@@ -79,8 +79,8 @@ describe('/likes page', () => {
 
     expect(screen.getByRole('button', { name: /Voir le détail de Hamlet/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Voir le détail de La Lecon/ })).not.toBeInTheDocument()
-    // friendsWhoLiked est calculé sur tous les workIds (avant filtrage d'affichage).
-    expect(friendsWhoLikedMock).toHaveBeenCalledWith('user-1', ['work-current', 'work-archived'])
+    // friendsWhoLiked couvre toute la bibliothèque, en parallèle de listLibraryWorks.
+    expect(friendsWhoLikedMock).toHaveBeenCalledWith('user-1')
   })
 
   it('n’affiche que les œuvres à l’affiche en vue active', async () => {

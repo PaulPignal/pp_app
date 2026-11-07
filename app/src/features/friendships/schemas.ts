@@ -1,11 +1,12 @@
 import { z } from 'zod'
+import { emailSchema } from '@/features/auth/schemas'
 
 export const friendInviteAcceptSchema = z.object({
   token: z.string().min(32),
 })
 
 export const friendEmailAddSchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
+  email: emailSchema,
 })
 
 export const addFriendSchema = z.union([friendInviteAcceptSchema, friendEmailAddSchema])

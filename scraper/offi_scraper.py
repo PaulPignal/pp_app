@@ -336,10 +336,6 @@ class OffiScraper:
         cleaned = re.sub(r"\s+", " ", value).strip()
         return cleaned or None
 
-    @staticmethod
-    def _is_valid_iso_date(value: Optional[str]) -> bool:
-        return parsers.is_valid_iso_date(value)
-
     def _retry_delay(self, attempt: int, response: Optional[requests.Response] = None) -> float:
         if response is not None:
             retry_after = response.headers.get("Retry-After")
@@ -595,16 +591,6 @@ class OffiScraper:
 
     # ---------------- Parsing autres champs ----------------
 
-    def _parse_duration(self, text: str) -> Optional[int]:
-        return parsers.parse_duration(text)
-
-    @staticmethod
-    def _looks_like_duration_text(text: str, allow_hour_only: bool = False) -> bool:
-        return parsers.looks_like_duration_text(text, allow_hour_only)
-
-    def _parse_prices(self, text: str) -> tuple[Optional[float], Optional[float]]:
-        return parsers.parse_prices(text)
-
     # ---------------- URL helpers ----------------
 
     @staticmethod
@@ -712,9 +698,6 @@ class OffiScraper:
 
         return "théâtre"
 
-    def _extract_category(self, text: str) -> Optional[str]:
-        return self._extract_theatre_category(text)
-
     @staticmethod
     def _jsonld_blobs(soup: BeautifulSoup) -> list[str]:
         blobs: list[str] = []
@@ -723,10 +706,6 @@ class OffiScraper:
             if raw:
                 blobs.append(raw)
         return blobs
-
-    @staticmethod
-    def _parse_iso8601_duration(value: Optional[str]) -> Optional[int]:
-        return parsers.parse_iso8601_duration(value)
 
     def _parse_single_date_text(self, value: Optional[str]) -> Optional[str]:
         text = self._clean_text(value)
@@ -787,14 +766,14 @@ class OffiScraper:
     def _extract_cinema_duration(self, soup: BeautifulSoup) -> Optional[int]:
         for raw in self._jsonld_blobs(soup):
             for match in JSONLD_DURATION_RE.finditer(raw):
-                duration = self._parse_iso8601_duration(match.group(1))
+                duration = parsers.parse_iso8601_duration(match.group(1))
                 if duration:
                     return duration
 
         full_text = self._extract_text(soup)
         match = re.search(r"\bdur(?:ée|e)?\s*:\s*([^\s•|]+)", full_text, flags=re.IGNORECASE)
         if match:
-            return self._parse_duration(match.group(1))
+            return parsers.parse_duration(match.group(1))
 
         return None
 
@@ -838,11 +817,11 @@ class OffiScraper:
             logging.warning("Image ignorée car URL invalide pour %s", show.url)
             show.image = None
 
-        if show.date_start and not self._is_valid_iso_date(show.date_start):
+        if show.date_start and not parsers.is_valid_iso_date(show.date_start):
             logging.warning("Date de début invalide pour %s: %s", show.url, show.date_start)
             show.date_start = None
 
-        if show.date_end and not self._is_valid_iso_date(show.date_end):
+        if show.date_end and not parsers.is_valid_iso_date(show.date_end):
             logging.warning("Date de fin invalide pour %s: %s", show.url, show.date_end)
             show.date_end = None
 
@@ -932,7 +911,7 @@ class OffiScraper:
             for el in soup.find_all(string=re.compile(r"tarif|prix|billet", re.IGNORECASE)):
                 parent_text = self._extract_text(getattr(el, "parent", None))
                 if parent_text:
-                    lo, hi = self._parse_prices(parent_text)
+                    lo, hi = parsers.parse_prices(parent_text)
                     if lo is not None:
                         show.price_min_eur, show.price_max_eur = lo, hi
                         break
@@ -950,10 +929,10 @@ class OffiScraper:
             ]:
                 for el in soup.select(sel):
                     text = self._extract_text(el)
-                    if text and self._looks_like_duration_text(text, allow_hour_only=allow_hour_only):
+                    if text and parsers.looks_like_duration_text(text, allow_hour_only=allow_hour_only):
                         duration_texts.append(text)
             if duration_texts:
-                show.duration_min = self._parse_duration(" • ".join(duration_texts[:8]))
+                show.duration_min = parsers.parse_duration(" • ".join(duration_texts[:8]))
 
         return show
 

@@ -27,3 +27,13 @@ app-backup.tgz
 offi-app_dump.txt.gz
 *.tgz
 *.txt.gz
+
+# Paquets d’audit générés et fichiers d’environnement : seul .env.example est versionné.
+AUDIT_PACK*.md
+.env*
+!.env.example
+
+# Sources directes : sorties volumineuses régénérables (le catalogue CSV, lui, est versionné)
+data/venues/*.jsonl
+data/venues/*_report.csv
+data/venues/works_by_venue.json

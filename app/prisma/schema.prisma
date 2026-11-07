@@ -100,6 +100,13 @@ model Work {
   externalUrl String?      // lien rel="external" fourni par Offi (site/accueil du lieu, expo, concert…) — source alternative
   sourceUrl String    @unique
 
+  // Sources directes (07/11/2026) : tous les champs ci-dessous sont facultatifs, une fiche
+  // purement offi les laisse vides.
+  bookingUrl  String?       // lien de réservation (source directe)
+  performances Json?        // séances : [{ start, end, availability, price_min_eur, url }]
+  dataSource  String?       // 'offi' | 'direct' | 'offi+direct' ; null = fiche offi historique
+  directKey   String?       @unique  // "<slug du lieu>:<slug du titre>" : identifiant d'une fiche directe
+
   // Lien vers le lieu (pertinent surtout pour le théâtre : un spectacle = un lieu ;
   // un film joue dans plusieurs cinémas, donc les œuvres ciné restent non liées).
   venue_ref Venue?  @relation(fields: [venueId], references: [id], onDelete: SetNull)
@@ -113,6 +120,7 @@ model Work {
 
   @@index([section, createdAt])
   @@index([venueId])
+  @@index([dataSource])
   @@index([platforms], type: Gin) // filtre streaming par plateforme (hasSome)
 }
 

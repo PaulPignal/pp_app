@@ -1,16 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import Link from 'next/link'
-import type { FriendSummaryDto } from '@/features/friendships/dto'
+import type { FriendLikerDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
 import CompactLikeCard from '@/features/reactions/ui/CompactLikeCard'
 import LikeDetailModal, { type LikeBucket } from '@/features/reactions/ui/LikeDetailModal'
 import { WORK_SECTION_LABELS, WORK_SECTION_VALUES, type WorkSection } from '@/features/works/section'
 import { fetchJson } from '@/shared/lib/fetch-json'
-import { cn } from '@/shared/lib/cn'
+import EmptyState from '@/shared/ui/EmptyState'
+import { IconSearch, IconX } from '@/shared/ui/icons'
 import SegmentedControl from '@/shared/ui/SegmentedControl'
-import SurfaceCard from '@/shared/ui/SurfaceCard'
 
 export type LikedItem = {
   workId: string
@@ -23,7 +23,7 @@ type Props = {
   current: LikedItem[]
   archived: LikedItem[]
   seen: LikedItem[]
-  friendsByWork: Record<string, FriendSummaryDto[]>
+  friendsByWork: Record<string, FriendLikerDto[]>
   view: LikesView
 }
 
@@ -66,6 +66,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
   const [query, setQuery] = useState('')
   const [section, setSection] = useState<'all' | WorkSection>('all')
   const [sort, setSort] = useState<SortKey>('recent')
+  const sortId = useId()
 
   useEffect(() => {
     if (!toast) return
@@ -107,7 +108,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
         removeFrom('seen', item.workId)
         addTo(from, item)
         setToast(null)
-        setError('Action non enregistrée. Réessaie.')
+        setError('Action non enregistrée. Réessayez.')
       }
     },
     [addTo, removeFrom],
@@ -126,7 +127,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
       } catch {
         addTo(from, item)
         setToast(null)
-        setError('Action non enregistrée. Réessaie.')
+        setError('Action non enregistrée. Réessayez.')
       }
     },
     [addTo, removeFrom],
@@ -144,7 +145,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
       try {
         await postStatus(t.item.workId, t.undoStatus)
       } catch {
-        setError('Annulation impossible. Réessaie.')
+        setError('Annulation impossible. Réessayez.')
       } finally {
         setBusy(false)
       }
@@ -196,54 +197,91 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
     )
   }, [selected, active, archive, seenList])
 
+  const hasFilters = query.trim().length > 0 || section !== 'all'
+
+  // Pilules : « Toutes » + les sections présentes dans la vue (et la section choisie).
+  const sectionItems = useMemo(() => {
+    const present = new Set(baseItems.items.map((item) => item.work?.section))
+    return [
+      { label: 'Toutes', value: 'all' },
+      ...WORK_SECTION_VALUES.filter((s) => s === section || present.has(s)).map((s) => ({ label: WORK_SECTION_LABELS[s], value: s })),
+    ]
+  }, [baseItems, section])
+
   return (
     <>
       <h1 className="sr-only">Mes likes</h1>
 
-      {/* Barre d'univers défilante (même modèle que Discover) : filtre par thématique. */}
-      <SegmentedControl
-        ariaLabel="Filtrer par univers"
-        value={section}
-        scroll
-        onChange={(value) => setSection(value as 'all' | WorkSection)}
-        items={[
-          { label: 'Tous', value: 'all' },
-          ...WORK_SECTION_VALUES.map((s) => ({ label: WORK_SECTION_LABELS[s], value: s })),
-        ]}
-      />
-
       {totalLikes + seenList.length === 0 ? (
-        <SurfaceCard>
-          <div className="empty-state">
-            <span className="chip">Bibliothèque vide</span>
-            <strong>Aucun like pour l’instant.</strong>
-            <p className="max-w-md text-sm leading-7 text-muted-foreground">
-              Passe par la découverte pour commencer une collection personnelle d&apos;idées de sorties.
-            </p>
-          </div>
-        </SurfaceCard>
+        <EmptyState
+          title="Aucun like pour l’instant"
+          action={
+            <Link href="/discover" className="btn btn-primary">
+              Aller à la découverte
+            </Link>
+          }
+        >
+          Les œuvres que vous aimez en découverte se retrouvent ici, triées entre ce qui est encore à l’affiche et ce que vous avez déjà vu.
+        </EmptyState>
       ) : (
-        <div className="space-y-4">
-          {/* Contrôles : états (onglets texte discrets, hiérarchie ≠ des univers) + recherche + tri. */}
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-b border-[color:var(--color-border)] pb-2">
-              <StateTabs active={active.length} archived={archive.length} seen={seenList.length} view={view} />
-              <SortMenu sort={sort} onSort={setSort} />
+        <div className="flex flex-col gap-4">
+          {/* Vue (état des likes) + tri. */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <StateTabs active={active.length} archived={archive.length} seen={seenList.length} view={view} />
+            <div className="flex items-center gap-2">
+              <label htmlFor={sortId} className="text-sm text-ink-muted">
+                Trier
+              </label>
+              <select id={sortId} className="input select w-auto text-sm" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+                <option value="recent">Récents</option>
+                <option value="ending">Fin de programmation</option>
+                <option value="price">Prix croissant</option>
+              </select>
             </div>
+          </div>
+
+          {/* Recherche, puis section en bande de pilules (même modèle que la Découverte). */}
+          <div className="relative">
+            <IconSearch size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
             <input
               type="search"
-              className="input py-2 text-sm"
-              placeholder="Rechercher (titre, lieu, metteur en scène…)"
+              className="input pl-10"
+              placeholder="Titre, lieu, metteur en scène…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Rechercher dans mes likes"
             />
           </div>
+          {sectionItems.length > 2 ? (
+            <SegmentedControl
+              ariaLabel="Filtrer par section"
+              value={section}
+              onChange={(value) => setSection(value as 'all' | WorkSection)}
+              items={sectionItems}
+            />
+          ) : null}
 
           {items.length === 0 ? (
-            <div className="empty-state rounded-[var(--radius-lg)] border border-dashed border-[color:var(--color-border)] bg-[color:var(--color-surface)]">
-              <strong>Rien ne correspond à ce filtre.</strong>
-            </div>
+            <EmptyState
+              variant="inline"
+              title={hasFilters ? 'Aucun résultat' : 'Rien ici pour le moment'}
+              action={
+                hasFilters ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setQuery('')
+                      setSection('all')
+                    }}
+                  >
+                    Effacer les filtres
+                  </button>
+                ) : null
+              }
+            >
+              {hasFilters ? 'Aucun like ne correspond à cette recherche ou à cette section.' : 'Cette vue est vide.'}
+            </EmptyState>
           ) : (
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {items.map((item) => (
@@ -253,7 +291,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
                     fallbackTitle={item.workId}
                     friends={friendsByWork[item.workId] ?? []}
                     onOpen={() => setSelected({ workId: item.workId, bucket: baseItems.bucket })}
-                    onRemove={() => remove(item, view === 'seen' ? 'seen' : bucketOf(item, active, archive))}
+                    onRemove={() => remove(item, view === 'seen' ? 'seen' : bucketOf(item, archive))}
                   />
                 </li>
               ))}
@@ -263,7 +301,7 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
       )}
 
       {error ? (
-        <p role="status" className="mt-4 text-center text-sm font-medium text-[color:var(--color-danger)]">
+        <p role="alert" className="notice notice-error mt-4">
           {error}
         </p>
       ) : null}
@@ -275,8 +313,8 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
           friends={friendsByWork[selectedItem.workId] ?? []}
           bucket={selected.bucket}
           onClose={() => setSelected(null)}
-          onSeen={() => markSeen(selectedItem, bucketOf(selectedItem, active, archive))}
-          onRemove={() => remove(selectedItem, selected.bucket === 'seen' ? 'seen' : bucketOf(selectedItem, active, archive))}
+          onSeen={() => markSeen(selectedItem, bucketOf(selectedItem, archive))}
+          onRemove={() => remove(selectedItem, selected.bucket === 'seen' ? 'seen' : bucketOf(selectedItem, archive))}
         />
       ) : null}
 
@@ -286,13 +324,11 @@ export default function LikesLibrary({ current, archived, seen, friendsByWork, v
 }
 
 // Détermine si une œuvre likée est dans la liste active ou archivée.
-function bucketOf(item: LikedItem, active: LikedItem[], archive: LikedItem[]): SourceBucket {
-  if (archive.some((i) => i.workId === item.workId)) return 'archived'
-  return 'active'
+function bucketOf(item: LikedItem, archive: LikedItem[]): SourceBucket {
+  return archive.some((i) => i.workId === item.workId) ? 'archived' : 'active'
 }
 
-// États du like : onglets TEXTE discrets (hiérarchie ≠ des pastilles d'univers,
-// pour éviter l'effet « deux barres en doublon »). Pas de « Tous » → défaut À l'affiche.
+// États du like : À l'affiche (défaut), Archivées (programmation terminée), Déjà vus.
 const STATE_TABS: { value: LikesView; label: string; href: string }[] = [
   { value: 'active', label: 'À l’affiche', href: '/likes?view=active' },
   { value: 'archived', label: 'Archivées', href: '/likes?view=archived' },
@@ -303,146 +339,29 @@ function StateTabs({ active, archived, seen, view }: { active: number; archived:
   const counts: Record<string, number> = { active, archived, seen }
   const current: LikesView = view === 'archived' || view === 'seen' ? view : 'active'
   return (
-    <nav className="flex flex-wrap items-center gap-x-5 gap-y-1" aria-label="État des likes">
-      {STATE_TABS.map((t) => {
-        const on = current === t.value
-        return (
-          <Link
-            key={t.value}
-            href={t.href}
-            aria-current={on ? 'page' : undefined}
-            className={cn(
-              'inline-flex items-center gap-1.5 text-sm transition',
-              on
-                ? 'font-semibold text-[color:var(--color-text)]'
-                : 'font-medium text-[color:var(--color-text-muted)] hover:text-[color:var(--color-text)]',
-            )}
-          >
-            {t.label}
-            <span className={cn('text-xs tabular-nums', on ? 'text-[color:var(--color-accent)]' : 'text-[color:var(--color-text-muted)]')}>
-              {counts[t.value]}
-            </span>
-          </Link>
-        )
-      })}
-    </nav>
+    <SegmentedControl
+      ariaLabel="État des likes"
+      value={current}
+      items={STATE_TABS.map((t) => ({ label: t.label, value: t.value, href: t.href, count: counts[t.value] }))}
+    />
   )
 }
 
-const SORT_OPTIONS: { k: SortKey; l: string }[] = [
-  { k: 'recent', l: 'Récents' },
-  { k: 'ending', l: 'Fin proche' },
-  { k: 'price', l: 'Prix croissant' },
-]
-
-// Vrai bouton « Trier par » avec menu (au lieu d'un <select> natif).
-function SortMenu({ sort, onSort }: { sort: SortKey; onSort: (v: SortKey) => void }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function onDoc(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
-  }, [open])
-
-  const current = SORT_OPTIONS.find((o) => o.k === sort) ?? SORT_OPTIONS[0]
-
-  return (
-    <div className="relative shrink-0" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className="inline-flex items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-control-bg)] px-3.5 py-2 text-sm font-semibold text-[color:var(--color-text)] transition hover:border-[color:var(--color-border-strong)]"
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M7 5v14M7 19l-3-3M7 5l3 3M17 19V5M17 5l-3 3M17 19l3-3" />
-        </svg>
-        Trier : {current.l}
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={cn('transition', open && 'rotate-180')}>
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
-      {open ? (
-        <div
-          role="menu"
-          className="absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[color:var(--color-surface-strong)] p-1 shadow-[var(--shadow-lg)]"
-        >
-          {SORT_OPTIONS.map((o) => {
-            const on = o.k === sort
-            return (
-              <button
-                key={o.k}
-                type="button"
-                role="menuitemradio"
-                aria-checked={on}
-                onClick={() => {
-                  onSort(o.k)
-                  setOpen(false)
-                }}
-                className={cn(
-                  'flex w-full items-center justify-between gap-2 rounded-[var(--radius-control)] px-3 py-2 text-left text-sm transition',
-                  on
-                    ? 'bg-[color:var(--color-fill)] font-semibold text-[color:var(--color-text)]'
-                    : 'text-[color:var(--color-text-muted)] hover:bg-[color:var(--color-fill)] hover:text-[color:var(--color-text)]',
-                )}
-              >
-                {o.l}
-                {on ? (
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                ) : null}
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function UndoToast({
-  toast,
-  busy,
-  onUndo,
-  onDismiss,
-}: {
-  toast: Toast | null
-  busy: boolean
-  onUndo: (t: Toast) => void
-  onDismiss: () => void
-}) {
+function UndoToast({ toast, busy, onUndo, onDismiss }: { toast: Toast | null; busy: boolean; onUndo: (t: Toast) => void; onDismiss: () => void }) {
   if (!toast) return null
   return (
     <div
       role="status"
-      aria-live="polite"
-      className="fixed inset-x-0 bottom-6 z-[60] mx-auto flex w-fit max-w-[90vw] items-center gap-4 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-surface-strong)] px-5 py-3 shadow-[var(--shadow-lg)]"
+      className="notice fixed inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-[60] mx-auto w-fit max-w-full items-center bg-raised shadow-menu lg:bottom-6"
     >
-      <span className="text-sm font-medium text-[color:var(--color-text)]">
+      <span className="min-w-0 truncate">
         « {toast.title} » {toast.message}
       </span>
-      <button
-        type="button"
-        onClick={() => onUndo(toast)}
-        disabled={busy}
-        className="text-sm font-semibold text-[color:var(--color-accent)] underline-offset-2 hover:underline disabled:opacity-50"
-      >
+      <button type="button" onClick={() => onUndo(toast)} disabled={busy} className="btn btn-ghost -my-2 min-h-10 shrink-0 px-3 text-accent">
         {busy ? '…' : 'Annuler'}
       </button>
-      <button
-        type="button"
-        onClick={onDismiss}
-        aria-label="Fermer"
-        className="text-sm text-muted-foreground hover:text-[color:var(--color-text)]"
-      >
-        ✕
+      <button type="button" onClick={onDismiss} aria-label="Fermer" className="btn-icon -my-2 -mr-2 h-9 w-9 shrink-0">
+        <IconX size={16} />
       </button>
     </div>
   )

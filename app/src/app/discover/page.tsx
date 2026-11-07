@@ -7,13 +7,15 @@ import StreamingPlatformFilter from '@/features/works/ui/StreamingPlatformFilter
 import SegmentedControl from '@/shared/ui/SegmentedControl'
 
 export const metadata: Metadata = {
-  title: 'Découvertes',
-  description: 'Parcours de découvertes à swiper façon Tinder',
+  title: 'Découverte',
+  description: 'Sorties à Paris et films en streaming, à parcourir d’un geste.',
 }
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 0
-export const fetchCache = 'force-no-store'
+
+// Taille de la pile envoyée au client. 50 cartes suffisent largement à une session
+// (le deck propose de recharger à la fin) et allègent le HTML initial.
+const DECK_SIZE = 50
 
 type DiscoverPageProps = {
   searchParams?: Promise<{
@@ -36,20 +38,20 @@ function resolvePlatforms(value: string | string[] | undefined): string[] {
 }
 
 export default async function DiscoverPage({ searchParams }: DiscoverPageProps = {}) {
-  // Découverte est PUBLIQUE : on peut swiper sans compte. Le 1er like déclenche la
-  // création de compte (géré dans SwipeDeck). userId nul = aucun filtre « déjà réagi ».
-  const sessionUser = await getSessionUser()
-
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const section = resolveSection(resolvedSearchParams?.section)
   const isStreaming = section === 'streaming'
   // Le filtre plateformes ne s'applique que sur l'onglet streaming.
   const selectedPlatforms = isStreaming ? resolvePlatforms(resolvedSearchParams?.platforms) : []
 
-  // Liste des plateformes (mise en cache) AVANT la requête works : pour le streaming
-  // non filtré, on requête « hasSome: toutes les plateformes » (≡ dispo, mais via
-  // l'index GIN) plutôt que « isEmpty:false » (scan séquentiel, lent sur gros volume).
-  const availablePlatforms = isStreaming ? await listStreamingPlatforms() : []
+  // Découverte est PUBLIQUE : on peut swiper sans compte, le 1er like propose l'inscription.
+  // userId nul = aucun filtre « déjà réagi ». En parallèle : la liste des plateformes (en
+  // cache) est requise AVANT la requête works, car le streaming non filtré requête
+  // « hasSome: toutes les plateformes » (index GIN) plutôt que « isEmpty:false » (scan).
+  const [sessionUser, availablePlatforms] = await Promise.all([
+    getSessionUser(),
+    isStreaming ? listStreamingPlatforms() : Promise.resolve([] as string[]),
+  ])
   const platformsForQuery = selectedPlatforms.length
     ? selectedPlatforms
     : isStreaming && availablePlatforms.length
@@ -58,18 +60,17 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
 
   const works = await listDiscoverWorks({
     userId: sessionUser?.id ?? null,
-    per: 200,
+    per: DECK_SIZE,
     section,
     platforms: platformsForQuery,
   })
 
   return (
-    <div className="page-shell">
-      <h1 className="sr-only">Découvertes — sorties à Paris et films en streaming</h1>
+    <div className="flex flex-col gap-4">
+      <h1 className="sr-only">Découverte</h1>
       <SegmentedControl
-        ariaLabel="Sections culturelles"
+        ariaLabel="Sections"
         value={section}
-        scroll
         items={WORK_SECTION_VALUES.map((s) => ({
           label: WORK_SECTION_LABELS[s],
           value: s,
@@ -79,7 +80,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
 
       {isStreaming ? <StreamingPlatformFilter available={availablePlatforms} selected={selectedPlatforms} /> : null}
 
-      <SwipeDeck items={works.items} totalCount={works.total} />
+      <SwipeDeck key={`${section}:${selectedPlatforms.join(',')}`} items={works.items} totalCount={works.total} authed={Boolean(sessionUser)} />
     </div>
   )
 }

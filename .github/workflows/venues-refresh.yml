@@ -1,0 +1,202 @@
+name: Venues refresh
+
+# Sources directes des lieux (vague 1 : théâtres vendus via Mapado, Billetreduc, Tick&Live,
+# Shotgun, soit 89 lieux au catalogue du 07/11/2026). Hebdomadaire.
+#
+# Créneau : vendredi 03:37 UTC. Les créneaux d'offi-refresh sont lundi 02:43, mardi 02:43,
+# mercredi 02:47, jeudi 04:17 et dimanche 05:23 : le vendredi est libre, aucun chevauchement
+# (minute creuse :37 pour limiter le retard de départ de GitHub, voir offi-refresh.yml).
+# Le vendredi laisse aussi un run offi récent (theatre du lundi) pour le rapport de sortie.
+#
+# Deux jobs :
+#   1. scrape : scrape direct + rapport de sortie d'offi. AUCUN secret, aucune base. Toujours actif.
+#   2. ingest : écriture en base. INERTE tant que la variable de dépôt VENUES_INGEST_ENABLED
+#      n'est pas égale à 'true' (Settings > Secrets and variables > Actions > Variables).
+#      Absente = scrape et rapport seulement. À activer par Paul APRÈS l'application en
+#      production de la migration 20261107120000_add_work_direct_sources (voir ci-dessous).
+#
+# Migration : ce workflow n'applique JAMAIS de migration. Le job ingest vérifie, en lecture
+# seule (`prisma migrate status`), que la base est à jour et échoue clairement sinon. Attention :
+# offi-refresh.yml exécute `prisma migrate deploy` à son préflight : la migration partira donc en
+# production au premier run d'offi-refresh qui suit la fusion sur main.
+#
+# Rapport de sortie d'offi : data/venues/exit_history.csv est conservé d'une semaine à l'autre
+# par actions/cache (une clé par run, restauration du plus récent) et publié en artefact.
+# Il ne propose qu'une liste ; data/venues/direct_only.csv est modifié à la main.
+
+on:
+  schedule:
+    - cron: '37 3 * * 5'      # vendredi
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Billetteries (vague 1 par défaut)'
+        required: false
+        default: 'mapado,billetreduc,tick_and_live,shotgun'
+
+concurrency:
+  group: venues-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      VENUES_CACHE_DIR: ${{ github.workspace }}/.venues-cache
+      # Un run CI part d'un cache vide ; la durée de vie du cache ne joue pas.
+      VENUES_CACHE_TTL_HOURS: '24'
+      PLATFORMS: ${{ github.event.inputs.platforms || 'mapado,billetreduc,tick_and_live,shotgun' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r scraper/requirements.txt
+
+      - name: Scrape direct (vague 1)
+        # PLATFORMS passe par l'environnement : l'input est une chaîne libre (pas d'injection shell).
+        run: python3 -m scraper.venues --all --platforms "$PLATFORMS" --out data/venues/events.jsonl
+
+      # Comparaison avec le dernier run offi de théâtre (cache écrit par offi-refresh, restauré en
+      # lecture seule). Absent : le rapport est simplement sauté.
+      - name: Restore offi theatre JSONL (lecture seule)
+        uses: actions/cache/restore@v4
+        with:
+          path: data/offi-theatre.jsonl
+          key: offi-jsonl-theatre-${{ github.run_id }}
+          restore-keys: |
+            offi-jsonl-theatre-
+
+      - name: Restore exit history
+        uses: actions/cache/restore@v4
+        with:
+          path: data/venues/exit_history.csv
+          key: venues-exit-history-${{ github.run_id }}
+          restore-keys: |
+            venues-exit-history-
+
+      - name: Exit report (rapport de sortie d'offi)
+        run: |
+          set -euo pipefail
+          if [ -f data/offi-theatre.jsonl ]; then
+            python3 -m scraper.venues.exit_report --offi data/offi-theatre.jsonl --direct data/venues/events.jsonl 2>&1 | tee "$RUNNER_TEMP/exit-report.txt"
+            { echo '### Rapport de sortie d offi'; echo '```'; cat "$RUNNER_TEMP/exit-report.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Pas de JSONL offi de théâtre en cache : rapport de sortie sauté."
+          fi
+
+      - name: Save exit history
+        if: always() && hashFiles('data/venues/exit_history.csv') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: data/venues/exit_history.csv
+          key: venues-exit-history-${{ github.run_id }}
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: venues-${{ github.run_id }}
+          path: |
+            data/venues/events.jsonl
+            data/venues/events_report.csv
+            data/venues/exit_report.csv
+            data/venues/exit_history.csv
+          if-no-files-found: ignore
+          retention-days: 90
+
+  ingest:
+    needs: scrape
+    # Garde explicite : variable de dépôt absente ou différente de 'true' = job ignoré.
+    if: ${{ vars.VENUES_INGEST_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # env.ts exige NEXTAUTH_SECRET ; l'ingestion ne l'utilise pas : valeur factice (32 caractères
+      # ou plus), aucun secret de production exposé à ce job.
+      NEXTAUTH_SECRET: 'ci-ingestion-placeholder-not-a-real-secret'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: venues-${{ github.run_id }}
+          path: data/venues
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: corepack enable
+      - run: corepack prepare pnpm@10.0.0 --activate
+
+      - name: Install app deps (postinstall → prisma generate)
+        working-directory: app
+        run: pnpm install --frozen-lockfile
+
+      # Lecture seule : vérifie que la migration des sources directes est en base, sans rien
+      # appliquer. Réveil de Neon : connect_timeout=30 et 5 tentatives (10, 20, 40, 80 s) sur les
+      # seules erreurs de connexion, comme le préflight d'offi-refresh.
+      - name: Preflight, base à jour (lecture seule, aucune migration appliquée)
+        working-directory: app
+        run: |
+          set -uo pipefail
+          case "$DATABASE_URL" in
+            *connect_timeout=*) ;;
+            *\?*) export DATABASE_URL="$DATABASE_URL&connect_timeout=30" ;;
+            *)    export DATABASE_URL="$DATABASE_URL?connect_timeout=30" ;;
+          esac
+          LOG="$RUNNER_TEMP/preflight.log"
+          delay=10
+          for attempt in 1 2 3 4 5; do
+            if pnpm exec prisma migrate status --schema prisma/schema.prisma 2>&1 | tee "$LOG"; then
+              exit 0
+            fi
+            if grep -qE "P1001|P1002|P1017|Can't reach database" "$LOG"; then
+              if [ "$attempt" -lt 5 ]; then
+                echo "::warning::Neon injoignable (tentative $attempt/5), nouvel essai dans ${delay}s"
+                sleep "$delay"
+                delay=$((delay * 2))
+              fi
+              continue
+            fi
+            echo "::error::Base non à jour ou erreur autre qu'une connexion. La migration 20261107120000_add_work_direct_sources doit être en production avant d'activer VENUES_INGEST_ENABLED."
+            exit 1
+          done
+          echo "::error::Neon injoignable après 5 tentatives."
+          exit 1
+
+      - name: Ingest direct records
+        working-directory: app
+        run: |
+          set -uo pipefail
+          case "$DATABASE_URL" in
+            *connect_timeout=*) ;;
+            *\?*) export DATABASE_URL="$DATABASE_URL&connect_timeout=30" ;;
+            *)    export DATABASE_URL="$DATABASE_URL?connect_timeout=30" ;;
+          esac
+          LOG="$RUNNER_TEMP/ingest.log"
+          delay=10
+          for attempt in 1 2 3 4 5; do
+            # L'ingestion est idempotente (upsert par clé lieu + titre) : la rejouer ne duplique rien.
+            if pnpm exec tsx scripts/ingest-venues.ts "$GITHUB_WORKSPACE/data/venues/events.jsonl" 2>&1 | tee "$LOG"; then
+              if grep -q '^\[ingest:venues\] .*fiches directes' "$LOG"; then exit 0; fi
+            fi
+            if ! grep -qE "P1001|P1002|P1017|Can't reach database" "$LOG"; then
+              echo "::error::Ingestion en échec, erreur autre qu'une connexion : pas de nouvel essai."
+              exit 1
+            fi
+            if [ "$attempt" -lt 5 ]; then
+              echo "::warning::Neon injoignable (tentative $attempt/5), nouvel essai dans ${delay}s"
+              sleep "$delay"
+              delay=$((delay * 2))
+            fi
+          done
+          echo "::error::Neon injoignable après 5 tentatives."
+          exit 1

@@ -1,17 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const {
-  requireSessionUserMock,
-  createInviteTokenMock,
-  listFriendsMock,
-  listIncomingRequestsMock,
-  addFriendMock,
-  removeFriendMock,
-} = vi.hoisted(() => ({
+const { requireSessionUserMock, addFriendMock, removeFriendMock } = vi.hoisted(() => ({
   requireSessionUserMock: vi.fn(),
-  createInviteTokenMock: vi.fn(),
-  listFriendsMock: vi.fn(),
-  listIncomingRequestsMock: vi.fn(),
   addFriendMock: vi.fn(),
   removeFriendMock: vi.fn(),
 }))
@@ -21,55 +11,16 @@ vi.mock('@/features/auth/server/session', () => ({
   isUnauthorizedError: (error: unknown) => error instanceof Error && error.message === 'unauthorized',
 }))
 
-vi.mock('@/features/friendships/server/invite', () => ({
-  createInviteToken: createInviteTokenMock,
-}))
-
-vi.mock('@/features/friendships/server/queries', () => ({
-  listFriends: listFriendsMock,
-  listIncomingRequests: listIncomingRequestsMock,
-}))
-
 vi.mock('@/features/friendships/server/commands', () => ({
   addFriend: addFriendMock,
   removeFriend: removeFriendMock,
 }))
 
-import { DELETE, GET, POST } from '@/app/api/friends/route'
+import { DELETE, POST } from '@/app/api/friends/route'
 
 describe('/api/friends', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  it('returns public friend fields and pending requests', async () => {
-    requireSessionUserMock.mockResolvedValue({ id: 'me', email: 'me@example.com' })
-    listFriendsMock.mockResolvedValue([{ id: 'friend-1', email: 'friend@example.com' }])
-    listIncomingRequestsMock.mockResolvedValue([{ id: 'req-1', email: 'req@example.com' }])
-
-    const response = await GET(new Request('http://localhost/api/friends'))
-    const payload = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(payload).toEqual({
-      ok: true,
-      friends: [{ id: 'friend-1', email: 'friend@example.com' }],
-      requests: [{ id: 'req-1', email: 'req@example.com' }],
-    })
-    expect(listFriendsMock).toHaveBeenCalledWith('me')
-    expect(listIncomingRequestsMock).toHaveBeenCalledWith('me')
-  })
-
-  it('returns an invite token for the authenticated user', async () => {
-    requireSessionUserMock.mockResolvedValue({ id: 'me', email: 'me@example.com' })
-    createInviteTokenMock.mockReturnValue('signed-token')
-
-    const response = await GET(new Request('http://localhost/api/friends?invite=1'))
-    const payload = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(payload).toEqual({ ok: true, token: 'signed-token' })
-    expect(createInviteTokenMock).toHaveBeenCalledWith('me')
   })
 
   it('returns 400 when the body is invalid', async () => {
@@ -88,9 +39,9 @@ describe('/api/friends', () => {
     expect(payload).toMatchObject({ ok: false, error: 'invalid_friend_input' })
   })
 
-  it('returns feature errors with the expected HTTP code', async () => {
+  it('returns whitelisted feature errors with their HTTP code', async () => {
     requireSessionUserMock.mockResolvedValue({ id: 'me', email: 'me@example.com' })
-    addFriendMock.mockRejectedValue(new Error('friend_not_found'))
+    addFriendMock.mockRejectedValue(new Error('cannot_add_self'))
 
     const response = await POST(
       new Request('http://localhost/api/friends', {
@@ -101,8 +52,26 @@ describe('/api/friends', () => {
     )
     const payload = await response.json()
 
-    expect(response.status).toBe(404)
-    expect(payload).toEqual({ ok: false, error: 'friend_not_found' })
+    expect(response.status).toBe(400)
+    expect(payload).toEqual({ ok: false, error: 'cannot_add_self' })
+  })
+
+  it('hides any other error behind a generic 500 (no Prisma message)', async () => {
+    requireSessionUserMock.mockResolvedValue({ id: 'me', email: 'me@example.com' })
+    addFriendMock.mockRejectedValue(new Error('Invalid `prisma.friendship.upsert()` invocation: connection to db.neon.tech failed'))
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const response = await POST(
+      new Request('http://localhost/api/friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'friend@example.com' }),
+      }),
+    )
+
+    expect(response.status).toBe(500)
+    expect(await response.json()).toEqual({ ok: false, error: 'server_error' })
+    consoleError.mockRestore()
   })
 
   it('returns the added friend and status on success', async () => {
@@ -133,7 +102,7 @@ describe('/api/friends', () => {
 
   it('returns pending status for an email invitation', async () => {
     requireSessionUserMock.mockResolvedValue({ id: 'me', email: 'me@example.com' })
-    addFriendMock.mockResolvedValue({ friend: { id: 'friend-2', email: 'new@example.com' }, status: 'pending' })
+    addFriendMock.mockResolvedValue({ status: 'pending' })
 
     const response = await POST(
       new Request('http://localhost/api/friends', {
@@ -145,11 +114,7 @@ describe('/api/friends', () => {
     const payload = await response.json()
 
     expect(response.status).toBe(200)
-    expect(payload).toEqual({
-      ok: true,
-      friend: { id: 'friend-2', email: 'new@example.com' },
-      status: 'pending',
-    })
+    expect(payload).toEqual({ ok: true, status: 'pending' })
   })
 
   it('removes a friend via DELETE', async () => {

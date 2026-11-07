@@ -70,9 +70,62 @@ const nullableMoney = z.preprocess(
   z.number().nonnegative().max(1000).nullable(),
 )
 
+// Bornage des dates : offi a servi des `date_end` comme « 9224-11-11 ». Une date hors de
+// [1900-01-01 ; aujourd'hui + 3 ans] est jugée aberrante et traitée comme inconnue (null) : la fiche
+// est conservée, seule la date est écartée, et l'ingestion ne touche pas à la valeur déjà en base.
+export const MIN_PLAUSIBLE_DATE = '1900-01-01'
+export const MAX_YEARS_AHEAD = 3
+
+export function boundIsoDate(value: string | null, now: Date = new Date()): string | null {
+  if (!value) return null
+  const max = new Date(now)
+  max.setUTCFullYear(max.getUTCFullYear() + MAX_YEARS_AHEAD)
+  const limit = max.toISOString().slice(0, 10)
+  return value < MIN_PLAUSIBLE_DATE || value > limit ? null : value
+}
+
+export const WORK_SOURCES = ['offi', 'direct'] as const
+export type WorkSource = (typeof WORK_SOURCES)[number]
+export const OFFI_URL_PREFIX = 'https://www.offi.fr/'
+
+/** Slug de titre : même normalisation que `discover.slugify` côté scraper (NFKD, ASCII seul). */
+export function titleSlug(value: string | null | undefined): string {
+  return (value ?? '')
+    .normalize('NFKD')
+    .replace(/[^\x00-\x7F]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+const nullableIso = z.preprocess(normalizeString, z.string().max(40).nullable())
+
+const performanceSchema = z.object({
+  start: nullableIso,
+  end: nullableIso.optional(),
+  availability: nullableString(40).optional(),
+  price_min_eur: z.number().nonnegative().max(1000).nullish(),
+  url: nullableHttpUrl(500).optional(),
+})
+export type Performance = z.infer<typeof performanceSchema>
+
+// Séances : on garde les entrées valides et on écarte les autres (une séance aberrante
+// ne doit pas faire perdre la fiche).
+const performancesField = z.preprocess((value) => {
+  if (!Array.isArray(value)) return []
+  return value.filter((item) => performanceSchema.safeParse(item).success).slice(0, 200)
+}, z.array(performanceSchema))
+
+// Schéma unique pour les deux sources. `source` vaut `offi` (défaut, URL offi.fr exigée) ou
+// `direct` (valeur brute `direct` ou `direct:<extracteur>` ; lieu obligatoire, URL http(s) libre :
+// plusieurs spectacles d'un même lieu peuvent partager la page d'agenda).
 export const offiWorkSchema = z
   .object({
-    url: z.string().url().max(500).refine((value) => value.startsWith('https://www.offi.fr/'), 'Expected an Offi URL'),
+    url: z.string().url().max(500),
+    source: z.preprocess(normalizeString, z.string().max(60).nullable()).optional(),
+    venue_slug: nullableString(160).optional(),
+    booking_url: nullableHttpUrl(500).optional(),
+    performances: performancesField.optional(),
     title: z.preprocess(normalizeString, z.string().min(1).max(280)),
     section: z.preprocess(normalizeString, z.enum(WORK_SECTION_VALUES).nullish()),
     category: nullableString(120),
@@ -106,10 +159,34 @@ export const offiWorkSchema = z
     ),
     crawled_at: nullableDateTime,
   })
+  .superRefine((record, ctx) => {
+    const raw = record.source ?? 'offi'
+    if (raw === 'offi') {
+      if (!record.url.startsWith(OFFI_URL_PREFIX)) {
+        ctx.addIssue({ code: 'custom', path: ['url'], message: 'Expected an Offi URL' })
+      }
+      return
+    }
+    if (!raw.startsWith('direct')) {
+      ctx.addIssue({ code: 'custom', path: ['source'], message: 'Expected source offi or direct' })
+      return
+    }
+    if (!/^https?:\/\//.test(record.url)) {
+      ctx.addIssue({ code: 'custom', path: ['url'], message: 'Expected an HTTP URL' })
+    }
+    if (!record.venue_slug) {
+      ctx.addIssue({ code: 'custom', path: ['venue_slug'], message: 'venue_slug required for a direct record' })
+    }
+    if (!titleSlug(record.title)) {
+      ctx.addIssue({ code: 'custom', path: ['title'], message: 'Title has no usable slug' })
+    }
+  })
   .transform((record) => {
+    const rawSource = record.source ?? 'offi'
+    const source: WorkSource = rawSource === 'offi' ? 'offi' : 'direct'
     const inferredSection = record.section ?? inferWorkSectionFromUrl(record.url) ?? DEFAULT_WORK_SECTION
-    let dateStart = record.date_start
-    let dateEnd = record.date_end
+    let dateStart = boundIsoDate(record.date_start)
+    let dateEnd = boundIsoDate(record.date_end)
     let priceMin = record.price_min_eur
     let priceMax = record.price_max_eur
 
@@ -121,8 +198,17 @@ export const offiWorkSchema = z
       ;[priceMin, priceMax] = [priceMax, priceMin]
     }
 
+    const venueSlug = record.venue_slug ?? null
     return {
       ...record,
+      source,
+      source_detail: source === 'direct' ? rawSource : null,
+      venue_slug: venueSlug,
+      booking_url: record.booking_url ?? null,
+      performances: record.performances ?? [],
+      // Identifiant d'une fiche directe : lieu + titre normalisé (pas l'URL, partagée par
+      // plusieurs spectacles).
+      direct_key: source === 'direct' && venueSlug ? `${venueSlug}:${titleSlug(record.title)}` : null,
       section: inferredSection,
       date_start: dateStart,
       date_end: dateEnd,

@@ -16,6 +16,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:dev": "NODE_ENV=development tsx prisma/seed.ts",
     "ingest:offi": "tsx scripts/ingest-offi.ts",
+    "ingest:venues": "tsx scripts/ingest-venues.ts",
     "test": "vitest run",
     "test:ui": "vitest",
     "test:watch": "vitest --watch",
@@ -25,13 +26,13 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
-    "next": "16.2.7",
+    "next": "16.4.5",
     "next-auth": "4.24.15",
     "pg": "^8.20.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "server-only": "^0.0.1",
-    "zod": "4.3.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.2",
@@ -49,7 +50,7 @@
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "9.39.1",
-    "eslint-config-next": "16.2.7",
+    "eslint-config-next": "16.4.5",
     "eslint-config-prettier": "10.1.8",
     "jsdom": "28.1.0",
     "postcss": "8.5.8",
@@ -67,14 +68,14 @@
     "node": "20.x || 22.x",
     "pnpm": ">=8"
   },
-  "overrides": {
-    "cookie": "0.7.2",
-    "esbuild": "0.25.9"
-  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "pnpm": {
+    "overrides": {
+      "cookie@<0.7.0": "0.7.2",
+      "esbuild@<0.25.0": "0.25.9"
+    },
     "onlyBuiltDependencies": [
       "@prisma/client",
       "@prisma/engines",

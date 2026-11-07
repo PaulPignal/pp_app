@@ -82,7 +82,9 @@ async function main() {
   // movie id → { film, plateformes }
   const catalog = new Map<number, { movie: Movie; platforms: Set<string> }>()
 
-  for (const [providerId, canonical] of providerIds) {
+  // Une boucle de pages par plateforme, les plateformes en parallèle : 7 flux à ~4 req/s
+  // chacun restent sous la limite TMDB (~50 req/s) et divisent la durée par le nombre de flux.
+  await Promise.all([...providerIds].map(async ([providerId, canonical]) => {
     let page = 1
     let totalPages = 1
     do {
@@ -103,8 +105,8 @@ async function main() {
       page += 1
       await sleep(120) // throttle poli (TMDB ~50 req/s, on reste loin)
     } while (page <= totalPages)
-    console.log(`[tmdb] ${canonical}: catalogue cumulé ${catalog.size} films`)
-  }
+    console.log(`[tmdb] ${canonical}: ${page - 1} pages lues`)
+  }))
 
   const runStart = new Date()
   const records = [...catalog.values()]

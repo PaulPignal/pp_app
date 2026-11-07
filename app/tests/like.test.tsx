@@ -3,7 +3,8 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 // Utilisateur connecté : le like persiste (sinon, anonyme, ouverture de la modale).
-vi.mock('next-auth/react', () => ({ useSession: () => ({ data: { user: { email: 'a@b.c' } }, status: 'authenticated' }) }))
+
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), replace: vi.fn(), push: vi.fn() }) }))
 
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
 
@@ -13,7 +14,7 @@ test("avance à la carte suivante et appelle POST /api/reactions quand on clique
     { id: 'w2', title: 'Œuvre 2', section: 'theatre', imageUrl: null, category: null, venue: null, address: null, description: null, startDate: null, endDate: null, durationMin: null, priceMin: null, priceMax: null, director: null, cast: [], sourceUrl: null },
   ]
 
-  render(<SwipeDeck items={items} />)
+  render(<SwipeDeck authed items={items} />)
   const user = userEvent.setup()
 
   const likeButton = screen.getByRole('button', { name: /aimer/i })

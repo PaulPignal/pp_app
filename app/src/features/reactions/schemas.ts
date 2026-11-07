@@ -7,7 +7,8 @@ export const reactionUpsertSchema = z.object({
   status: reactionStatusSchema,
 })
 
-export const legacyLikeSchema = z.object({
+// DELETE /api/reactions?workId=…
+export const reactionWorkQuerySchema = z.object({
   workId: z.string().min(1),
 })
 
