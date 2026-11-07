@@ -38,7 +38,8 @@ except ModuleNotFoundError:  # pragma: no cover
 
 MIN_FAMILY_SIZE = 4          # fiches sœurs minimales sous un même chemin pour parler de « famille »
 MAX_FAMILY_FICHES = 120      # même plafond que le générique
-FAMILY_PATH_RE = re.compile(r"spectacle|programm|saison|agenda|evenement|piece|show|a-l-affiche|affiche|theatre|enfant|tout-public|jeune-public|humour|danse|musique|cirque|concert", re.I)
+STRONG_FAMILY_PATH_RE = re.compile(r"^(?:project|projects|spectacles?|pieces?|shows?)$", re.I)
+FAMILY_PATH_RE = re.compile(r"project|portfolio|spectacle|programm|saison|agenda|evenement|piece|show|a-l-affiche|affiche|theatre|enfant|tout-public|jeune-public|humour|danse|musique|cirque|concert", re.I)
 
 
 def _parent(url: str) -> str:
@@ -61,7 +62,8 @@ def family_links(pages: list[Page]) -> list[str]:
     families: dict[str, list[str]] = {}
     for url, score in scored.items():
         parent = _parent(url)
-        if parent and score >= 1 and FAMILY_PATH_RE.search(parent):
+        # chemin très évocateur (/project/, /spectacle/…) : gardé même si les liens sont dans un menu (score négatif)
+        if parent and ((score >= 1 and FAMILY_PATH_RE.search(parent)) or STRONG_FAMILY_PATH_RE.search(parent)):
             families.setdefault(parent, []).append(url)
     links: list[str] = []
     for parent, urls in sorted(families.items(), key=lambda item: -len(item[1])):
@@ -187,6 +189,7 @@ BOOKING_TEXT_RE = re.compile(r"r[ée]serv|billet|infos?\b|en savoir plus|r[ée]s
 NOT_A_SHOW_RE = re.compile(r"cadeau|abonnement|privatis|black-friday|printemps-du|faq|photos?|partenaires?|actualit|equipe|histoire|informations?-pratiques|contact|mentions|cgv|cgu|carte-|cours|stage|atelier|location|recrut|presse|newsletter|accessib|plan|pratique|reservation|groupes|^theatre$|^spectacles?$|^programm", re.I)
 CARD_DEPTH = 4  # niveaux d'ancêtres examinés pour trouver le lien « Réserver » de la carte
 MIN_CARDS = 3
+MAX_CARD_ANCHORS = 800  # liens de l'accueil examinés (pages Wix de plusieurs milliers de liens)
 
 
 def card_links(home: Page) -> list[str]:
@@ -194,7 +197,7 @@ def card_links(home: Page) -> list[str]:
     soup = BeautifulSoup(home.text, "html.parser")
     host = urlparse(home.final_url).netloc
     found: list[str] = []
-    for a in soup.find_all("a", href=True):
+    for a in soup.find_all("a", href=True)[:MAX_CARD_ANCHORS]:
         url = urljoin(home.final_url, triage.clean_href(a["href"])).split("#", 1)[0].split("?", 1)[0]
         parsed = urlparse(url)
         segments = [x for x in parsed.path.split("/") if x]
@@ -207,9 +210,10 @@ def card_links(home: Page) -> list[str]:
             card = card.parent
             if card is None or card.name in ("body", "html", "main"):
                 break
-            others = [b for b in card.find_all("a", href=True) if b is not a]
-            if len(card.find_all("a", href=True)) > 6:  # conteneur trop large : plusieurs cartes mélangées
+            anchors = card.find_all("a", href=True, limit=7)
+            if len(anchors) > 6:  # conteneur trop large : plusieurs cartes mélangées
                 break
+            others = [b for b in anchors if b is not a]
             if any(BOOKING_TEXT_RE.search(b.get_text(" ", strip=True)) for b in others):
                 hit = True
                 break

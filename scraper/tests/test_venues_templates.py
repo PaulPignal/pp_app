@@ -86,6 +86,11 @@ class FichesFamilleTests(unittest.TestCase):
         self.assertTrue(all("/spectacle/" in u for u in links))
         self.assertIn("https://theatredepassy.fr/spectacle/le-voleur-de-mots/", links)
 
+    def test_famille_project_meme_dans_un_menu(self):
+        html = '<nav>' + "".join(f'<a href="/project/spectacle-{c}/">S{c}</a>' for c in "abcde") + '</nav>'
+        links = templates.family_links([Page("https://x.fr/", "https://x.fr/", 200, html)])
+        self.assertEqual(len(links), 5)
+
     def test_pas_de_famille_sans_assez_de_soeurs(self):
         html = '<a href="/spectacle/a-b-c/">A</a><a href="/spectacle/d-e-f/">D</a><a href="/contact/">C</a>'
         pages = [Page("https://x.fr/", "https://x.fr/", 200, html)]
