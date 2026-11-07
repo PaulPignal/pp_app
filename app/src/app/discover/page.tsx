@@ -38,20 +38,20 @@ function resolvePlatforms(value: string | string[] | undefined): string[] {
 }
 
 export default async function DiscoverPage({ searchParams }: DiscoverPageProps = {}) {
-  // Découverte est PUBLIQUE : on peut swiper sans compte. Le 1er like déclenche la
-  // création de compte (géré dans SwipeDeck). userId nul = aucun filtre « déjà réagi ».
-  const sessionUser = await getSessionUser()
-
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const section = resolveSection(resolvedSearchParams?.section)
   const isStreaming = section === 'streaming'
   // Le filtre plateformes ne s'applique que sur l'onglet streaming.
   const selectedPlatforms = isStreaming ? resolvePlatforms(resolvedSearchParams?.platforms) : []
 
-  // Liste des plateformes (mise en cache) AVANT la requête works : pour le streaming
-  // non filtré, on requête « hasSome: toutes les plateformes » (≡ dispo, mais via
-  // l'index GIN) plutôt que « isEmpty:false » (scan séquentiel, lent sur gros volume).
-  const availablePlatforms = isStreaming ? await listStreamingPlatforms() : []
+  // Découverte est PUBLIQUE : on peut swiper sans compte, le 1er like propose l'inscription.
+  // userId nul = aucun filtre « déjà réagi ». En parallèle : la liste des plateformes (en
+  // cache) est requise AVANT la requête works, car le streaming non filtré requête
+  // « hasSome: toutes les plateformes » (index GIN) plutôt que « isEmpty:false » (scan).
+  const [sessionUser, availablePlatforms] = await Promise.all([
+    getSessionUser(),
+    isStreaming ? listStreamingPlatforms() : Promise.resolve([] as string[]),
+  ])
   const platformsForQuery = selectedPlatforms.length
     ? selectedPlatforms
     : isStreaming && availablePlatforms.length

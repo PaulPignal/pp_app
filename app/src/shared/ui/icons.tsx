@@ -40,13 +40,6 @@ export const IconClock = (p: IconProps) => (
   </Svg>
 )
 
-export const IconCalendar = (p: IconProps) => (
-  <Svg {...p}>
-    <rect x="3.5" y="5" width="17" height="15" rx="2" />
-    <path d="M3.5 10h17M8 3.5V7M16 3.5V7" />
-  </Svg>
-)
-
 export const IconTicket = (p: IconProps) => (
   <Svg {...p}>
     <path d="M3 8.5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 7 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-7z" />
@@ -101,12 +94,6 @@ export const IconUsers = (p: IconProps) => (
 export const IconArrowUpRight = (p: IconProps) => (
   <Svg {...p}>
     <path d="M7 17 17 7M8 7h9v9" />
-  </Svg>
-)
-
-export const IconPhone = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M6.5 3.5h3l1.5 4-2 1.4a11 11 0 0 0 4.6 4.6l1.4-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7 2 2 0 0 1 6.5 3.5z" />
   </Svg>
 )
 
@@ -166,26 +153,6 @@ export const IconSearch = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="11" cy="11" r="6.5" />
     <path d="m20 20-4.3-4.3" />
-  </Svg>
-)
-
-export const IconPlus = (p: IconProps) => (
-  <Svg strokeWidth={2} {...p}>
-    <path d="M12 5v14M5 12h14" />
-  </Svg>
-)
-
-export const IconLink = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2" />
-    <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" />
-  </Svg>
-)
-
-export const IconMail = (p: IconProps) => (
-  <Svg {...p}>
-    <rect x="3" y="5.5" width="18" height="13" rx="2" />
-    <path d="m3.5 7 8.5 6 8.5-6" />
   </Svg>
 )
 
