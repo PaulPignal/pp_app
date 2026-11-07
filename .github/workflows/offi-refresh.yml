@@ -86,6 +86,10 @@ concurrency:
   group: offi-refresh
   cancel-in-progress: false
 
+# Jeton GITHUB_TOKEN en lecture seule par défaut (seul le job keepalive, s'il existe, écrit).
+permissions:
+  contents: read
+
 jobs:
   refresh:
     runs-on: ubuntu-latest

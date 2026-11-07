@@ -10,6 +10,10 @@ on:
       - 'app/**'
       - '.github/workflows/app-ci.yml'
 
+# Jeton GITHUB_TOKEN en lecture seule par défaut (seul le job keepalive, s'il existe, écrit).
+permissions:
+  contents: read
+
 jobs:
   app-checks:
     runs-on: ubuntu-latest
