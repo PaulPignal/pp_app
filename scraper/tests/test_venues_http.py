@@ -7,6 +7,8 @@ from scraper.venues.http import PoliteFetcher
 class FakeResponse:
     def __init__(self, status=200, text="<html></html>", url=""):
         self.status_code, self.text, self.url = status, text, url
+        self.headers = {"content-type": "text/html; charset=utf-8"}
+        self.apparent_encoding = "utf-8"
 
 
 class FakeFetcher(PoliteFetcher):

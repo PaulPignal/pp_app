@@ -14,6 +14,7 @@ from __future__ import annotations
 import csv
 import re
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 from urllib.parse import urljoin, urlparse
 
@@ -77,6 +78,7 @@ EXTRA_PATTERNS = {
     "accessibilite": re.compile(r"accessib|PMR|mobilit[eé] r[eé]duite|handicap|LSF|audiodescription|boucle magn", re.I),
     "placement": re.compile(r"placement\s+(?:libre|num[eé]rot)|plan de salle|choisir (?:votre|ses) place|places? num[eé]rot", re.I),
 }
+EVENT_FEED_RE = re.compile(r"event|agenda|spectacle|programm|saison|calendar", re.I)
 FEED_RE = re.compile(r"\.ics(\?|$)|^webcal:|/feed/?$|\.rss(\?|$)|type=\"application/(?:rss|atom)", re.I)
 
 
@@ -136,6 +138,12 @@ def pick_agenda_links(soup, base_url: str, limit: int = 2) -> list[str]:
     return [u for u, _ in sorted(scored.items(), key=lambda kv: -kv[1])[:limit]]
 
 
+def normalize_website(website: str) -> str:
+    """offi saisit parfois « http://https://… » ou un site sans schéma."""
+    website = re.sub(r"^https?://(?=https?://)", "", website.strip())
+    return website if website.startswith("http") else "http://" + website
+
+
 def analyse_site(fetcher: PoliteFetcher, website: str) -> dict:
     """Une requête sur l'accueil, au plus deux pages agenda. Renvoie les colonnes de triage."""
     result = {
@@ -185,8 +193,10 @@ def analyse_site(fetcher: PoliteFetcher, website: str) -> dict:
         result["signal"], result["signal_detail"], result["feasibility"] = "ical", ics[0], 1
     elif ticketing:
         result["signal"], result["signal_detail"], result["feasibility"] = "billetterie_tierce", result["ticketing_all"], 2
-    elif rss:
-        result["signal"], result["signal_detail"], result["feasibility"] = "rss", rss[0], 2
+    elif any(EVENT_FEED_RE.search(f) for f in rss):
+        result["signal"], result["signal_detail"], result["feasibility"] = "rss_agenda", next(f for f in rss if EVENT_FEED_RE.search(f)), 2
+    elif rss:  # flux WordPress /feed/ : articles d'actualité, pas un agenda (hypothèse confirmée sur échantillon à faire)
+        result["signal"], result["signal_detail"] = "rss_actualites", rss[0]
     elif cms == "wordpress":
         result["signal"], result["signal_detail"], result["feasibility"] = "api_wordpress_hypothese", "wp-json non testé", 2
     else:
@@ -199,25 +209,33 @@ def analyse_site(fetcher: PoliteFetcher, website: str) -> dict:
 TRIAGE_COLUMNS = ["platform", "cms", "signal", "signal_detail", "feasibility", "extras", "agenda_url", "status", "ticketing_all"]
 
 
-def triage_catalogue(csv_in: str, csv_out: str, fetcher: PoliteFetcher, limit: Optional[int] = None, log=print) -> None:
+def triage_catalogue(csv_in: str, csv_out: str, fetcher: PoliteFetcher, limit: Optional[int] = None, log=print, workers: int = 6) -> None:
     with open(csv_in, encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
     base_cols = [c for c in rows[0].keys() if c not in TRIAGE_COLUMNS] if rows else []
-    done = 0
+    todo = []
     for row in rows:
         website = row.get("website") or ""
-        if limit is not None and done >= limit:
-            break
         if not website:
             row.update({c: "" for c in TRIAGE_COLUMNS})
-            row.update({"platform": "", "status": "sans_site", "feasibility": 3})
-            continue
-        if not website.startswith("http"):
-            website = "http://" + website
-        row.update(analyse_site(fetcher, website))
-        done += 1
-        if done % 25 == 0:
-            log(f"triage: {done} sites")
+            row.update({"status": "sans_site", "feasibility": 3})
+        else:
+            todo.append((row, normalize_website(website)))
+    if limit is not None:
+        todo = todo[:limit]
+
+    def work(item):
+        row, website = item
+        try:
+            row.update(analyse_site(fetcher, website))
+        except Exception as exc:  # un site illisible ne doit pas arrêter le triage
+            row.update({"status": f"erreur {type(exc).__name__}", "feasibility": 3})
+
+    # Threads : les domaines sont distincts d'un lieu à l'autre, le fetcher garde 1 requête/s par domaine.
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for i, _ in enumerate(pool.map(work, todo), start=1):
+            if i % 25 == 0:
+                log(f"triage: {i}/{len(todo)} sites")
     with open(csv_out, "w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=base_cols + TRIAGE_COLUMNS, extrasaction="ignore")
         writer.writeheader()

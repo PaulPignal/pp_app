@@ -142,6 +142,8 @@ class PoliteFetcher:
                 resp = self._raw_get(url)
             except requests.RequestException:
                 continue
+            if resp.status_code == 200 and "charset" not in resp.headers.get("content-type", "").lower():
+                resp.encoding = resp.apparent_encoding  # sans charset, requests suppose latin-1 : accents cassés
             body = resp.text[:MAX_BYTES] if resp.status_code == 200 else ""
             note = ""
             if resp.status_code in BLOCK_STATUS or (
