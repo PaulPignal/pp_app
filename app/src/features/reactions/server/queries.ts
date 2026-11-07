@@ -9,24 +9,6 @@ export type LikedWorkItem = {
   work: ReturnType<typeof mapWorkToCardDto> | null
 }
 
-export async function listLikedWorks(userId: string): Promise<LikedWorkItem[]> {
-  const likes = await prisma.reaction.findMany({
-    where: { userId, status: 'LIKE' },
-    orderBy: { createdAt: 'desc' },
-    select: {
-      workId: true,
-      work: {
-        select: workCardSelect,
-      },
-    },
-  })
-
-  return likes.map((like) => ({
-    workId: like.workId,
-    work: like.work ? mapWorkToCardDto(like.work) : null,
-  }))
-}
-
 // Bibliothèque /likes : likes (à voir) + œuvres marquées vues (déjà vues), en une requête.
 export async function listLibraryWorks(userId: string): Promise<{ likes: LikedWorkItem[]; seen: LikedWorkItem[] }> {
   const rows = await prisma.reaction.findMany({

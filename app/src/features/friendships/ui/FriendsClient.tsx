@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'next/navigation'
-import type { FriendRequestDto, FriendSummaryDto } from '@/features/friendships/dto'
+import { useId, useMemo, useState, type FormEvent } from 'react'
+import type { FriendRequestDto, FriendSummaryDto, InvitePreviewDto } from '@/features/friendships/dto'
 import type { WorkCardDto } from '@/features/works/dto'
 import CompactLikeCard from '@/features/reactions/ui/CompactLikeCard'
 import { fetchJson } from '@/shared/lib/fetch-json'
@@ -16,6 +15,7 @@ type FriendsClientProps = {
   initialFriends: FriendSummaryDto[]
   initialRequests: FriendRequestDto[]
   inviteToken: string
+  invitation?: InvitePreviewDto | null
 }
 
 type AddFriendPayload = JsonOk<{
@@ -66,19 +66,18 @@ function Avatar({ email }: { email: string }) {
   )
 }
 
-export default function FriendsClient({ initialFriends, initialRequests, inviteToken }: FriendsClientProps) {
-  const searchParams = useSearchParams()
+export default function FriendsClient({ initialFriends, initialRequests, inviteToken, invitation: initialInvitation = null }: FriendsClientProps) {
   const [friends, setFriends] = useState(initialFriends)
   const [requests, setRequests] = useState(initialRequests)
   const [commons, setCommons] = useState<CommonPayload['works']>([])
   const [emailInput, setEmailInput] = useState('')
-  const [error, setError] = useState('')
+  const [invitation, setInvitation] = useState(initialInvitation && 'token' in initialInvitation ? initialInvitation : null)
+  const [error, setError] = useState(initialInvitation && 'error' in initialInvitation ? formatFriendsError(initialInvitation.error) : '')
   const [notice, setNotice] = useState('')
   const [pending, setPending] = useState<string | null>(null)
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null)
   const [addMode, setAddMode] = useState<'email' | 'link'>('email')
   const [copied, setCopied] = useState(false)
-  const acceptedTokenRef = useRef(false)
   const emailId = useId()
 
   const inviteUrl = useMemo(() => {
@@ -99,38 +98,36 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
     setRequests((current) => current.filter((item) => item.id !== requesterId))
   }
 
-  // Arrivée via un lien d'invitation (?token=) → consentement explicite par le clic :
-  // on accepte automatiquement, une seule fois, puis on nettoie l'URL.
-  useEffect(() => {
-    const token = searchParams.get('token')
-    if (!token || acceptedTokenRef.current) return
-    acceptedTokenRef.current = true
+  // Lien d'invitation : rien n'est créé à l'ouverture, l'amitié attend le clic sur « Accepter ».
+  function closeInvitation() {
+    setInvitation(null)
+    const url = new URL(window.location.href)
+    url.searchParams.delete('token')
+    window.history.replaceState({}, '', url)
+  }
 
-    void (async () => {
-      setPending('token')
-      setError('')
-      setNotice('')
-      try {
-        const payload = await fetchJson<AddFriendPayload>('/api/friends', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        })
+  async function acceptInvitation(token: string) {
+    setPending('token')
+    setError('')
+    setNotice('')
+    try {
+      const payload = await fetchJson<AddFriendPayload>('/api/friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      if (payload.friend) {
         upsertFriend(payload.friend)
         setNotice(`${payload.friend.email} fait désormais partie de vos amis.`)
-      } catch (requestError) {
-        const message = requestError instanceof Error ? requestError.message : 'unknown_error'
-        setError(formatFriendsError(message))
-      } finally {
-        setPending(null)
-        if (typeof window !== 'undefined') {
-          const url = new URL(window.location.href)
-          url.searchParams.delete('token')
-          window.history.replaceState({}, '', url)
-        }
       }
-    })()
-  }, [searchParams])
+      closeInvitation()
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'unknown_error'
+      setError(formatFriendsError(message))
+    } finally {
+      setPending(null)
+    }
+  }
 
   async function addFriendByEmail(event: FormEvent) {
     event.preventDefault()
@@ -267,6 +264,26 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
         </StatusBanner>
       ) : null}
 
+      {invitation ? (
+        <section className="card flex flex-col gap-3 p-5" aria-labelledby="friends-invite-title">
+          <h2 id="friends-invite-title" className="display text-xl text-ink">
+            Invitation
+          </h2>
+          <p className="text-sm text-ink-muted">
+            <span className="font-semibold text-ink">{invitation.inviterEmail}</span> vous invite à devenir amis : chacun verra les
+            sorties aimées par l’autre.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn btn-primary" onClick={() => void acceptInvitation(invitation.token)} disabled={pending !== null}>
+              {pending === 'token' ? 'Ajout…' : `Accepter l’invitation de ${invitation.inviterEmail}`}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={closeInvitation} disabled={pending !== null}>
+              Ignorer
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       <section className="card flex flex-col gap-4 p-5" aria-labelledby="friends-add-title">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="friends-add-title" className="display text-xl text-ink">
@@ -312,7 +329,7 @@ export default function FriendsClient({ initialFriends, initialRequests, inviteT
                 Mon lien d’invitation
               </label>
               <input id="friends-invite-url" className="input text-sm" readOnly value={inviteUrl} onFocus={(e) => e.currentTarget.select()} />
-              <p className="field-hint">Qui ouvre ce lien connecté à son compte devient votre ami.</p>
+              <p className="field-hint">Qui ouvre ce lien connecté à son compte pourra accepter votre invitation.</p>
             </div>
             <button type="button" className="btn btn-secondary sm:mb-6" onClick={() => void copyInviteUrl()} disabled={!inviteUrl || pending !== null}>
               {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}

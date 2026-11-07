@@ -3,6 +3,10 @@ import { requireSessionUser, isUnauthorizedError } from '@/features/auth/server/
 import { reactionUpsertSchema } from '@/features/reactions/schemas'
 import { clearReaction, setReactionStatus } from '@/features/reactions/server/commands'
 import { jsonError, jsonOk } from '@/shared/lib/http'
+import { rateLimit } from '@/shared/lib/rate-limit'
+
+// Un swipe humain dépasse rarement 1 par seconde : 120/min borne un script qui like tout le catalogue.
+const REACTIONS_PER_MINUTE = 120
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,6 +20,8 @@ export async function POST(req: Request) {
     if (!parsed.success) return jsonError('invalid_body', 400, parsed.error.flatten())
 
     const sessionUser = await requireSessionUser()
+    if (!rateLimit(`reactions:${sessionUser.id}`, REACTIONS_PER_MINUTE, 60_000).ok) return jsonError('rate_limited', 429)
+
     const { reaction } = await setReactionStatus({
       userId: sessionUser.id,
       workId: parsed.data.workId,
@@ -38,6 +44,8 @@ export async function DELETE(req: Request) {
     if (!parsed.success) return jsonError('invalid_query', 400, parsed.error.flatten())
 
     const sessionUser = await requireSessionUser()
+    if (!rateLimit(`reactions:${sessionUser.id}`, REACTIONS_PER_MINUTE, 60_000).ok) return jsonError('rate_limited', 429)
+
     await clearReaction({ userId: sessionUser.id, workId: parsed.data.workId })
 
     return jsonOk({ cleared: true }, 200)

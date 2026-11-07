@@ -2,10 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
-}))
-
 import FriendsClient from '@/features/friendships/ui/FriendsClient'
 
 function jsonResponse(payload: unknown) {
@@ -161,4 +157,51 @@ describe('FriendsClient', () => {
     expect(await screen.findByText('Hamlet')).toBeInTheDocument()
     expect(screen.getByText('Comédie-Française')).toBeInTheDocument()
   }, 15000)
+  it('lien d’invitation : aucune amitié à l’ouverture, bouton explicite pour accepter', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ ok: true, friend: { id: 'inviter-1', email: 'lea@example.com' }, status: 'accepted' }),
+    )
+    const user = userEvent.setup()
+    render(
+      <FriendsClient
+        initialFriends={[]}
+        initialRequests={[]}
+        inviteToken="token-1"
+        invitation={{ token: 'invite-token', inviterEmail: 'lea@example.com' }}
+      />,
+    )
+
+    expect(fetch).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Accepter l’invitation de lea@example.com' }))
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/friends',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'invite-token' }) }),
+    )
+    expect(await screen.findByText(/lea@example.com fait désormais partie de vos amis/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Accepter l’invitation/ })).not.toBeInTheDocument()
+  })
+
+  it('lien d’invitation ignoré : rien n’est envoyé', async () => {
+    const user = userEvent.setup()
+    render(
+      <FriendsClient
+        initialFriends={[]}
+        initialRequests={[]}
+        inviteToken="token-1"
+        invitation={{ token: 'invite-token', inviterEmail: 'lea@example.com' }}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Ignorer' }))
+    expect(screen.queryByRole('button', { name: /Accepter l’invitation/ })).not.toBeInTheDocument()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('lien d’invitation expiré : message d’erreur, pas de bouton', () => {
+    render(
+      <FriendsClient initialFriends={[]} initialRequests={[]} inviteToken="token-1" invitation={{ error: 'expired_invite_token' }} />,
+    )
+    expect(screen.getByText('Ce lien d’invitation a expiré.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Accepter l’invitation/ })).not.toBeInTheDocument()
+  })
 })

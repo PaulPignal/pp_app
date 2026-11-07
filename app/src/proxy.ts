@@ -12,7 +12,9 @@ export default async function proxy(req: NextRequest) {
   if (!token) {
     const url = req.nextUrl.clone()
     url.pathname = SIGN_IN_PATH
-    url.searchParams.set('callbackUrl', req.nextUrl.pathname)
+    // Chemin + requête : un lien d'invitation (/friends?token=…) survit à la connexion.
+    url.search = ''
+    url.searchParams.set('callbackUrl', `${req.nextUrl.pathname}${req.nextUrl.search}`)
     return NextResponse.redirect(url)
   }
   return NextResponse.next()

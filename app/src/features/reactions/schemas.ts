@@ -7,8 +7,4 @@ export const reactionUpsertSchema = z.object({
   status: reactionStatusSchema,
 })
 
-export const legacyLikeSchema = z.object({
-  workId: z.string().min(1),
-})
-
 export type ReactionStatusInput = z.infer<typeof reactionStatusSchema>
