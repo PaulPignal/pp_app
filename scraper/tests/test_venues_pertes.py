@@ -253,5 +253,38 @@ class GeneriqueBoutEnBoutTests(unittest.TestCase):
         self.assertEqual(info["signal"], "html")
 
 
+class Iteration2Tests(unittest.TestCase):
+    def test_pagination_par_data_next(self):
+        html = '<div class="load-more" data-paged="1" data-next="https://lascala-paris.fr/programmation/page/2/"></div>'
+        soup = BeautifulSoup(html, "html.parser")
+        self.assertEqual(generic.pagination_links(soup, "https://lascala-paris.fr/programmation/"), ["https://lascala-paris.fr/programmation/page/2/"])
+
+    def test_fiche_sans_date_gardee_sur_demande(self):
+        from scraper.venues import html_fiche
+        html = "<html><head><title>Hamlet - Théâtre X</title></head><body><main><h1>Hamlet</h1><p>Prochainement, tarif 20 €</p></main></body></html>"
+        self.assertIsNone(html_fiche.parse_fiche(html, "https://x.fr/spectacles/hamlet/", TODAY))
+        occ = html_fiche.parse_fiche(html, "https://x.fr/spectacles/hamlet/", TODAY, require_date=False)
+        self.assertEqual((occ["title"], occ["date_start"], occ["performances"], occ["price_min_eur"]), ("Hamlet", None, [], 20.0))
+        from scraper.venues import schemaorg
+        groups = schemaorg.group_occurrences([occ])
+        self.assertEqual(groups[0]["performances"], [])
+        venue = {"name": "X", "sections": ["theatre"], "slug": "x-1", "city": "Paris"}
+        records = schemaorg.records_from_groups(groups, venue, "direct:html", today=TODAY)
+        self.assertEqual(len(records), 1)
+        self.assertIsNone(records[0].get("date_start"))
+
+    def test_fiches_lues_malgre_une_liste_structuree(self):
+        site = "https://x.fr"
+        ld = lambda n: "".join(f'<script type="application/ld+json">{{"@type":"Event","name":"Vedette {i}","startDate":"2026-12-0{i}","url":"https://x.fr/spectacles/vedette-{i}/"}}</script>' for i in range(1, n + 1))
+        fiche = lambda t: f"<html><head><title>{t} - X</title></head><body><main><h1>{t}</h1><p>Le 3 décembre 2026</p></main></body></html>"
+        agenda = f"<html><body>{ld(3)}<main>" + "".join(f'<a href="/spectacles/piece-{i}/">Pièce {i}</a>' for i in range(10)) + "</main></body></html>"
+        pages = {site: '<html><body><a href="/agenda/">Agenda</a></body></html>', site + "/agenda/": agenda}
+        pages.update({f"{site}/spectacles/piece-{i}/": fiche(f"Pièce {i}") for i in range(10)})
+        venue = {"website": site, "name": "X", "sections": ["theatre"], "slug": "x-1", "city": "Paris"}
+        groups, info = generic.extract_generic(FakeFetcher(pages), venue, today=TODAY)
+        titles = {g["title"] for g in groups}
+        self.assertTrue({"Vedette 1", "Pièce 0", "Pièce 9"} <= titles, titles)  # 3 titres structurés, 10 fiches sûres : fiches lues
+
+
 if __name__ == "__main__":
     unittest.main()

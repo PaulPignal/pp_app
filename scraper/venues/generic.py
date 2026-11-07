@@ -14,6 +14,7 @@ sont ceux du menu (mesuré sur le Théâtre du Rond-Point : 1 spectacle lu sur 3
 """
 from __future__ import annotations
 
+import html as htmllib
 import os
 import re
 from datetime import date
@@ -38,6 +39,9 @@ MAX_LISTING_PAGES = 4  # pages suivantes d'un agenda paginé
 MIN_LISTED_TITLES = 3  # en dessous, les pages de liste ne portent pas l'agenda : on lit les fiches
 MIN_FAMILY = 3         # liens frères sous un même chemin pour former une « famille » de fiches
 FICHE_SCORE = 2        # score minimal pour lire une page en HTML (repli sans schema.org)
+STRONG_FICHE_SCORE = 3 # famille nombreuse + chemin profond (ou lien donné par wp-json)
+DATELESS_FICHE_SCORE = 4  # famille nombreuse, chemin profond et parent d'agenda : fiche gardée même sans date
+MIN_FICHE_FAMILY = 8   # fiches sûres à partir desquelles on lit les fiches malgré une liste structurée
 _NAV_TAGS = ["nav", "header", "footer"]
 _PAGE_QUERY_KEYS = ("page", "paged", "p", "pg")
 _PAGE_PATH_RE = re.compile(r"/page/(\d+)/?$")
@@ -59,13 +63,19 @@ def _page_number(url: str, listing_path: str) -> Optional[int]:
     return None
 
 
+_DATA_NEXT_RE = re.compile(r'data-(?:next|url|href|load-more-url)="([^"]+)"')
+
+
 def pagination_links(soup, page_url: str, limit: int = MAX_LISTING_PAGES) -> list[str]:
-    """Pages suivantes (2, 3…) d'un agenda paginé, dans l'ordre, sans doublon."""
+    """Pages suivantes (2, 3…) d'un agenda paginé, dans l'ordre, sans doublon : liens, ou attribut
+    `data-next` d'un bouton « voir plus » (La Scala : data-next=".../programmation/page/2/")."""
     host = urlparse(page_url).netloc
     listing_path = urlparse(page_url).path
     found: dict[int, str] = {}
-    for a in soup.find_all("a", href=True):
-        url = urljoin(page_url, triage.clean_href(a["href"])).split("#", 1)[0]
+    candidates = [triage.clean_href(a["href"]) for a in soup.find_all("a", href=True)]
+    candidates += [htmllib.unescape(u) for u in _DATA_NEXT_RE.findall(str(soup))]
+    for href in candidates:
+        url = urljoin(page_url, href).split("#", 1)[0]
         if urlparse(url).netloc != host:
             continue
         number = _page_number(url, listing_path)
@@ -126,8 +136,9 @@ def detail_links(soup, base_url: str, exclude: set[str], limit: int) -> list[str
     return [url for _, url in ranked[:limit]]
 
 
-def listing_pages(fetcher: PoliteFetcher, home: Page) -> list[Page]:
-    """Accueil, pages agenda de l'accueil, puis pages suivantes de chaque agenda paginé."""
+def listing_pages(fetcher: PoliteFetcher, home: Page, wordpress: bool = False) -> list[Page]:
+    """Accueil, pages agenda de l'accueil, puis pages suivantes de chaque agenda paginé. Sur WordPress,
+    sans lien de pagination visible, la convention /page/2/ est essayée (404 au-delà de la dernière page)."""
     pages = [home]
     soup = BeautifulSoup(home.text, "html.parser")
     for link in triage.pick_agenda_links(soup, home.final_url):
@@ -136,13 +147,17 @@ def listing_pages(fetcher: PoliteFetcher, home: Page) -> list[Page]:
             pages.append(page)
     seen = {p.final_url for p in pages} | {p.url for p in pages}
     for page in list(pages[1:]):
-        for link in pagination_links(BeautifulSoup(page.text, "html.parser"), page.final_url):
+        links = pagination_links(BeautifulSoup(page.text, "html.parser"), page.final_url)
+        if not links and wordpress and not urlparse(page.final_url).query and not _PAGE_PATH_RE.search(page.final_url):
+            links = [f"{page.final_url.rstrip('/')}/page/{n}/" for n in range(2, MAX_LISTING_PAGES + 2)]
+        for link in links:
             if link in seen:
                 continue
             seen.add(link)
             more = fetcher.get(link)
-            if more.ok:
-                pages.append(more)
+            if not more.ok:
+                break
+            pages.append(more)
     return pages
 
 
@@ -155,14 +170,14 @@ def extract_generic(fetcher: PoliteFetcher, venue: dict, max_detail: int = MAX_D
     if not home.ok:
         info["status"] = home.note or f"http {home.status}"
         return [], info
-    pages = listing_pages(fetcher, home)
+    is_wordpress = triage.detect_cms(home.text) == "wordpress"
+    pages = listing_pages(fetcher, home, is_wordpress)
     occurrences: list[dict] = []
     for page in pages:
         found, signal = schemaorg.occurrences_from_html(page.text, page.final_url)
         if found:
             occurrences += found
             info["signal"] = info["signal"] or signal
-    is_wordpress = triage.detect_cms(home.text) == "wordpress"
 
     def titles() -> int:  # spectacles distincts déjà lus (une fiche de 8 séances ne vaut qu'un spectacle)
         return len({re.sub(r"\W+", "", o["title"].lower()) for o in occurrences})
@@ -172,16 +187,21 @@ def extract_generic(fetcher: PoliteFetcher, venue: dict, max_detail: int = MAX_D
         if found:
             occurrences += found
             info["signal"] = info["signal"] or "wp_tribe"
-    if titles() < MIN_LISTED_TITLES and max_detail:  # peu de spectacles listés : les fiches portent les données
-        seen = {p.final_url for p in pages} | {p.url for p in pages}
-        scored: dict[str, int] = {}
+    seen = {p.final_url for p in pages} | {p.url for p in pages}
+    scored: dict[str, int] = {}
+    if max_detail:
         if is_wordpress:
             for url in wordpress.fiche_links(fetcher.project_fetcher(), home.final_url):
                 if url not in seen:
-                    scored[url] = max(scored.get(url, 0), FICHE_SCORE + 1)
+                    scored[url] = max(scored.get(url, 0), STRONG_FICHE_SCORE)
         for page in pages[1:] or pages:
             for score, url in ranked_links(BeautifulSoup(page.text, "html.parser"), page.final_url, seen):
                 scored[url] = max(scored.get(url, -9), score)
+    strong = sum(1 for u in scored if scored[u] >= STRONG_FICHE_SCORE)
+    # Les fiches sont lues quand la liste ne porte pas l'agenda, ou quand une vraie famille de fiches existe
+    # alors que la liste n'en structure qu'une partie (L'Européen : 13 spectacles JSON-LD sur l'accueil,
+    # 21 fiches ; BO Saint-Martin : wp-json liste toutes les fiches).
+    if max_detail and (titles() < MIN_LISTED_TITLES or strong >= MIN_FICHE_FAMILY):
         # score négatif = lien de navigation sans autre indice : jamais une fiche, pas de requête
         links = [u for u in sorted(scored, key=lambda u: -scored[u]) if scored[u] >= 0][:max_detail]
         fetched: list[Page] = []
@@ -209,9 +229,12 @@ def extract_generic(fetcher: PoliteFetcher, venue: dict, max_detail: int = MAX_D
         # sont structurées, seules leurs sœurs (même chemin parent) sont relues : Bobino met un JSON-LD sur
         # une fiche /event-pro/ sur vingt ; les pages de service d'un site structuré restent ignorées.
         for page in fetched:
-            if scored.get(page.url, 0) < FICHE_SCORE or (structured and _parent(page.url) not in structured):
+            score = scored.get(page.url, 0)
+            if score < FICHE_SCORE or (structured and _parent(page.url) not in structured):
                 continue
-            occ = html_fiche.parse_fiche(page.text, page.final_url, today)
+            # Fiche d'une famille sûre (/spectacles/*, sous un chemin d'agenda) sans date lisible : gardée sans
+            # date, le titre et le lien suffisent à l'appariement (l'ingestion accepte date_start nulle).
+            occ = html_fiche.parse_fiche(page.text, page.final_url, today, require_date=score < DATELESS_FICHE_SCORE)
             if occ:
                 occurrences.append(occ)
                 info["signal"] = info["signal"] or "html"

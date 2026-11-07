@@ -76,8 +76,8 @@ def _meta(soup: BeautifulSoup, *names: str) -> Optional[str]:
     return None
 
 
-def parse_fiche(html: str, url: str, today: Optional[date] = None) -> Optional[dict]:
-    """Occurrence normalisée (clés de schemaorg.normalize_event) ou None sans titre/date."""
+def parse_fiche(html: str, url: str, today: Optional[date] = None, require_date: bool = True) -> Optional[dict]:
+    """Occurrence normalisée (clés de schemaorg.normalize_event) ou None sans titre (ni date, sauf `require_date=False`)."""
     today = today or date.today()
     soup = BeautifulSoup(html, "html.parser")
     h1_texts = [h.get_text(" ", strip=True) for h in soup.find_all("h1")]
@@ -93,12 +93,13 @@ def parse_fiche(html: str, url: str, today: Optional[date] = None) -> Optional[d
     description = _meta(soup, "og:description", "description") or ""
     text = f"{description} {_main_text(soup)}"  # certains sites mettent la date dans la meta description
     dates = sorted({d for d in times if parsers.is_valid_iso_date(d) and d >= today.isoformat()} | set(parse_dates(text, today)))
-    if not dates:
+    if not dates and require_date:
         return None
     low, high = parse_price_range(text)
     dm = _DURATION_CTX_RE.search(text)
     return {
-        "title": title, "url": url, "date_start": dates[0], "date_end": dates[-1], "venue": None, "address": None,
+        "title": title, "url": url, "date_start": dates[0] if dates else None, "date_end": dates[-1] if dates else None,
+        "venue": None, "address": None,
         "description": _meta(soup, "og:description", "description"), "image": _meta(soup, "og:image"),
         "duration_min": parsers.parse_duration(dm.group(1)) if dm else None, "cast": [], "director": None,
         "age_range": None, "language": None, "event_status": None, "accessibility": [], "type": "Event",
