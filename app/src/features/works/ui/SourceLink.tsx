@@ -1,7 +1,8 @@
 'use client'
 
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/cn'
+import { IconArrowUpRight, IconCheck, IconCopy } from '@/shared/ui/icons'
 
 type Props = {
   /** Texte cliquable (titre de la pièce, nom du lieu…). */
@@ -19,6 +20,11 @@ type Props = {
 // sur le nom du lieu (site du lieu).
 export default function SourceLink({ label, href, textClassName, copy = true }: Props) {
   const [copied, setCopied] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current)
+  }, [])
 
   const onCopy = useCallback(
     async (e: React.MouseEvent) => {
@@ -28,9 +34,10 @@ export default function SourceLink({ label, href, textClassName, copy = true }: 
       try {
         await navigator.clipboard.writeText(href)
         setCopied(true)
-        setTimeout(() => setCopied(false), 1600)
+        if (timer.current) clearTimeout(timer.current)
+        timer.current = setTimeout(() => setCopied(false), 1600)
       } catch {
-        /* clipboard indisponible : on ignore silencieusement */
+        /* presse-papier indisponible : rien à signaler */
       }
     },
     [href],
@@ -42,44 +49,28 @@ export default function SourceLink({ label, href, textClassName, copy = true }: 
 
   return (
     // stopPropagation sur le pointeur : ne pas déclencher le swipe de la carte Découverte.
-    <span className="inline-flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+    <span className="inline-flex max-w-full items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
       <a
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className={cn(textClassName, 'underline-offset-4 transition hover:text-[color:var(--color-accent)] hover:underline')}
-        title="Lien officiel"
+        className={cn(textClassName, 'inline-flex items-baseline gap-0.5 underline-offset-4 hover:underline')}
+        title="Ouvrir le site officiel (nouvel onglet)"
       >
-        {label} <span aria-hidden>↗</span>
+        <span>{label}</span>
+        <IconArrowUpRight size={12} className="shrink-0 self-center opacity-80" />
       </a>
       {copy ? (
         <button
           type="button"
           onClick={onCopy}
           aria-label={copied ? 'Lien copié' : 'Copier le lien'}
-          title={copied ? 'Copié !' : 'Copier le lien'}
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[color:var(--color-text-muted)] transition hover:bg-[color:var(--color-fill)] hover:text-[color:var(--color-accent)]"
+          title={copied ? 'Lien copié' : 'Copier le lien'}
+          className="btn-icon btn-icon-sm shrink-0 text-current opacity-80 hover:opacity-100"
         >
-          {copied ? <CheckIcon /> : <CopyIcon />}
+          {copied ? <IconCheck size={15} /> : <IconCopy size={15} />}
         </button>
       ) : null}
     </span>
-  )
-}
-
-function CopyIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="9" y="9" width="13" height="13" rx="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
   )
 }

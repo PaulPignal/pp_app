@@ -2,41 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import type { WorkCardDto } from '@/features/works/dto'
 import CardWork from '@/features/works/ui/CardWork'
-import SurfaceCard from '@/shared/ui/SurfaceCard'
+import EmptyState from '@/shared/ui/EmptyState'
+import { IconHeart, IconUndo, IconX } from '@/shared/ui/icons'
 import { SIGN_IN_PATH } from '@/shared/lib/routes'
 
 // Like mémorisé pendant le swipe anonyme : rejoué après création de compte.
 const PENDING_LIKE_KEY = 'offi:pendingLike'
-
-// Icônes d'action (style épuré, façon apps de swipe). aria-hidden : le libellé
-// accessible est porté par le bouton.
-function IconHeart({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-    </svg>
-  )
-}
-
-function IconX({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" aria-hidden className={className}>
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  )
-}
-
-function IconRewind({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
-      <polyline points="1 4 1 10 7 10" />
-      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-    </svg>
-  )
-}
 
 type Props = {
   items: WorkCardDto[]
@@ -59,6 +34,12 @@ function safeAnimate(el: Element | null) {
   return null
 }
 
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false
+}
+
 // Une animation WAAPI ne progresse pas tant que l'onglet est masqué : `finished`
 // peut alors ne jamais se résoudre. On borne l'attente pour ne JAMAIS bloquer le
 // swipe (en onglet visible, `finished` se résout bien avant le timeout).
@@ -68,7 +49,14 @@ function settle(animation: Animation | null | undefined, maxWaitMs: number): Pro
   return Promise.race([finished, timeout])
 }
 
+// Les raccourcis du deck ne doivent pas voler les flèches d'un champ de saisie ni d'une boîte de dialogue.
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]'))
+}
+
 export default function SwipeDeck({ items, totalCount }: Props) {
+  const router = useRouter()
   const [index, setIndex] = useState(0)
   const [dragX, setDragX] = useState(0)
   const [dragStartTs, setDragStartTs] = useState<number | null>(null)
@@ -83,7 +71,10 @@ export default function SwipeDeck({ items, totalCount }: Props) {
   const dragging = useRef(false)
   const startX = useRef(0)
   const cardRef = useRef<HTMLDivElement>(null)
+  const likeButtonRef = useRef<HTMLButtonElement>(null)
+  const signupFirstRef = useRef<HTMLAnchorElement>(null)
   const current = items[index]
+  const next = items[index + 1]
   const hasMore = index < items.length
   const visibleTotal = totalCount ?? items.length
 
@@ -129,16 +120,16 @@ export default function SwipeDeck({ items, totalCount }: Props) {
     if (!element) return Promise.resolve()
 
     const animate = safeAnimate(element)
-    if (!animate) {
+    if (!animate || prefersReducedMotion()) {
       element.style.transform = transformCss(0, 0)
       element.style.opacity = ''
       return Promise.resolve()
     }
 
-    const animation = animate(
-      [{ transform: transformCss(dragX, 0) }, { transform: transformCss(0, 0) }],
-      { duration: 140, easing: 'ease-out' },
-    )
+    const animation = animate([{ transform: transformCss(dragX, 0) }, { transform: transformCss(0, 0) }], {
+      duration: 140,
+      easing: 'ease-out',
+    })
 
     return settle(animation, 200)
   }, [dragX])
@@ -167,9 +158,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
         if (!element) return Promise.resolve()
 
         const animate = safeAnimate(element)
-        if (!animate) {
-          element.style.transform = transformCss(toX, rot)
-          element.style.opacity = '0'
+        if (!animate || prefersReducedMotion()) {
           return Promise.resolve()
         }
 
@@ -198,7 +187,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           const ok = await react(currentId, didLike ? 'LIKE' : 'DISLIKE')
           if (!ok) {
             setIndex(fromIndex)
-            setError('Action non enregistrée. Réessaie.')
+            setError('Votre choix n’a pas été enregistré. Réessayez.')
           } else {
             setHistory((value) => [...value, { workId: currentId, status: didLike ? 'LIKE' : 'DISLIKE' }])
           }
@@ -229,7 +218,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
         // Rollback explicite : on remet l'historique et l'index.
         setHistory((value) => [...value, last])
         setIndex(index)
-        setError('Annulation impossible. Réessaie.')
+        setError('Annulation impossible. Réessayez.')
       }
     } finally {
       setPending(false)
@@ -252,7 +241,7 @@ export default function SwipeDeck({ items, totalCount }: Props) {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (pending) return
+      if (pending || showSignup || isTypingTarget(event.target)) return
       if ((event.metaKey || event.ctrlKey) && (event.key === 'z' || event.key === 'Z')) {
         event.preventDefault()
         void undo()
@@ -265,7 +254,23 @@ export default function SwipeDeck({ items, totalCount }: Props) {
 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [advance, undo, current, pending])
+  }, [advance, undo, current, pending, showSignup])
+
+  // Boîte de dialogue d'inscription : focus initial, fermeture par Échap, retour du focus.
+  const closeSignup = useCallback(() => {
+    setShowSignup(false)
+    likeButtonRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    if (!showSignup) return
+    signupFirstRef.current?.focus()
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') closeSignup()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [showSignup, closeSignup])
 
   const onPointerDown = useCallback(
     (event: React.PointerEvent) => {
@@ -312,35 +317,41 @@ export default function SwipeDeck({ items, totalCount }: Props) {
 
   if (!hasMore) {
     return (
-      <SurfaceCard className="mx-auto max-w-2xl">
-        <div className="empty-state">
-          <span className="chip">Pile terminée</span>
-          <strong>Plus de découvertes pour le moment.</strong>
-          <p className="max-w-md text-sm leading-7 text-muted-foreground">
-            Reviens plus tard ou change de section pour relancer une nouvelle série de cartes.
-          </p>
-          {history.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => void undo()}
-              className="btn btn-secondary mt-2"
-              disabled={pending}
-              aria-label="Annuler le dernier swipe"
-            >
-              ↶ Annuler le dernier swipe
+      <EmptyState
+        title="Vous avez tout vu pour cette section"
+        className="mx-auto max-w-xl"
+        action={
+          <>
+            {history.length > 0 ? (
+              <button type="button" onClick={() => void undo()} className="btn btn-secondary" disabled={pending}>
+                <IconUndo size={16} /> Annuler le dernier swipe
+              </button>
+            ) : null}
+            <button type="button" onClick={() => router.refresh()} className="btn btn-primary">
+              Charger d’autres propositions
             </button>
-          ) : null}
-        </div>
-      </SurfaceCard>
+          </>
+        }
+      >
+        Changez de section pour continuer, ou revenez plus tard : le programme est mis à jour chaque semaine.
+      </EmptyState>
     )
   }
 
+  const likeOpacity = Math.max(0, Math.min(1, dragX / 120))
+  const passOpacity = Math.max(0, Math.min(1, -dragX / 120))
+
   return (
-    <section
-      aria-label="Sélection de découvertes à balayer"
-      className="mx-auto flex w-full max-w-xl flex-col gap-3 select-none"
-    >
-      <div className="relative flex min-h-[30rem] items-center justify-center pb-2">
+    <section aria-label="Découvertes à balayer" className="mx-auto flex w-full max-w-xl flex-col gap-4 select-none">
+      {/* Marge basse sur mobile : la fin de la carte peut défiler au-dessus de la barre d'actions. */}
+      <div className="relative pb-20 lg:pb-0">
+        {/* Carte suivante, déjà rendue sous la carte courante (invisible) : son affiche
+            se charge pendant la lecture. Inerte pour le clavier et les lecteurs d'écran. */}
+        {next ? (
+          <div aria-hidden inert className="absolute inset-0 overflow-hidden opacity-0">
+            <CardWork work={next} priority={false} />
+          </div>
+        ) : null}
         <div
           ref={cardRef}
           role="group"
@@ -352,88 +363,97 @@ export default function SwipeDeck({ items, totalCount }: Props) {
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           style={{ transform, pointerEvents: pending ? 'none' : 'auto' }}
-          className="relative z-10 h-full w-full max-w-xl cursor-grab touch-none rounded-[var(--radius-2xl)] border border-[color:var(--color-border)] bg-[color:var(--color-surface-strong)] p-2 shadow-[var(--shadow-lg)] will-change-transform"
+          className="relative z-10 w-full cursor-grab touch-none overflow-hidden rounded-xl border border-line bg-surface will-change-transform active:cursor-grabbing"
         >
           <CardWork work={current} counter={`${Math.min(index + 1, visibleTotal)} / ${visibleTotal}`} />
-          <div className="pointer-events-none absolute inset-x-6 top-6 flex items-start justify-between">
+          <div className="pointer-events-none absolute inset-x-5 top-5 flex items-start justify-between">
             <span
               aria-hidden
-              className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[color:var(--color-success)] bg-[color:var(--color-success-soft)] text-[color:var(--color-success)] opacity-0 shadow-[0_14px_30px_rgba(0,0,0,0.45)]"
-              style={{ opacity: Math.max(0, Math.min(1, dragX / 120)) }}
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-strong text-on-accent"
+              style={{ opacity: likeOpacity }}
             >
-              <IconHeart className="h-6 w-6" />
+              <IconHeart filled size={26} />
             </span>
-            <span
-              aria-hidden
-              className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[color:var(--color-danger)] bg-[color:var(--color-danger-soft)] text-[color:var(--color-danger)] opacity-0 shadow-[0_14px_30px_rgba(0,0,0,0.45)]"
-              style={{ opacity: Math.max(0, Math.min(1, -dragX / 120)) }}
-            >
-              <IconX className="h-6 w-6" />
+            <span aria-hidden className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-page" style={{ opacity: passOpacity }}>
+              <IconX size={26} />
             </span>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-xl items-center justify-center gap-5">
+      {/* Barre d'actions : sous la carte sur grand écran ; collée au-dessus de la barre
+          de navigation sur mobile, pour rester sous le pouce sans défilement. Le voile
+          dégradé derrière les boutons garde le texte de la carte lisible. */}
+      <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 flex items-center justify-center gap-4 bg-gradient-to-t from-page via-page/85 to-transparent px-4 pb-3 pt-8 lg:static lg:mx-auto lg:w-fit lg:bg-none lg:p-0">
         <button
           type="button"
           onClick={() => void undo()}
-          className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#e0a23b] bg-[color:var(--color-surface-strong)] text-[#cf8f24] shadow-[var(--shadow-lg)] transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
+          className="btn-icon border border-line-strong bg-surface shadow-menu lg:shadow-none"
           disabled={pending || history.length === 0}
           aria-label="Annuler le dernier swipe"
           title="Annuler le dernier swipe (Cmd/Ctrl+Z)"
         >
-          <IconRewind className="h-5 w-5" />
+          <IconUndo size={20} />
         </button>
         <button
           type="button"
           onClick={() => void advance(false)}
-          className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[color:var(--color-danger)] bg-[color:var(--color-surface-strong)] text-[color:var(--color-danger)] shadow-[var(--shadow-lg)] transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
+          className="flex h-14 w-14 items-center justify-center rounded-full border border-line-strong bg-surface text-ink shadow-menu transition-transform duration-150 hover:bg-fill active:scale-95 disabled:opacity-50 lg:shadow-none"
           disabled={pending}
           aria-label="Passer"
-          title="Passer"
+          title="Passer (flèche gauche)"
         >
-          <IconX className="h-7 w-7" />
+          <IconX size={26} />
         </button>
         <button
+          ref={likeButtonRef}
           type="button"
           onClick={() => void advance(true)}
-          className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[color:var(--color-success)] bg-[color:var(--color-surface-strong)] text-[color:var(--color-success)] shadow-[var(--shadow-lg)] transition hover:scale-105 active:scale-95 disabled:opacity-60 disabled:hover:scale-100"
+          className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-strong text-on-accent shadow-menu transition-transform duration-150 hover:bg-accent-strong-hover active:scale-95 disabled:opacity-50 lg:shadow-none"
           disabled={pending}
           aria-label="Aimer"
-          title="Aimer"
+          title="Aimer (flèche droite)"
         >
-          <IconHeart className={pending ? 'h-6 w-6 animate-pulse' : 'h-6 w-6'} />
+          <IconHeart filled size={28} />
         </button>
       </div>
+      <p className="hidden text-center text-xs text-ink-muted lg:block" aria-hidden>
+        Flèche gauche : passer · flèche droite : aimer · Cmd/Ctrl+Z : annuler
+      </p>
 
-      {error ? <p role="status" className="text-center text-sm font-medium text-[color:var(--color-danger)]">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="notice notice-error mx-auto w-fit">
+          {error}
+        </p>
+      ) : null}
 
       {/* Onboarding : au 1er like en anonyme, on propose la création de compte. */}
       {showSignup ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-scrim sm:items-center sm:p-6"
           role="presentation"
           onClick={(event) => {
-            if (event.target === event.currentTarget) setShowSignup(false)
+            if (event.target === event.currentTarget) closeSignup()
           }}
         >
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Créer un compte"
-            className="w-full max-w-sm rounded-t-[var(--radius-2xl)] bg-[color:var(--color-surface-strong)] p-6 text-center shadow-[var(--shadow-lg)] sm:rounded-[var(--radius-2xl)]"
+            aria-labelledby="signup-dialog-title"
+            className="w-full max-w-sm rounded-t-xl bg-raised p-6 shadow-float sm:rounded-xl"
           >
-            <h2 className="text-xl font-semibold tracking-[-0.02em] text-[color:var(--color-text)]">Garde ce coup de cœur</h2>
-            <p className="mt-2 text-sm leading-6 text-[color:var(--color-text-muted)]">
-              Crée ton compte pour enregistrer tes likes, les retrouver et voir ce que tes amis aiment.
+            <h2 id="signup-dialog-title" className="display text-2xl text-ink">
+              Gardez ce coup de cœur
+            </h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              Un compte permet d’enregistrer vos likes, de les retrouver sur la page Mes likes et de voir ce que vos amis aiment.
             </p>
-            <div className="mt-5 flex flex-col gap-2">
-              <Link href="/signup" className="btn btn-primary w-full justify-center">
+            <div className="mt-6 flex flex-col gap-2">
+              <Link ref={signupFirstRef} href="/signup" className="btn btn-primary w-full">
                 Créer un compte
               </Link>
-              <Link href={SIGN_IN_PATH} className="btn btn-secondary w-full justify-center">
-                J&apos;ai déjà un compte
+              <Link href={SIGN_IN_PATH} className="btn btn-secondary w-full">
+                J’ai déjà un compte
               </Link>
               <button
                 type="button"
@@ -443,11 +463,11 @@ export default function SwipeDeck({ items, totalCount }: Props) {
                   } catch {
                     /* stockage indisponible */
                   }
-                  setShowSignup(false)
+                  closeSignup()
                   setIndex((value) => value + 1)
                   setDragX(0)
                 }}
-                className="btn btn-ghost w-full justify-center text-sm"
+                className="btn btn-ghost w-full"
               >
                 Plus tard
               </button>

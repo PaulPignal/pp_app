@@ -6,6 +6,8 @@ import userEvent from '@testing-library/user-event'
 // la modale d'inscription au lieu de POSTer).
 vi.mock('next-auth/react', () => ({ useSession: () => ({ data: { user: { email: 'a@b.c' } }, status: 'authenticated' }) }))
 
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), replace: vi.fn(), push: vi.fn() }) }))
+
 import SwipeDeck from '@/features/works/ui/SwipeDeck'
 
 const items = [

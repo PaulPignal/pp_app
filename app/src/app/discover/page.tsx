@@ -7,13 +7,17 @@ import StreamingPlatformFilter from '@/features/works/ui/StreamingPlatformFilter
 import SegmentedControl from '@/shared/ui/SegmentedControl'
 
 export const metadata: Metadata = {
-  title: 'Découvertes',
-  description: 'Parcours de découvertes à swiper façon Tinder',
+  title: 'Découverte',
+  description: 'Sorties à Paris et films en streaming, à parcourir d’un geste.',
 }
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
+
+// Taille de la pile envoyée au client. 50 cartes suffisent largement à une session
+// (le deck propose de recharger à la fin) et allègent le HTML initial.
+const DECK_SIZE = 50
 
 type DiscoverPageProps = {
   searchParams?: Promise<{
@@ -58,18 +62,17 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
 
   const works = await listDiscoverWorks({
     userId: sessionUser?.id ?? null,
-    per: 200,
+    per: DECK_SIZE,
     section,
     platforms: platformsForQuery,
   })
 
   return (
-    <div className="page-shell">
-      <h1 className="sr-only">Découvertes — sorties à Paris et films en streaming</h1>
+    <div className="flex flex-col gap-4">
+      <h1 className="sr-only">Découverte</h1>
       <SegmentedControl
-        ariaLabel="Sections culturelles"
+        ariaLabel="Sections"
         value={section}
-        scroll
         items={WORK_SECTION_VALUES.map((s) => ({
           label: WORK_SECTION_LABELS[s],
           value: s,
@@ -79,7 +82,7 @@ export default async function DiscoverPage({ searchParams }: DiscoverPageProps =
 
       {isStreaming ? <StreamingPlatformFilter available={availablePlatforms} selected={selectedPlatforms} /> : null}
 
-      <SwipeDeck items={works.items} totalCount={works.total} />
+      <SwipeDeck key={`${section}:${selectedPlatforms.join(',')}`} items={works.items} totalCount={works.total} />
     </div>
   )
 }

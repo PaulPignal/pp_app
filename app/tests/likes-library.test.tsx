@@ -92,7 +92,7 @@ describe('LikesLibrary', () => {
     render(<LikesLibrary current={[makeItem('w1', 'Hamlet')]} archived={[]} seen={[]} friendsByWork={{}} view="active" />)
 
     const dialog = await openDetail(user, 'Hamlet')
-    await user.click(within(dialog).getByRole('button', { name: 'Marquer vu' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Marquer comme vu' }))
 
     await waitFor(() =>
       expect(fetch).toHaveBeenCalledWith(
@@ -120,6 +120,71 @@ describe('LikesLibrary', () => {
     expect(screen.getByRole('button', { name: /Voir le détail de Macbeth/ })).toBeInTheDocument()
   }, 15000)
 
+  it('le filtre par section réduit la liste, l’état vide propose d’effacer les filtres', async () => {
+    const user = userEvent.setup()
+    render(
+      <LikesLibrary
+        current={[makeItem('w1', 'Hamlet'), makeItem('w2', 'Oppenheimer', { section: 'cinema' })]}
+        archived={[]}
+        seen={[]}
+        friendsByWork={{}}
+        view="all"
+      />,
+    )
+
+    await user.selectOptions(screen.getByLabelText('Filtrer par section'), 'cinema')
+    expect(screen.queryByRole('button', { name: /Voir le détail de Hamlet/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Voir le détail de Oppenheimer/ })).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Rechercher dans mes likes'), 'zzzz')
+    expect(screen.getByRole('heading', { name: 'Aucun résultat' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Effacer les filtres' }))
+    expect(screen.getByRole('button', { name: /Voir le détail de Hamlet/ })).toBeInTheDocument()
+    expect(screen.getByLabelText('Rechercher dans mes likes')).toHaveValue('')
+  }, 15000)
+
+  it('le tri par prix ordonne les cartes', async () => {
+    const user = userEvent.setup()
+    render(
+      <LikesLibrary
+        current={[makeItem('w1', 'Cher', { priceMin: 80 }), makeItem('w2', 'Gratuit', { priceMin: 0 }), makeItem('w3', 'Moyen', { priceMin: 20 })]}
+        archived={[]}
+        seen={[]}
+        friendsByWork={{}}
+        view="all"
+      />,
+    )
+
+    await user.selectOptions(screen.getByLabelText('Trier'), 'price')
+    const titles = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
+    expect(titles).toEqual(['Gratuit', 'Moyen', 'Cher'])
+  }, 15000)
+
+  it('les vues (À l’affiche, Archivées, Déjà vus) sont des liens avec compteur et vue courante', () => {
+    render(<LikesLibrary current={[makeItem('w1', 'Hamlet')]} archived={[makeItem('w2', 'Vieux')]} seen={[]} friendsByWork={{}} view="archived" />)
+    const nav = screen.getByRole('navigation', { name: 'État des likes' })
+    expect(within(nav).getByRole('link', { name: 'Archivées 1' })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('link', { name: 'À l’affiche 1' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('bibliothèque vide : un état vide qui renvoie vers la découverte', () => {
+    render(<LikesLibrary current={[]} archived={[]} seen={[]} friendsByWork={{}} view="active" />)
+    expect(screen.getByRole('heading', { name: 'Aucun like pour l’instant' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Aller à la découverte' })).toHaveAttribute('href', '/discover')
+  })
+
+  it('échec serveur au retrait : la carte revient et une alerte s’affiche', async () => {
+    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 500, text: async () => JSON.stringify({ ok: false, error: 'server_error' }) } as Response)
+    const user = userEvent.setup()
+    render(<LikesLibrary current={[makeItem('w1', 'Hamlet')]} archived={[]} seen={[]} friendsByWork={{}} view="all" />)
+
+    await user.click(screen.getByRole('button', { name: 'Retirer « Hamlet » des likes' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Action non enregistrée')
+    expect(screen.getByRole('button', { name: /Voir le détail de Hamlet/ })).toBeInTheDocument()
+  }, 15000)
+
   it('affiche le badge « amis qui aiment aussi »', () => {
     render(
       <LikesLibrary
@@ -130,6 +195,6 @@ describe('LikesLibrary', () => {
         view="all"
       />,
     )
-    expect(screen.getByText('LE')).toBeInTheDocument() // initiales de lea@
+    expect(screen.getByText('Lea')).toBeInTheDocument() // prénom lisible tiré de lea@
   })
 })
