@@ -1,61 +1,22 @@
-import { requireSessionUser, isUnauthorizedError } from '@/features/auth/server/session'
+import { requireSessionUser } from '@/features/auth/server/session'
 import { addFriendSchema, removeFriendSchema } from '@/features/friendships/schemas'
 import { addFriend, removeFriend } from '@/features/friendships/server/commands'
-import { createInviteToken } from '@/features/friendships/server/invite'
-import { listFriends, listIncomingRequests } from '@/features/friendships/server/queries'
 import { jsonError, jsonKnownError, jsonOk } from '@/shared/lib/http'
 import { rateLimit } from '@/shared/lib/rate-limit'
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const fetchCache = "force-no-store";
-
-const ADD_FRIEND_ERRORS = { cannot_add_self: 400, invalid_invite_token: 400, expired_invite_token: 400 }
-
-export async function GET(req: Request) {
-  try {
-    const sessionUser = await requireSessionUser()
-    const { searchParams } = new URL(req.url)
-
-    if (searchParams.get('invite') === '1') {
-      return jsonOk({ token: createInviteToken(sessionUser.id) })
-    }
-
-    const [friends, requests] = await Promise.all([
-      listFriends(sessionUser.id),
-      listIncomingRequests(sessionUser.id),
-    ])
-    return jsonOk({ friends, requests })
-  } catch (error) {
-    if (isUnauthorizedError(error)) return jsonError('unauthorized', 401)
-    return jsonError('server_error', 500)
-  }
-}
+const ADD_FRIEND_ERRORS = { unauthorized: 401, cannot_add_self: 400, invalid_invite_token: 400, expired_invite_token: 400 }
 
 export async function POST(req: Request) {
   try {
     const sessionUser = await requireSessionUser()
+    if (!rateLimit(`friends:${sessionUser.id}`, 30, 60_000).ok) return jsonError('rate_limited', 429)
 
-    const limit = rateLimit(`friends:${sessionUser.id}`, 30, 60_000)
-    if (!limit.ok) return jsonError('rate_limited', 429)
+    const parsed = addFriendSchema.safeParse(await req.json().catch(() => null))
+    if (!parsed.success) return jsonError('invalid_friend_input', 400)
 
-    const body = await req.json().catch(() => null)
-    const parsed = addFriendSchema.safeParse(body)
-
-    if (!parsed.success) {
-      return jsonError('invalid_friend_input', 400, parsed.error.flatten())
-    }
-
-    const result = await addFriend({
-      userId: sessionUser.id,
-      userEmail: sessionUser.email,
-      input: parsed.data,
-    })
-
-    return jsonOk(result, 200)
+    const result = await addFriend({ userId: sessionUser.id, userEmail: sessionUser.email, input: parsed.data })
+    return jsonOk(result)
   } catch (error) {
-    if (isUnauthorizedError(error)) return jsonError('unauthorized', 401)
     return jsonKnownError(error, ADD_FRIEND_ERRORS, 'POST /api/friends')
   }
 }
@@ -63,21 +24,14 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const sessionUser = await requireSessionUser()
+    if (!rateLimit(`friends:${sessionUser.id}`, 30, 60_000).ok) return jsonError('rate_limited', 429)
 
-    const limit = rateLimit(`friends:${sessionUser.id}`, 30, 60_000)
-    if (!limit.ok) return jsonError('rate_limited', 429)
-
-    const { searchParams } = new URL(req.url)
-    const parsed = removeFriendSchema.safeParse({ friendId: searchParams.get('friendId') })
-
-    if (!parsed.success) {
-      return jsonError('invalid_friend_input', 400, parsed.error.flatten())
-    }
+    const parsed = removeFriendSchema.safeParse({ friendId: new URL(req.url).searchParams.get('friendId') })
+    if (!parsed.success) return jsonError('invalid_friend_input', 400)
 
     await removeFriend({ userId: sessionUser.id, friendId: parsed.data.friendId })
     return jsonOk({ removed: true })
   } catch (error) {
-    if (isUnauthorizedError(error)) return jsonError('unauthorized', 401)
-    return jsonError('server_error', 500)
+    return jsonKnownError(error, { unauthorized: 401 }, 'DELETE /api/friends')
   }
 }

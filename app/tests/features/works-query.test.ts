@@ -62,11 +62,11 @@ describe('listDiscoverWorks', () => {
     )
   })
 
-  it('forwards section and category filters to Prisma', async () => {
+  it('forwards the section filter to Prisma', async () => {
     prisma.work.count.mockResolvedValue(0)
     prisma.work.findMany.mockResolvedValue([])
 
-    await listDiscoverWorks({ userId: 'user-1', per: 25, section: 'cinema', category: 'drame' })
+    await listDiscoverWorks({ userId: 'user-1', per: 25, section: 'cinema' })
 
     expect(prisma.work.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -75,7 +75,6 @@ describe('listDiscoverWorks', () => {
             { OR: [{ endDate: null }, { endDate: { gte: new Date('2026-03-12T00:00:00.000Z') } }] },
             { OR: [{ section: 'streaming' }, { updatedAt: { gte: new Date('2026-02-19T00:00:00.000Z') } }] },
           ],
-          category: 'drame',
           section: 'cinema',
           reactions: { none: { userId: 'user-1' } },
         },

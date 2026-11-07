@@ -105,4 +105,3 @@ Le `postinstall` du package le régénère également après installation.
 ## Notes de sécurité
 
 - `app/.env.local` et `app/.env.production.local` ne sont pas versionnés ; ils peuvent toutefois contenir des secrets réels sur la machine locale.
-- `/api/debug-session` reste disponible uniquement hors production. Si vous n'en avez plus besoin pour le diagnostic auth, supprimez la route.

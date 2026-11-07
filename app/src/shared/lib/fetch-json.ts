@@ -1,6 +1,5 @@
 export type FetchJsonError = Error & {
   code?: string
-  details?: unknown
   status?: number
 }
 
@@ -8,7 +7,7 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
   const response = await fetch(url, init)
   const text = await response.text()
 
-  let payload: { error?: unknown; details?: unknown } | null = null
+  let payload: { error?: unknown } | null = null
   if (text) {
     try {
       payload = JSON.parse(text)
@@ -25,7 +24,6 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
       typeof payload?.error === 'string' ? payload.error : `http_${response.status}`,
     ) as FetchJsonError
     error.code = typeof payload?.error === 'string' ? payload.error : undefined
-    error.details = payload?.details
     error.status = response.status
     throw error
   }

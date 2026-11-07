@@ -12,8 +12,6 @@ export const metadata: Metadata = {
 }
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 0
-export const fetchCache = 'force-no-store'
 
 // Taille de la pile envoyée au client. 50 cartes suffisent largement à une session
 // (le deck propose de recharger à la fin) et allègent le HTML initial.

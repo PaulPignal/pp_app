@@ -2,14 +2,13 @@ import 'server-only'
 
 import { z } from 'zod'
 import { prisma } from '@/server/db'
+import { reactionUpsertSchema, reactionWorkQuerySchema, type ReactionStatusInput } from '@/features/reactions/schemas'
 
-const setReactionStatusSchema = z.object({
-  userId: z.string().min(1),
-  workId: z.string().min(1),
-  status: z.enum(['LIKE', 'DISLIKE', 'SEEN']),
-})
+const userIdSchema = z.object({ userId: z.string().min(1) })
+const setReactionStatusSchema = reactionUpsertSchema.extend(userIdSchema.shape)
+const clearReactionSchema = reactionWorkQuerySchema.extend(userIdSchema.shape)
 
-export async function setReactionStatus(input: { userId: string; workId: string; status: 'LIKE' | 'DISLIKE' | 'SEEN' }) {
+export async function setReactionStatus(input: { userId: string; workId: string; status: ReactionStatusInput }) {
   const { userId, workId, status } = setReactionStatusSchema.parse(input)
 
   // Un seul aller-retour : l'upsert suffit (l'ancien statut n'était lu par aucun appelant).
@@ -22,11 +21,6 @@ export async function setReactionStatus(input: { userId: string; workId: string;
 
   return { reaction }
 }
-
-const clearReactionSchema = z.object({
-  userId: z.string().min(1),
-  workId: z.string().min(1),
-})
 
 // Efface la réaction (user, work) → l'œuvre redevient éligible au deck Discover
 // (anti-jointure `reactions: { none }`). Idempotent : aucune erreur si déjà absente.

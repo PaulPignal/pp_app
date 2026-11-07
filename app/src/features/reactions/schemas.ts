@@ -7,4 +7,9 @@ export const reactionUpsertSchema = z.object({
   status: reactionStatusSchema,
 })
 
+// DELETE /api/reactions?workId=…
+export const reactionWorkQuerySchema = z.object({
+  workId: z.string().min(1),
+})
+
 export type ReactionStatusInput = z.infer<typeof reactionStatusSchema>

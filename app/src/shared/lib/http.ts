@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 
 export type JsonOk<T extends object> = { ok: true } & T
-export type JsonErr = { ok: false; error: string; details?: unknown }
+// Une erreur ne renvoie qu'un code : jamais de message interne ni le détail de validation.
+export type JsonErr = { ok: false; error: string }
 
 export function jsonOk<T extends object>(data: T, init?: number | ResponseInit) {
   const status = typeof init === 'number' ? init : (init as ResponseInit | undefined)?.status ?? 200
@@ -9,8 +10,8 @@ export function jsonOk<T extends object>(data: T, init?: number | ResponseInit) 
   return NextResponse.json({ ok: true, ...data } as JsonOk<T>, { status, headers })
 }
 
-export function jsonError(error: string, status = 400, details?: unknown) {
-  return NextResponse.json({ ok: false, error, details } as JsonErr, { status })
+export function jsonError(error: string, status = 400) {
+  return NextResponse.json({ ok: false, error } satisfies JsonErr, { status })
 }
 
 /**
