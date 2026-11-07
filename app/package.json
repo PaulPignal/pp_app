@@ -16,6 +16,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:dev": "NODE_ENV=development tsx prisma/seed.ts",
     "ingest:offi": "tsx scripts/ingest-offi.ts",
+    "ingest:venues": "tsx scripts/ingest-venues.ts",
     "test": "vitest run",
     "test:ui": "vitest",
     "test:watch": "vitest --watch",
