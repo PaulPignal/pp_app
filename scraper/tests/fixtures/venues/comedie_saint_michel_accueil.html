@@ -1,0 +1,394 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Script-Type" content="text/javascript" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="https://fonts.googleapis.com/css?family=Muli" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="alternate" type="application/rss+xml" title="La Comédie Saint-Michel RSS" href="http://www.comediesaintmichel.fr/?q=rss.xml" />
+
+<link rel="shortcut icon" href="/files/favicon.png" type="image/x-icon" />
+    <style type="text/css" media="all">@import "/modules/node/node.css";</style>
+<style type="text/css" media="all">@import "/modules/system/defaults.css";</style>
+<style type="text/css" media="all">@import "/modules/system/system.css";</style>
+<style type="text/css" media="all">@import "/modules/user/user.css";</style>
+<style type="text/css" media="all">@import "/sites/default/modules/cck/content.css";</style>
+<style type="text/css" media="all">@import "/sites/default/modules/date/date.css";</style>
+<style type="text/css" media="all">@import "/sites/default/modules/date/date_popup/themes/white.calendar.css";</style>
+<style type="text/css" media="all">@import "/sites/default/modules/date/date_popup/themes/timeentry.css";</style>
+<style type="text/css" media="all">@import "/sites/default/modules/fckeditor/fckeditor.css";</style>
+<style type="text/css" media="all">@import "/sites/default/modules/lightbox2/css/lightbox.css";</style>
+<style type="text/css" media="all">@import "/sites/default/modules/calendar/calendar.css";</style>
+<style type="text/css" media="all">@import "/sites/default/modules/cck/fieldgroup.css";</style>
+<style type="text/css" media="all">@import "/files/imagefield_gallery/gallery.css";</style>
+<style type="text/css" media="all">@import "/sites/default/themes/saint_michel/style.css";</style>
+    <script type="text/javascript" src="/misc/jquery.js"></script>
+<script type="text/javascript" src="/misc/drupal.js"></script>
+<script type="text/javascript" src="/sites/default/modules/jquery_update/compat.js"></script>
+<script type="text/javascript" src="/sites/default/modules/lightbox2/js/lightbox_video.js"></script>
+<script type="text/javascript" src="/sites/default/modules/lightbox2/js/lightbox_modal.js"></script>
+<script type="text/javascript" src="/sites/default/modules/lightbox2/js/lightbox.js"></script>
+<script type="text/javascript" src="/sites/default/modules/swfobject_api/swfobject.js"></script>
+<script type="text/javascript">Drupal.extend({ settings: { "lightbox2": { "rtl": false, "file_path": "/(\\w\\w/)files", "base_path": "/", "default_image": "/sites/default/modules/lightbox2/images/brokenimage.jpg", "border_size": 10, "font_color": "fff", "box_color": "000", "top_position": "", "overlay_opacity": 0.2, "overlay_color": "000", "disable_close_click": 1, "resize_sequence": 1, "resize_speed": 400, "fade_in_speed": 400, "slide_down_speed": 600, "use_alt_layout": 0, "disable_resize": 0, "disable_zoom": 0, "force_show_nav": 0, "loop_items": 0, "node_link_text": "", "node_link_target": 0, "image_count": "Image !current de !total", "page_count": "Page !current of !total", "video_count": "Video !current de !total", "lite_press_x_close": "press \x3ca href=\"#\" onclick=\"hideLightbox(); return FALSE;\"\x3e\x3ckbd\x3ex\x3c/kbd\x3e\x3c/a\x3e to close", "enable_login": false, "enable_contact": true, "keys_close": "c x 27", "keys_previous": "p 37", "keys_next": "n 39", "keys_zoom": "z", "keys_play_pause": "32", "display_image_size": "thumbnail", "image_node_sizes": "()", "trigger_lightbox_classes": "", "trigger_lightbox_group_classes": "", "trigger_slideshow_classes": "", "trigger_lightframe_classes": "", "trigger_lightframe_group_classes": "", "custom_class_handler": 0, "custom_trigger_classes": "", "disable_for_gallery_lists": 0, "disable_for_acidfree_gallery_lists": true, "enable_acidfree_videos": false, "slideshow_interval": 5000, "slideshow_automatic_start": true, "slideshow_automatic_exit": true, "show_play_pause": true, "pause_on_next_click": false, "pause_on_previous_click": true, "loop_slides": false, "iframe_width": 600, "iframe_height": 400, "iframe_border": 1, "enable_video": 1, "flvPlayer": "/?q=sites/default/modules/swfobject_api/swfobject/swfobject.js", "flvFlashvars": "autoplay=1\x26amp;playerMode=normal" } } });</script>
+
+    <!--
+    <script type="text/javascript" src="/sites/default/themes/saint_michel/js/jquery.pngFix.js"></script>
+    <script type="text/javascript" src="/sites/default/themes/saint_michel/js/shadedborder.js"></script>
+    <script type="text/javascript" src="/sites/default/themes/saint_michel/js/jquery.corner.js"></script>
+    -->
+    <!--
+    <script type="text/javascript">
+        $(document).ready(function(){
+             $('div.png').pngFix(); // Désactivé : correctif pour IE6 obsolète
+            var myBorder = RUZEE.ShadedBorder.create({ corner:0, shadow:0,  border:3 });
+            myBorder.render('mainContent');
+             $("#mainContent").corner(); // Désactivé : jQuery Corner est obsolète
+             $(".promoDiv").corner();
+            myBorder.render($('.promoDiv'));
+        });
+    </script>
+    -->
+    <title>La Comédie Saint-Michel</title>
+</head>
+
+<body>
+	<div class="png">
+	<div class="container">
+	<div class="topImg"><a href="/"><img src="/sites/default/themes/saint_michel/images/LogoCSMNewTranspa900.png" alt=""  /></a></div>
+
+	<div class="headmenu">
+		<div class="spsr spsr1"></div><span ><a href="/?q=node/117" title="Spectacles tout public">Nos Spectacles        Tout Public</a></span>
+<div class="spsr"></div><span ><a href="/?q=node/38" title="A voir en famille !">Nos Spectacles Enfants</a></span>
+<div class="spsr"></div><span ><a href="/?q=node/95" title="Spectacles pouvant intéresser les groupes scolaires  ">Pour les groupes Scolaires</a></span>
+<div class="spsr"></div><span ><a href="/?q=node/57" title="Cours de théâtre adultes et enfants">Cours de Théâtre hebdomadaires</a></span>
+<div class="spsr"></div><span ><a href="/?q=node/146" title="Des stages de théâtre enfants/ados pendant les vacances scolaires... ">Stages-Théâtre Vacances</a></span>
+<div class="spsr"></div><span ><a href="/?q=node/221" title="Faire partie de la programmation de la Comédie Saint-Michel">Pour les Professionnels</a></span>
+	</div>
+
+<div class="content">
+    
+            <div id="mainContent" class="colr1 rightCont">
+    
+     <div class="inner">
+            	<div class="rightCont"> 		
+			<div class='view view-michel-left'><div class='view-content view-content-michel-left'><p>
+    <table width="900" border="0" cellpadding="0" cellspacing="0" align="left" style="&#10;  border-collapse: separate;&#10;  border-spacing: 0;&#10;  border: 2px solid #800000;&#10;  border-radius: 15px;&#10;  color: #800000;&#10;  background-color: white;&#10;  overflow: hidden;&#10;">
+<tbody>
+<tr style="vertical-align: top;">
+            <!-- Colonne 1 --></p>
+<td style="width: 33%; text-align: center; padding: 5px; border-right: 2px solid #800000;">
+<p style="margin: 0 0 2px 0;"><img src="http://www.comediesaintmichel.fr/files/Encart_instagram.png" alt="Instagram" width="100" height="65" style="display: block; margin: 0 auto;" align="middle" /></p>
+<p class="rteleft" style="margin: 2px 0px 0px; font-size: 14px;"><u><span style="font-size: medium;"><strong>Acc&egrave;s</strong></span></u><span style="font-size: medium;"><strong> :&nbsp;</strong></span><strong><span style="font-size: small;">RER B Luxembourg</span><span style="font-size: smaller;"> (sortie 99bd St Michel)</span></strong><strong><span style="font-size: small;"><br />
+            M&eacute;tro Vavin ou Cluny - Parking Indigo Soufflot<br />
+            &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Salles de spectacle climatis&eacute;es</span></strong></p>
+</td>
+<p>            <!-- Colonne 2 --></p>
+<td style="width: 33%; text-align: center; padding: 5px; border-right: 2px solid #800000;">
+<p style="margin: 0 0 2px 0;" class="rtecenter"><span style="background-color: rgb(255, 255, 255);"><span style="color: rgb(255, 255, 255);"><b style="text-align: center;"><u>hh</u></b></span></span><span style="font-size: larger;"><u style="text-align: left;"><strong>Cours de th&eacute;&acirc;tre adultes :</strong></u></span><strong style="text-align: left;"><br />
+            <span style="color: rgb(255, 102, 0);">Inscriptions tout au long de l'ann&eacute;e</span><br />
+            De 17 &agrave; 97 ans<br />
+            D&eacute;butants ou Initi&eacute;s<br />
+            Cours d'essai gratuit pour les d&eacute;butants<br />
+            <a href="https://www.comediesaintmichel.fr/?q=node/57">             <span style="color: rgb(0, 0, 255);">Informations ici</span></a><br />
+            </strong></p>
+</td>
+<p>            <!-- Colonne 3 --></p>
+<td style="width: 33%; text-align: center; padding: 5px;">
+<p style="margin: 2px 0px 0px;" class="rtecenter"><span style="font-size: larger;"><u style="text-align: left;"><strong>Cours de th&eacute;&acirc;tre enfants :<br />
+            </strong></u></span><strong style="text-align: left;"><span style="color: rgb(255, 102, 0);">Inscriptions tout au long de l'ann&eacute;e</span></strong><strong style="text-align: left;"><br />
+            - Eveil th&eacute;&acirc;tral 4-7 ans<br />
+            - Enfants 8-12 ans&nbsp; - Ados 13-16 ans<br />
+            </strong><strong style="text-align: left;">Cours d'essai gratuit pour les d&eacute;butants<br />
+            <a href="https://www.comediesaintmichel.fr/?q=node/57"><span style="color: rgb(0, 0, 255);">Informations ici</span></a></strong></p>
+<p>            <!-- Contenu vide pour l'instant --></td>
+</tr>
+</tbody>
+</table>
+    </p>
+
+</div></div>
+<div style="clear: both;"></div> <!-- Ajoute cette ligne pour forcer le d�calage -->
+	</div>
+	<div style="height: 12px;"></div> <!-- Espace de 20px -->
+	                <p style="text-align: center; font-size: 24px; font-weight: bold; margin-top: 0px;margin-bottom: 5px;padding-top: 0px;">
+                 LES COUPS DE COEUR DE LA SEMAINE
+                </p>
+<p style="  text-align: center;  font-size: 24px;  font-weight: bold;  margin-top: 8px;  padding-bottom: 0px; /* Espace de 5px entre le texte et le trait */
+  border-bottom: 2px solid #36070a; 
+">
+                                     
+  <div class="teaser">	
+	<h2><a href="/?q=node/703">Le songe d&#039;une nuit d&#039;été - à partir du 8/11 !</a>
+				
+		<a href="http://www.comediesaintmichel.fr/?q=node/21" class="boutonResa">  		
+			   R&eacute;server 
+			 <img class="icone-svg" src="sites/default/themes/saint_michel/images/IcoTicket.svg" alt="Ic�ne de ticket">
+			</a>
+			
+		<br>
+	</h2>
+	<div class="picCol"><div class="picture"><div class="field field-type-image field-field-images"><div class="field-items"><div class="field-item odd"><a href="http://www.comediesaintmichel.fr/files/Visuel_web.png" rel="lightbox[703][Le songe d&#039;une nuit d&#039;été - à partir du 8/11 !]"><img src="http://www.comediesaintmichel.fr/files/imagecache/thumbnail/Visuel_web.png" alt="Affiche - Le songe d&#039;une nuit d&#039;été - La Comédie Saint-Michel" title="Affiche - Le songe d&#039;une nuit d&#039;été - La Comédie Saint-Michel"  /></a></div></div></div></div>
+		
+					
+			</div>
+ <div class="textCol">
+      Un Songe onirique et revisité, dans lequel le rêve, la magie, et le théâtre si chers à Shakespeare se confrontent aux réalités sociales contemporaines
+     
+</div>
+	<div class="infCol">
+					<div class="promo-container">
+    				<div class="titre-surimpression">Informations Pratiques</div>
+    				<div class="promoDiv"> <p> &bull;&nbsp; Les dimanches 8/11 et 22/11 &agrave; 18h45<br />
+&bull;&nbsp; Les jeudis 10/12 et 17/12&agrave; 21h15<br />
+&bull;&nbsp; Vendredi 11/12 &agrave; 21h15</p> </div>
+			</div>
+			
+		</div>
+	<div class="endcol"></div>
+
+</div>
+ 
+  <div class="teaser">	
+	<h2><a href="/?q=node/698">Tailleur pour dames : Vendredi Samedi 19h30</a>
+				
+		<a href="http://www.comediesaintmichel.fr/?q=node/21" class="boutonResa">  		
+			   R&eacute;server 
+			 <img class="icone-svg" src="sites/default/themes/saint_michel/images/IcoTicket.svg" alt="Ic�ne de ticket">
+			</a>
+			
+		<br>
+	</h2>
+	<div class="picCol"><div class="picture"><div class="field field-type-image field-field-images"><div class="field-items"><div class="field-item odd"><a href="http://www.comediesaintmichel.fr/files/VISUEL_WEB_TAILLEUR_2026.png" rel="lightbox[698][Tailleur pour dames : Vendredi Samedi 19h30]"><img src="http://www.comediesaintmichel.fr/files/imagecache/thumbnail/VISUEL_WEB_TAILLEUR_2026.png" alt="Affiche - Tailleur pour dames" title="Affiche - Tailleur pour dames"  /></a></div></div></div></div>
+		
+					
+			</div>
+ <div class="textCol">
+     Adultère, mensonges, quiproquos et rebondissements en pagaille... Une comédie désopilante de Feydeau menée tambour battant !
+     
+</div>
+	<div class="infCol">
+					<div class="promo-container">
+    				<div class="titre-surimpression">Informations Pratiques</div>
+    				<div class="promoDiv"> <p> <ul>
+    <li><span>Les vendredis &agrave; 19h30     </span></li>
+    <li>Les samedis 24/10, 31/10, 7/11, 21/11 et 5/12 &agrave; 19h30</li>
+    <li><span>Les samedis 14/11, 19/12 et 26/12/2026 &agrave; 17h45     </span></li>
+    <li><span>Les mardis 27/10 et 10/11/2026 &agrave; 19h30     </span></li>
+    <li><span>Les mardis 22/12 et 29/12/2026 &agrave; 19h30     </span></li>
+</ul>
+<span>Rel&acirc;ches : <br />
+</span> <span>- Les Samedis 28/11/2026 et 12/12/2026</span>
+<p align="LEFT">&nbsp;</p></p> </div>
+			</div>
+			
+		</div>
+	<div class="endcol"></div>
+
+</div>
+ 
+  <div class="teaser">	
+	<h2><a href="/?q=node/692">Les Criminelles : Samedi 21h15 - Dimanche 19h45</a>
+				
+		<a href="http://www.comediesaintmichel.fr/?q=node/21" class="boutonResa">  		
+			   R&eacute;server 
+			 <img class="icone-svg" src="sites/default/themes/saint_michel/images/IcoTicket.svg" alt="Ic�ne de ticket">
+			</a>
+			
+		<br>
+	</h2>
+	<div class="picCol"><div class="picture"><div class="field field-type-image field-field-images"><div class="field-items"><div class="field-item odd"><a href="http://www.comediesaintmichel.fr/files/Visuel__WEB_LesCriminelles.png" rel="lightbox[692][Les Criminelles : Samedi 21h15 - Dimanche 19h45]"><img src="http://www.comediesaintmichel.fr/files/imagecache/thumbnail/Visuel__WEB_LesCriminelles.png" alt="Affiche - Les Criminelles" title="Affiche - Les Criminelles"  /></a></div></div></div></div>
+		
+						<a href="https://www.youtube.com/watch?v=TAxoNsdmSFU" target="_blank" class="boutonBA">
+				Bande-Annonce         			
+			</a>
+		   <br>
+				
+			</div>
+ <div class="textCol">
+     Deux femmes victimes de violences conjugales transforment leur révolte en manifeste : une comédie grinçante et féministe.
+     
+</div>
+	<div class="infCol">
+					<div class="promo-container">
+    				<div class="titre-surimpression">Informations Pratiques</div>
+    				<div class="promoDiv"> <p> &bull; Les samedis 14/11, 28/11, 12/12 et 26/12 &agrave; 21h15<br />
+&bull; Les dimanches 01/11, 15/11 et 29/11 19h45<br />
+&bull; Les dimanches 13/12 et 27/12 &agrave; 20h15<br />
+<br /></p> </div>
+			</div>
+			
+		</div>
+	<div class="endcol"></div>
+
+</div>
+ 
+  <div class="teaser">	
+	<h2><a href="/?q=node/685">Huis clos : Dimanche 17h45</a>
+				
+		<a href="http://www.comediesaintmichel.fr/?q=node/21" class="boutonResa">  		
+			   R&eacute;server 
+			 <img class="icone-svg" src="sites/default/themes/saint_michel/images/IcoTicket.svg" alt="Ic�ne de ticket">
+			</a>
+			
+		<br>
+	</h2>
+	<div class="picCol"><div class="picture"><div class="field field-type-image field-field-images"><div class="field-items"><div class="field-item odd"><a href="http://www.comediesaintmichel.fr/files/huis-clos-st-michel-web.jpg" rel="lightbox[685][Huis clos : Dimanche 17h45]"><img src="http://www.comediesaintmichel.fr/files/imagecache/thumbnail/huis-clos-st-michel-web.jpg" alt="Affiche Huis clos - La Comédie Saint Michel" title="Affiche Huis clos - La Comédie Saint Michel"  /></a></div></div></div></div>
+		
+					
+			</div>
+ <div class="textCol">
+     « L’Enfer c’est les autres ! » Après leur mort, Garcin, Inès et Estelle sont accueillis dans un lieu insolite pour une raison qu'ils ignorent.
+     
+</div>
+	<div class="infCol">
+					<div class="promo-container">
+    				<div class="titre-surimpression">Informations Pratiques</div>
+    				<div class="promoDiv"> <p> &bull; Dimanche 01/11 &agrave; 17h45<br />
+&bull; Les jeudis 12/11, 26/11, 10/12 et 24/12 &agrave; 19h30<br />
+&bull;<strong>&nbsp;</strong>Les mercredis 23/12 et 30/12 &agrave; 19h30</p> </div>
+			</div>
+			
+		</div>
+	<div class="endcol"></div>
+
+</div>
+ 
+  <div class="teaser">	
+	<h2><a href="/?q=node/640">La Magie : Abra-patatras ! : Dimanche 16h30</a>
+				
+		<a href="http://www.comediesaintmichel.fr/?q=node/21" class="boutonResa">  		
+			   R&eacute;server 
+			 <img class="icone-svg" src="sites/default/themes/saint_michel/images/IcoTicket.svg" alt="Ic�ne de ticket">
+			</a>
+			
+		<br>
+	</h2>
+	<div class="picCol"><div class="picture"><div class="field field-type-image field-field-images"><div class="field-items"><div class="field-item odd"><a href="http://www.comediesaintmichel.fr/files/Visuel_web_magie_abra_patatras.jpg" rel="lightbox[640][La Magie : Abra-patatras ! : Dimanche 16h30]"><img src="http://www.comediesaintmichel.fr/files/imagecache/thumbnail/Visuel_web_magie_abra_patatras.jpg" alt="Affiche La Magie : Abra-patatras ! - La Comédie Saint-Michel" title="Affiche La Magie : Abra-patatras ! - La Comédie Saint-Michel"  /></a></div></div></div></div>
+		
+					
+			</div>
+ <div class="textCol">
+     Assistez aux tours et numéros de Zing-Zing qui saura vous attendrir et vous divertir avec clownerie !
+     
+</div>
+	<div class="infCol">
+					<div class="promo-container">
+    				<div class="titre-surimpression">Informations Pratiques</div>
+    				<div class="promoDiv"> <p> D&egrave;s 4 ans<br />
+<div><br />
+<div>&bull; Les Dimanches &agrave; 16h30<br />
+&bull; Les mercredis 23/12 et 30/12 &agrave; 15h15<br />
+&bull; Lundi 28/12 &agrave; 14h<br />
+&bull; Vendredi 1/01 &agrave; 16h30</div>
+</div></p> </div>
+			</div>
+			
+		</div>
+	<div class="endcol"></div>
+
+</div>
+ 
+  <div class="teaser">	
+	<h2><a href="/?q=node/615">La Folle Expérience d&#039;Igor : Dimanche 14h</a>
+				
+		<a href="http://www.comediesaintmichel.fr/?q=node/21" class="boutonResa">  		
+			   R&eacute;server 
+			 <img class="icone-svg" src="sites/default/themes/saint_michel/images/IcoTicket.svg" alt="Ic�ne de ticket">
+			</a>
+			
+		<br>
+	</h2>
+	<div class="picCol"><div class="picture"><div class="field field-type-image field-field-images"><div class="field-items"><div class="field-item odd"><a href="http://www.comediesaintmichel.fr/files/visuel_web_Igor.png" rel="lightbox[615][La Folle Expérience d&#039;Igor : Dimanche 14h]"><img src="http://www.comediesaintmichel.fr/files/imagecache/thumbnail/visuel_web_Igor.png" alt="Affiche La folle expérience d&#039;Igor - La Comédie Saint-Michel" title="Affiche La folle expérience d&#039;Igor - La Comédie Saint-Michel"  /></a></div></div></div></div>
+		
+						<a href="https://www.youtube.com/watch?v=bdap4NLhuRY" target="_blank" class="boutonBA">
+				Bande-Annonce         			
+			</a>
+		   <br>
+				
+			</div>
+ <div class="textCol">
+     Igor, assistant orphelin du Pr Frankenstein, décide de reproduire l'expérience de son maître disparu : créer la vie à partir de la mort !
+     
+</div>
+	<div class="infCol">
+					<div class="promo-container">
+    				<div class="titre-surimpression">Informations Pratiques</div>
+    				<div class="promoDiv"> <p> D&egrave;s 6 ans<br />
+<br />
+&bull; Les dimanches &agrave; 14h</p> </div>
+			</div>
+			
+		</div>
+	<div class="endcol"></div>
+
+</div>
+ 
+  <div class="teaser">	
+	<h2><a href="/?q=node/343">Le Bonbon d&#039;Arc-en-ciel : Dimanche à 11h - Mercredi 11/11 à 11h</a>
+				
+		<a href="http://www.comediesaintmichel.fr/?q=node/21" class="boutonResa">  		
+			   R&eacute;server 
+			 <img class="icone-svg" src="sites/default/themes/saint_michel/images/IcoTicket.svg" alt="Ic�ne de ticket">
+			</a>
+			
+		<br>
+	</h2>
+	<div class="picCol"><div class="picture"><div class="field field-type-image field-field-images"><div class="field-items"><div class="field-item odd"><a href="http://www.comediesaintmichel.fr/files/Visuel_WEB_Arc-en-ciel.jpeg" rel="lightbox[343][Le Bonbon d&#039;Arc-en-ciel : Dimanche à 11h - Mercredi 11/11 à 11h]"><img src="http://www.comediesaintmichel.fr/files/imagecache/thumbnail/Visuel_WEB_Arc-en-ciel.jpeg" alt="Affiche Le Bonbon d&#039;Arc-en-ciel - La Comédie Saint-Michel" title="Affiche Le Bonbon d&#039;Arc-en-ciel - La Comédie Saint-Michel"  /></a></div></div></div></div>
+		
+					
+			</div>
+ <div class="textCol">
+     Zulo l'abeille a une mission : créer un bonbon aux couleurs de l'arc-en-ciel avec l'aide des enfants !
+     
+</div>
+	<div class="infCol">
+					<div class="promo-container">
+    				<div class="titre-surimpression">Informations Pratiques</div>
+    				<div class="promoDiv"> <p> <span><span>D&egrave;s 2 ans&nbsp;<br />
+</span></span><span><span><br />
+&bull; Les dimanches &agrave; 11h</span></span><span><span>&nbsp;(sauf les 8/11 et 15/11)<br />
+</span></span>&bull; Les dimanches 8/11 et 15/11 &agrave; 10h15&nbsp;<br />
+<span><span>&bull; Les samedis&nbsp;</span></span>26/12 et 2/01 &agrave; 11h<br />
+<span><span>&bull;&nbsp;</span></span><span><span>Mercredi 11/11 &agrave; 11h<br />
+</span></span><span><span>&bull; Les vendredis 25/12 et 1/01 &agrave; 14h</span></span><span><span><br />
+<br />
+<br />
+</span></span><br />
+<span><span><br />
+</span></span></p> </div>
+			</div>
+			
+		</div>
+	<div class="endcol"></div>
+
+</div>
+        </div>
+    </div>
+    <div class="endcol"></div>
+		
+		<div class="copyright">
+				<div class="colr1 rightCol">
+				<div class="colr">
+					Valid CSS and XHTML
+				</div>
+				<div class="spsr"></div>
+				<div class="colr1">
+					<a href="/?q=user">&copy;</a> Copyright 2008-2026  Com&eacute;die Saint-Michel
+				</div>
+				<div class="endcol"></div>
+			</div>
+			<div class="endcol"></div>
+		</div>
+	</div>
+</div></div>
+
+<script type="text/javascript" src="/sites/default/modules/swfobject_api/swfobject_api.js"></script>
+<script type="text/javascript">Drupal.extend({ settings: { "swfobject_api": { "files": { "video_cck_youtube_flash_wrapper_1": { "url": "http://www.youtube.com/v/TAxoNsdmSFU\x26amp;rel=0\x26autoplay=1\x26border=1\x26amp;fs=1", "params": { "div_id": "video_cck_youtube_flash_wrapper_1", "type": "movie", "bgcolor": "#FFFFFF" }, "flashVars": null, "attributes": [  ], "height": "350", "width": "425", "express_redirect": "sites/default/modules/swfobject_api/expressinstall.swf", "version": "6", "bgcolor": null }, "video_cck_youtube_flash_wrapper_2": { "url": "http://www.youtube.com/v/bdap4NLhuRY\x26amp;rel=0\x26autoplay=1\x26border=1\x26amp;fs=1", "params": { "div_id": "video_cck_youtube_flash_wrapper_2", "type": "movie", "bgcolor": "#FFFFFF" }, "flashVars": null, "attributes": [  ], "height": "350", "width": "425", "express_redirect": "sites/default/modules/swfobject_api/expressinstall.swf", "version": "6", "bgcolor": null } } } } });</script>
+
+</body>
+</html>

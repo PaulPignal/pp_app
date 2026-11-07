@@ -8,7 +8,7 @@ from datetime import date
 
 from bs4 import BeautifulSoup
 
-from scraper.venues import coverage, generic, wordpress
+from scraper.venues import coverage, generic, specific, wordpress
 
 TODAY = date(2026, 11, 7)
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "venues")
@@ -115,6 +115,54 @@ class WordPressTests(unittest.TestCase):
         self.assertEqual(occ[0]["venue"], "La Nouvelle Seine")
         self.assertEqual(occ[0]["description"], "Texte")
         self.assertEqual(wordpress.tribe_events({"code": "rest_no_route"}, "https://x.fr"), [])
+
+
+class NordOuestTests(unittest.TestCase):
+    def test_calendrier_par_semaine(self):
+        occ = specific.nord_ouest_calendar(fixture("nord_ouest_calendrier"), specific.NORD_OUEST_CALENDAR, TODAY)
+        self.assertGreater(len(occ), 20)
+        antigone = next(o for o in occ if o["title"] == "Requiem pour Antigone")
+        self.assertEqual(antigone["date_start"], "2026-11-02")
+        self.assertEqual(antigone["performances"][0]["start"], "2026-11-02T18:30:00")
+        self.assertIn("repid=10196", antigone["url"])
+        self.assertEqual(antigone["description"], "Grande salle")
+        self.assertTrue(all(o["date_start"].startswith("2026-11") for o in occ))
+
+    def test_changement_d_annee(self):
+        html = """<table><tr class="dateligne"><td>lun. 29/12</td><td>mar. 30/12</td><td>mer. 31/12</td><td>jeu. 1/1</td></tr>
+        <tr class="creneauligne"><td></td><td></td><td></td><td><a href="../programme/?repid=1"><div class="creneauheurecal">20h30</div>
+        <div class="creneautitrecal">Phèdre</div></a></td></tr></table>"""
+        occ = specific.nord_ouest_calendar(html, specific.NORD_OUEST_CALENDAR, TODAY)
+        self.assertEqual(occ[0]["date_start"], "2027-01-01")
+
+
+class ComedieSaintMichelTests(unittest.TestCase):
+    def test_liste_et_dates(self):
+        shows = specific.csm_listing(fixture("comedie_saint_michel_accueil"), "http://www.comediesaintmichel.fr/")
+        self.assertGreaterEqual(len(shows), 5)
+        titles = dict(shows)
+        self.assertIn("Le songe d'une nuit d'été", titles)
+        self.assertEqual(titles["Le songe d'une nuit d'été"], "http://www.comediesaintmichel.fr/?q=node/703")
+        self.assertTrue(all(u.endswith(("node/703", "node/698")) or "?q=node/" in u for u in titles.values()))
+        self.assertNotIn("Nos Spectacles Enfants", titles)  # menu, hors zone de contenu
+        self.assertEqual(specific.csm_dates("Les dimanches 8/11 et 22/11 à 18h45 • Les jeudis 10/12 et 17/12", TODAY),
+                         ["2026-11-08", "2026-11-22", "2026-12-10", "2026-12-17"])
+
+
+class EpeeDeBoisTests(unittest.TestCase):
+    def test_periode_francaise(self):
+        self.assertEqual(specific.date_range_fr("Du 22 octobre au 01 novembre 2026", 2026), (date(2026, 10, 22), date(2026, 11, 1)))
+        self.assertEqual(specific.date_range_fr("du 28 décembre au 3 janvier 2027", 2026), (date(2026, 12, 28), date(2027, 1, 3)))
+        self.assertEqual(specific.date_range_fr("Le 15 novembre", 2026), (date(2026, 11, 15), date(2026, 11, 15)))
+        self.assertEqual(specific.date_range_fr("Bientôt", 2026), (None, None))
+
+    def test_mois_en_cours_et_a_venir(self):
+        occ = specific.epee_listing(fixture("epee_de_bois_saison"), specific.EPEE_SAISON, TODAY)
+        self.assertGreaterEqual(len(occ), 5)
+        self.assertTrue(all(o["url"].startswith("https://www.epeedebois.com/un-spectacle/") for o in occ))
+        self.assertNotIn("UBU ROI", {o["title"] for o in occ})  # liste de recherche toutes saisons, hors agenda
+        self.assertTrue(all(o["date_end"] >= "2026-10-01" for o in occ))  # septembre écarté
+        self.assertTrue(any(o["date_end"] >= "2026-11-07" for o in occ))
 
 
 if __name__ == "__main__":
