@@ -13,6 +13,8 @@ Gabarits actifs :
     BilletReduc que le site relie. Le générique ne suivait que les fiches liées depuis le site.
   - `placeminute_boutique` : chaque lieu a une boutique <lieu>.placeminute.com dont l'accueil liste ses spectacles
     (/event/<catégorie>/<titre>,<id>.html), fiches lues en HTML (aucun JSON-LD).
+  - `tpa_salle` : Théâtres et Producteurs Associés (tpa.fr), place de marché de 65 théâtres privés parisiens ; la page
+    « salle » (/salles-theatre-paris/<salle>-<id>.html) liste les pièces à l'affiche du théâtre, fiche par fiche.
   - `fiches_cartes` : sites dont les spectacles sont des « cartes » de l'accueil (lien /<titre>/ à la racine,
     à côté d'un lien « Réserver » ou « Infos ») : Saint-Georges et Tristan-Bernard, sans chemin commun.
   - `fiches_wix_plates` : sites Wix (URL à la racine, sans chemin commun) dont l'accueil range les spectacles en
@@ -32,9 +34,11 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 
 try:
+    from scraper import discover
     from scraper.venues import billetterie, fingerprint, generic, html_fiche, schemaorg, triage
     from scraper.venues.http import Page, PoliteFetcher
 except ModuleNotFoundError:  # pragma: no cover
+    import discover  # type: ignore[no-redef]
     from venues import billetterie, fingerprint, generic, html_fiche, schemaorg, triage  # type: ignore[no-redef]
     from venues.http import Page, PoliteFetcher  # type: ignore[no-redef]
 
@@ -249,6 +253,67 @@ def fiches_cartes(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = N
     return schemaorg.group_occurrences(occurrences), info
 
 
+TPA_SALLE_RE = re.compile(r"tpa\.fr(/salles-theatre-paris/[a-z0-9\-]+-\d+\.html)", re.I)
+TPA_PIECE_RE = re.compile(r"^/pieces-theatre-paris/[a-z0-9\-]+-\d+\.html$", re.I)
+TPA_MAX = 40
+
+
+def tpa_salle_path(fetcher: PoliteFetcher, venue: dict, pages: list[Page]) -> Optional[str]:
+    """Chemin de la salle TPA du lieu : lien direct du site, sinon salle de l'index dont le nom est contenu dans celui du
+    lieu (une seule candidate, sinon aucune : « Belleville » ne désigne pas deux théâtres à la fois)."""
+    for page in pages:
+        m = TPA_SALLE_RE.search(page.text)
+        if m:
+            return m.group(1)
+    if not any("tpa.fr" in page.text for page in pages):
+        return None
+    index = fetcher.get("https://tpa.fr/salles-theatre-paris/")
+    if not index.ok:
+        return None
+    ours = discover.tokens(venue["name"])
+    best: list[tuple[int, str]] = []
+    for a in BeautifulSoup(index.text, "html.parser").find_all("a", href=True):
+        path = a["href"].split("?", 1)[0]
+        if not re.match(r"^/salles-theatre-paris/[a-z0-9\-]+-\d+\.html$", path):
+            continue
+        theirs = discover.tokens(re.sub(r"-\d+\.html$", "", path.rsplit("/", 1)[-1]))
+        if theirs and theirs <= ours and (len(ours - theirs), path) not in best:
+            best.append((len(ours - theirs), path))
+    best.sort()
+    if best and (len(best) == 1 or best[0][0] < best[1][0]):
+        return best[0][1]
+    return None
+
+
+def tpa_salle(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = None, known: int = 0) -> tuple[list[dict], dict]:
+    info = {"pages": 0, "status": "", "salle": ""}
+    pages = billetterie.site_pages(fetcher, venue)
+    path = tpa_salle_path(fetcher, venue, pages)
+    if not path:
+        info["status"] = "sans_tpa"
+        return [], info
+    info["salle"] = path
+    salle = fetcher.get("https://tpa.fr" + path)
+    if not salle.ok:
+        info["status"] = salle.note or f"http {salle.status}"
+        return [], info
+    links: list[str] = []
+    for a in BeautifulSoup(salle.text, "html.parser").find_all("a", href=True):
+        piece = a["href"].split("?", 1)[0].split("#", 1)[0]
+        if TPA_PIECE_RE.match(piece) and "https://tpa.fr" + piece not in links:
+            links.append("https://tpa.fr" + piece)
+    occurrences: list[dict] = []
+    for url in links[:TPA_MAX]:
+        page = fetcher.get(url)
+        info["pages"] += 1
+        if page.ok:
+            occ = html_fiche.parse_fiche(page.text, page.final_url, today, require_date=False)
+            if occ:
+                occurrences.append(occ)
+    info["status"] = "ok" if occurrences else "aucun_event"
+    return schemaorg.group_occurrences(occurrences), info
+
+
 WIX_SECTION_MIN = 6   # liens à la racine d'une même section pour y voir une liste de spectacles
 
 
@@ -314,6 +379,7 @@ EXTRACTORS: dict[str, Callable] = {
     "fiches_cartes": fiches_cartes,
     "placeminute_boutique": placeminute_boutique,
     "fiches_wix_plates": fiches_wix_plates,
+    "tpa_salle": tpa_salle,
 }
 
 
@@ -338,6 +404,8 @@ def detect(fetcher: PoliteFetcher, venue: dict) -> str:
     tags = [t for t in fingerprint.template_label(fp).split("|") if t]
     if "billetreduc" in fp["widgets"] or any(BR_SALLE_RE.search(p.text) for p in pages):
         tags.append("extracteur:billetreduc_salle")
+    if any("tpa.fr" in p.text for p in pages):
+        tags.append("extracteur:tpa_salle")
     if any(PLACEMINUTE_HOST_RE.search(p.text) for p in pages):
         tags.append("extracteur:placeminute_boutique")
     if len(family_links(pages)) >= MIN_FAMILY_SIZE:

@@ -142,6 +142,42 @@ class FichesCartesTests(unittest.TestCase):
         self.assertTrue(any(r["source"] == "direct:gabarit_fiches_cartes" for r in records))
 
 
+class TpaSalleTests(unittest.TestCase):
+    def _venue(self, name="Théâtre Actuel La Bruyère"):
+        return {"slug": "theatre-la-bruyere-2577", "name": name, "website": "https://www.theatrelabruyere.com/", "sections": ["theatre"],
+                "address": "", "postal_code": "75009", "city": "Paris", "offi_url": "x"}
+
+    def test_salle_donnee_par_le_lien_du_site(self):
+        home = Page("https://www.theatrelabruyere.com/", "https://www.theatrelabruyere.com/", 200, '<a href="https://tpa.fr/salles-theatre-paris/la-bruyere-82.html">TPA</a>')
+        self.assertEqual(templates.tpa_salle_path(FakeFetcher({}), self._venue(), [home]), "/salles-theatre-paris/la-bruyere-82.html")
+
+    def test_salle_retrouvee_par_le_nom_dans_l_index(self):
+        index = ('<a href="/salles-theatre-paris/la-bruyere-82.html">B</a><a href="/salles-theatre-paris/belleville-122.html">B</a>'
+                 '<a href="/salles-theatre-paris/atelier-72.html">A</a>')
+        fetcher = FakeFetcher({"https://tpa.fr/salles-theatre-paris/": index})
+        home = Page("https://x.fr/", "https://x.fr/", 200, '<a href="https://tpa.fr/">TPA</a>')
+        self.assertEqual(templates.tpa_salle_path(fetcher, self._venue(), [home]), "/salles-theatre-paris/la-bruyere-82.html")
+        self.assertEqual(templates.tpa_salle_path(fetcher, self._venue("Théâtre de l'Atelier"), [home]), "/salles-theatre-paris/atelier-72.html")
+        self.assertIsNone(templates.tpa_salle_path(fetcher, self._venue("Théâtre du Marais"), [home]))
+
+    def test_site_sans_lien_tpa_rien_n_est_lu(self):
+        home = Page("https://x.fr/", "https://x.fr/", 200, "<p>rien</p>")
+        fetcher = FakeFetcher({})
+        self.assertIsNone(templates.tpa_salle_path(fetcher, self._venue(), [home]))
+        self.assertEqual(fetcher.requested, [])
+
+    def test_pieces_de_la_salle(self):
+        salle = fixture("tpa_salle")
+        pages = {"https://www.theatrelabruyere.com/": '<a href="https://tpa.fr/salles-theatre-paris/la-bruyere-82.html">TPA</a>',
+                 "https://tpa.fr/salles-theatre-paris/la-bruyere-82.html": salle}
+        for path in set(re.findall(r'href="(/pieces-theatre-paris/[a-z0-9\-]+-\d+\.html)"', salle)):
+            pages["https://tpa.fr" + path] = fixture("tpa_piece")
+        groups, info = templates.tpa_salle(FakeFetcher(pages), self._venue(), TODAY)
+        self.assertEqual(info["status"], "ok")
+        self.assertEqual(info["salle"], "/salles-theatre-paris/la-bruyere-82.html")
+        self.assertEqual([g["title"] for g in groups], ["22 minutes"])  # toutes les fiches de l'essai portent la même pièce
+
+
 class WixPlatesTests(unittest.TestCase):
     def _home(self):
         menu = '<nav><ul>' + "".join(f'<li><a href="/menu-{c}-xxx">M</a></li>' for c in "abcdefg") + '</ul></nav>'
