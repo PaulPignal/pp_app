@@ -7,10 +7,10 @@ from typing import Callable, Optional
 from bs4 import BeautifulSoup
 
 try:
-    from scraper.venues import billetterie, generic, js_agendas, schemaorg, specific, triage
+    from scraper.venues import billetterie, generic, js_agendas, schemaorg, specific, templates, triage
     from scraper.venues.http import PoliteFetcher
 except ModuleNotFoundError:  # pragma: no cover
-    from venues import billetterie, generic, js_agendas, schemaorg, specific, triage  # type: ignore[no-redef]
+    from venues import billetterie, generic, js_agendas, schemaorg, specific, templates, triage  # type: ignore[no-redef]
     from venues.http import PoliteFetcher  # type: ignore[no-redef]
 
 PLATFORM_FICHES = 3  # fiches lues pour y reconnaître une billetterie absente de l'accueil
@@ -107,6 +107,10 @@ def run_venue(fetcher: PoliteFetcher, venue: dict, today=None) -> tuple[list[dic
     if records:
         batches.insert(0, records)
         used.insert(0, "generique")
+    extra, sub_t = templates.complement(fetcher, venue, today, known=len({_title_key(r) for b in batches for r in b}))
+    if extra:  # gabarits reconnus (voir templates.py) : comblent les trous, le générique fait foi
+        batches.append(extra)
+        used.append("gabarit")
     info["adapter"] = "+".join(used) or "aucun"
     info["status"] = "ok" if batches else (sub.get("status") or "aucun_event")
     return merge_records(batches), info

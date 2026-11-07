@@ -1,0 +1,146 @@
+# -*- coding: utf-8 -*-
+"""Gabarits de sites de lieux (07/11/2026) : empreinte technique et extracteur de familles de fiches.
+Fixtures : pages publiques du Théâtre de Passy (thème Salient, fiches /spectacle/<titre>/) relevées le 07/11/2026."""
+import os
+import unittest
+from datetime import date
+
+from scraper.venues import fingerprint, templates
+from scraper.venues.http import Page
+
+TODAY = date(2026, 11, 7)
+FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "venues")
+
+
+def fixture(name: str) -> str:
+    with open(os.path.join(FIXTURES, name + ".html"), encoding="utf-8") as f:
+        return f.read()
+
+
+class FakeFetcher:
+    """Pages enregistrées uniquement : aucune requête réseau."""
+
+    def __init__(self, pages: dict[str, str]):
+        self.pages = pages
+        self.requested: list[str] = []
+
+    def get(self, url: str) -> Page:
+        self.requested.append(url)
+        text = self.pages.get(url)
+        return Page(url, url, 200 if text is not None else 404, text or "")
+
+    def project_fetcher(self):
+        return self
+
+
+class EmpreinteTests(unittest.TestCase):
+    def test_wordpress_theme_et_plugins(self):
+        fp = fingerprint.fingerprint_html(fixture("passy_accueil"), "https://theatredepassy.fr/")
+        self.assertEqual(fp["cms"], "wordpress")
+        self.assertEqual(fp["theme"], "salient")
+        self.assertIn("salient-portfolio", fp["plugins"])
+        self.assertEqual(fingerprint.template_label(fp).split("|")[-1], "theme:salient")
+
+    def test_billetteries_et_identifiant(self):
+        html = (
+            '<html><body><a href="https://www.billetreduc.com/171/salle.htm">BR</a>'
+            '<iframe src="https://shotgun.live/venues/le-lieu-x"></iframe>'
+            '<a href="https://www.billetweb.fr/mon-spectacle">B</a>'
+            '<a href="https://monsite.fr/autre">interne</a></body></html>'
+        )
+        fp = fingerprint.fingerprint_html(html, "https://monsite.fr/")
+        self.assertEqual(fp["widgets"], {"billetreduc": "171", "shotgun": "le-lieu-x", "billetweb": "mon-spectacle"})
+        self.assertIn("billetterie:billetreduc", fingerprint.template_label(fp))
+
+    def test_extension_agenda_et_donnees_structurees(self):
+        html = '<div class="tribe-events-calendar"></div><script type="application/ld+json">{"@type":"TheaterEvent","name":"X"}</script>'
+        fp = fingerprint.fingerprint_html(html, "https://x.fr/")
+        self.assertEqual(fp["calendar"], "the_events_calendar")
+        self.assertTrue(fp["ld_event"])
+        self.assertFalse(fingerprint.fingerprint_html("<p>rien</p>", "https://x.fr/")["ld_event"])
+
+    def test_fusion_garde_l_identifiant_lisible(self):
+        a = {"widgets": {"mapado": ""}, "plugins": ["a"]}
+        b = {"widgets": {"mapado": "azimut"}, "plugins": ["b"], "theme": "divi"}
+        merged = fingerprint.merge([a, b])
+        self.assertEqual(merged["widgets"]["mapado"], "azimut")
+        self.assertEqual(merged["plugins"], ["a", "b"])
+        self.assertEqual(merged["theme"], "divi")
+
+
+class FichesFamilleTests(unittest.TestCase):
+    def setUp(self):
+        self.accueil = fixture("passy_accueil")
+        self.fiche = fixture("passy_fiche")
+        self.fiche2 = fixture("passy_fiche2")
+
+    def _venue(self):
+        return {"slug": "theatre-de-passy-6975", "name": "Théâtre de Passy", "website": "https://theatredepassy.fr/",
+                "address": "95 rue de Passy", "postal_code": "75016", "city": "Paris", "sections": ["theatre"], "offi_url": "x"}
+
+    def test_famille_prise_sur_l_accueil_et_les_pages_liste(self):
+        pages = [Page("https://theatredepassy.fr/", "https://theatredepassy.fr/", 200, self.accueil)]
+        links = templates.family_links(pages)
+        self.assertGreaterEqual(len(links), templates.MIN_FAMILY_SIZE)
+        self.assertTrue(all("/spectacle/" in u for u in links))
+        self.assertIn("https://theatredepassy.fr/spectacle/le-voleur-de-mots/", links)
+
+    def test_pas_de_famille_sans_assez_de_soeurs(self):
+        html = '<a href="/spectacle/a-b-c/">A</a><a href="/spectacle/d-e-f/">D</a><a href="/contact/">C</a>'
+        pages = [Page("https://x.fr/", "https://x.fr/", 200, html)]
+        self.assertEqual(templates.family_links(pages), [])
+
+    def test_extraction_des_fiches_du_gabarit(self):
+        links = templates.family_links([Page("https://theatredepassy.fr/", "https://theatredepassy.fr/", 200, self.accueil)])
+        pages = {"https://theatredepassy.fr/": self.accueil,
+                 "https://theatredepassy.fr/spectacle/le-voleur-de-mots/": self.fiche,
+                 "https://theatredepassy.fr/spectacle/la-ptite-debrouille/": self.fiche2}
+        for url in links:
+            pages.setdefault(url, self.fiche2)  # fiches non enregistrées : lues comme la 2e (titres dédoublonnés)
+        records, info = templates.complement(FakeFetcher(pages), self._venue(), TODAY)
+        titles = {r["title"] for r in records}
+        self.assertIn("Le Voleur de mots", titles)
+        self.assertTrue(all(r["source"] == "direct:gabarit_fiches_famille" for r in records))
+        self.assertEqual(info["fiches_famille"], "ok")
+
+    def test_deja_couvert_ne_lit_aucune_fiche(self):
+        fetcher = FakeFetcher({"https://theatredepassy.fr/": self.accueil})
+        records, info = templates.complement(fetcher, self._venue(), TODAY, known=500)
+        self.assertEqual(records, [])
+        self.assertEqual(info["fiches_famille"], "deja_couvert")
+        self.assertTrue(all(u == "https://theatredepassy.fr/" for u in fetcher.requested[:1]))
+
+
+class BilletreducSalleTests(unittest.TestCase):
+    SALLE = (
+        '<html><head><script type="application/ld+json">[{"@type":"TheaterEvent","name":"Hamlet","startDate":"2026-12-01T20:00:00",'
+        '"location":{"@type":"Place","name":"Théâtre du Marais"},"url":"https://www.billetreduc.com/spectacle/hamlet-1"},'
+        '{"@type":"TheaterEvent","name":"Autre salle","startDate":"2026-12-02T20:00:00","location":{"@type":"Place","name":"Cirque Zinzin"}}]</script></head></html>'
+    )
+
+    def _venue(self):
+        return {"slug": "theatre-du-marais-2718", "name": "Théâtre du Marais", "website": "https://www.theatredumarais.com/",
+                "sections": ["theatre"], "address": "", "postal_code": "75003", "city": "Paris", "offi_url": "x"}
+
+    def test_identifiant_de_salle_lu_sur_le_site(self):
+        home = '<a href="https://www.billetreduc.com/S/171/salle.htm">Réserver</a>'
+        fetcher = FakeFetcher({"https://www.theatredumarais.com/": home, "https://www.billetreduc.com/171/salle.htm": self.SALLE})
+        self.assertEqual(templates.billetreduc_salle_id(fetcher, self._venue()), "171")
+        groups, info = templates.billetreduc_salle(fetcher, self._venue(), TODAY)
+        self.assertEqual([g["title"] for g in groups], ["Hamlet"])  # la salle voisine est écartée
+        self.assertEqual(info, {"status": "ok", "salle": "171"})
+
+    def test_identifiant_de_salle_lu_sur_une_fiche_liee(self):
+        home = '<a href="https://www.billetreduc.com/spectacle/hamlet-1">Hamlet</a>'
+        fiche = '<a href="/11648/salle.htm">Théâtre du Marais</a>'
+        fetcher = FakeFetcher({"https://www.theatredumarais.com/": home, "https://www.billetreduc.com/spectacle/hamlet-1": fiche})
+        self.assertEqual(templates.billetreduc_salle_id(fetcher, self._venue()), "11648")
+
+    def test_sans_billetreduc_rien_n_est_lu(self):
+        fetcher = FakeFetcher({"https://www.theatredumarais.com/": "<p>aucun lien</p>"})
+        groups, info = templates.billetreduc_salle(fetcher, self._venue(), TODAY)
+        self.assertEqual((groups, info["status"]), ([], "salle_introuvable"))
+
+
+if __name__ == "__main__":
+    unittest.main()
