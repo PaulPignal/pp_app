@@ -2,6 +2,7 @@
 """Gabarits de sites de lieux (07/11/2026) : empreinte technique et extracteur de familles de fiches.
 Fixtures : pages publiques du Théâtre de Passy (thème Salient, fiches /spectacle/<titre>/) relevées le 07/11/2026."""
 import os
+import re
 import unittest
 from datetime import date
 
@@ -134,6 +135,31 @@ class FichesCartesTests(unittest.TestCase):
         records, info = templates.complement(FakeFetcher(pages), venue, TODAY)
         self.assertEqual(info["fiches_cartes"], "ok")
         self.assertTrue(any(r["source"] == "direct:gabarit_fiches_cartes" for r in records))
+
+
+class PlaceminuteTests(unittest.TestCase):
+    def test_boutique_du_lieu(self):
+        venue = {"slug": "le-colombier-1902", "name": "Le Colombier", "website": "https://lecolombier.fr/", "sections": ["theatre"],
+                 "address": "", "postal_code": "93100", "city": "Bagnolet", "offi_url": "x"}
+        shop = fixture("placeminute_boutique")
+        pages = {"https://lecolombier.fr/": '<a href="https://le-colombier-langaja.placeminute.com/">Billetterie</a>',
+                 "https://le-colombier-langaja.placeminute.com/": shop}
+        self.assertTrue(templates.PLACEMINUTE_EVENT_RE.match("/event/danse/faire-corps,48727.html"))
+        for url in set(re.findall(r'href="([^"]*,\d+\.html)[^"]*"', shop)):
+            pages[("https://le-colombier-langaja.placeminute.com" + url) if url.startswith("/") else url] = fixture("placeminute_fiche")
+        groups, info = templates.placeminute_boutique(FakeFetcher(pages), venue, TODAY)
+        self.assertEqual(info["boutique"], "le-colombier-langaja")
+        self.assertEqual(info["status"], "ok")
+        self.assertGreaterEqual(len(groups), 1)
+
+    def test_sans_boutique_rien_n_est_lu(self):
+        venue = {"slug": "x", "name": "X", "website": "https://x.fr/"}
+        groups, info = templates.placeminute_boutique(FakeFetcher({"https://x.fr/": "<p>rien</p>"}), venue, TODAY)
+        self.assertEqual((groups, info["status"]), ([], "sans_placeminute"))
+
+    def test_empreinte_identifiant_de_boutique(self):
+        fp = fingerprint.fingerprint_html('<a href="https://lafleche.placeminute.com/event/x/y,1.html">r</a>', "https://lafleche.fr/")
+        self.assertEqual(fp["widgets"], {"placeminute": "lafleche"})
 
 
 class ColonneTemplateTests(unittest.TestCase):

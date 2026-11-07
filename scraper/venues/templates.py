@@ -11,6 +11,8 @@ Gabarits actifs :
   - `billetreduc_salle` : la page « salle » de BilletReduc (/<id>/salle.htm) liste en JSON-LD tous les spectacles
     du lieu avec leurs dates ; son identifiant se lit sur le site du lieu (/S/171/salle.htm) ou sur une fiche
     BilletReduc que le site relie. Le générique ne suivait que les fiches liées depuis le site.
+  - `placeminute_boutique` : chaque lieu a une boutique <lieu>.placeminute.com dont l'accueil liste ses spectacles
+    (/event/<catégorie>/<titre>,<id>.html), fiches lues en HTML (aucun JSON-LD).
   - `fiches_cartes` : sites dont les spectacles sont des « cartes » de l'accueil (lien /<titre>/ à la racine,
     à côté d'un lien « Réserver » ou « Infos ») : Saint-Georges et Tristan-Bernard, sans chemin commun.
   - `fiches_famille` : le site publie ses spectacles sous un même chemin (/spectacle/<titre>/,
@@ -140,6 +142,47 @@ def billetreduc_salle(fetcher: PoliteFetcher, venue: dict, today: Optional[date]
     return groups, info
 
 
+PLACEMINUTE_HOST_RE = re.compile(r"https?://([a-z0-9\-]+)\.placeminute\.com", re.I)
+PLACEMINUTE_EVENT_RE = re.compile(r"^/event/[a-z0-9\-]+/[a-z0-9\-]+,\d+\.html", re.I)
+PLACEMINUTE_SKIP_RE = re.compile(r"carte-cadeau|bon-cadeau|adhesion|don-", re.I)
+PLACEMINUTE_MAX = 60
+
+
+def placeminute_boutique(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = None, known: int = 0) -> tuple[list[dict], dict]:
+    info = {"pages": 0, "status": "", "boutique": ""}
+    hosts: dict[str, int] = {}
+    for page in billetterie.site_pages(fetcher, venue):
+        for m in PLACEMINUTE_HOST_RE.finditer(page.text):
+            if m.group(1).lower() != "www":
+                hosts[m.group(1).lower()] = hosts.get(m.group(1).lower(), 0) + 1
+    if not hosts:
+        info["status"] = "sans_placeminute"
+        return [], info
+    sub = max(hosts, key=hosts.get)
+    info["boutique"] = sub
+    root = f"https://{sub}.placeminute.com/"
+    shop = fetcher.get(root)
+    if not shop.ok:
+        info["status"] = shop.note or f"http {shop.status}"
+        return [], info
+    links: list[str] = []
+    for a in BeautifulSoup(shop.text, "html.parser").find_all("a", href=True):
+        url = urljoin(root, a["href"]).split("?", 1)[0].split("#", 1)[0]
+        parsed = urlparse(url)
+        if parsed.netloc == f"{sub}.placeminute.com" and PLACEMINUTE_EVENT_RE.match(parsed.path) and not PLACEMINUTE_SKIP_RE.search(parsed.path) and url not in links:
+            links.append(url)
+    occurrences: list[dict] = []
+    for url in links[:PLACEMINUTE_MAX]:
+        page = fetcher.get(url)
+        info["pages"] += 1
+        if page.ok:
+            occ = html_fiche.parse_fiche(page.text, page.final_url, today, require_date=False)
+            if occ:
+                occurrences.append(occ)
+    info["status"] = "ok" if occurrences else "aucun_event"
+    return schemaorg.group_occurrences(occurrences), info
+
+
 BOOKING_TEXT_RE = re.compile(r"r[ée]serv|billet|infos?\b|en savoir plus|r[ée]sa\b|acheter|book", re.I)
 NOT_A_SHOW_RE = re.compile(r"cadeau|abonnement|privatis|black-friday|printemps-du|faq|photos?|partenaires?|actualit|equipe|histoire|informations?-pratiques|contact|mentions|cgv|cgu|carte-|cours|stage|atelier|location|recrut|presse|newsletter|accessib|plan|pratique|reservation|groupes|^theatre$|^spectacles?$|^programm", re.I)
 CARD_DEPTH = 4  # niveaux d'ancêtres examinés pour trouver le lien « Réserver » de la carte
@@ -204,6 +247,7 @@ EXTRACTORS: dict[str, Callable] = {
     "billetreduc_salle": billetreduc_salle,
     "fiches_famille": fiches_famille,
     "fiches_cartes": fiches_cartes,
+    "placeminute_boutique": placeminute_boutique,
 }
 
 
@@ -228,6 +272,8 @@ def detect(fetcher: PoliteFetcher, venue: dict) -> str:
     tags = [t for t in fingerprint.template_label(fp).split("|") if t]
     if "billetreduc" in fp["widgets"] or any(BR_SALLE_RE.search(p.text) for p in pages):
         tags.append("extracteur:billetreduc_salle")
+    if any(PLACEMINUTE_HOST_RE.search(p.text) for p in pages):
+        tags.append("extracteur:placeminute_boutique")
     if len(family_links(pages)) >= MIN_FAMILY_SIZE:
         tags.append("extracteur:fiches_famille")
     if len(card_links(home)) >= MIN_CARDS:

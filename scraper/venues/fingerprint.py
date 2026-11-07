@@ -33,7 +33,7 @@ WIDGET_HOSTS: dict[str, tuple[list[str], Optional[re.Pattern]]] = {
     "supersoniks": (["supersoniks.com"], None),
     "festik": (["festik.net"], None),
     "yurplan": (["yurplan.com"], None),
-    "placeminute": (["placeminute.com"], None),
+    "placeminute": (["placeminute.com"], re.compile(r"//([a-z0-9\-]+)\.placeminute\.com")),
     "theatreonline": (["theatreonline.com"], None),
     "theatre_box": (["theatre-box.com", "theatrebox"], None),
     "ticketac": (["ticketac.com"], None),
