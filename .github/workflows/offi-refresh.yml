@@ -89,17 +89,17 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    # 90 min : large pour une section (pire cas concert ~55 min). Un reseed complet se
+    # 120 min : large pour une section (concert à 200 pages depuis le 07/11/2026, ~75 min estimées). Un reseed complet se
     # fait section par section, pas en un `all` — pas d'expression conditionnelle ici,
     # elle empêchait la création du job (run bloqué en `queued` sans job, 10/08/2026).
-    timeout-minutes: 90
+    timeout-minutes: 120
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      # env.ts exige NEXTAUTH_SECRET ; l'ingestion ne l'utilise pas → placeholder
-      # si le secret n'est pas défini, pour ne dépendre que de DATABASE_URL.
-      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-ingestion-placeholder' }}
+      # env.ts exige NEXTAUTH_SECRET ; l'ingestion ne l'utilise pas : valeur factice en dur
+      # (32 caractères ou plus), aucun secret de production exposé à ce job.
+      NEXTAUTH_SECRET: 'ci-ingestion-placeholder-not-a-real-secret'
       OFFI_PYTHON_BIN: python3
-      OFFI_MAX_PAGES: '150'
+      OFFI_MAX_PAGES: '200'
       OFFI_REFRESH_AFTER_HOURS: '72'
     steps:
       - uses: actions/checkout@v5
