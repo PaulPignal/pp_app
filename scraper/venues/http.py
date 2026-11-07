@@ -23,10 +23,13 @@ DEFAULT_CACHE_DIR = os.environ.get("VENUES_CACHE_DIR") or os.path.expanduser("~/
 # Durée de vie d'une page en cache (heures). Sans limite, un cache local rejoué des semaines
 # plus tard servirait un agenda périmé. VENUES_CACHE_TTL_HOURS=0 désactive la limite.
 DEFAULT_CACHE_TTL_HOURS = float(os.environ.get("VENUES_CACHE_TTL_HOURS", "24"))
-# User-Agent qui identifie le projet (sans adresse e-mail).
-PROJECT_USER_AGENT = "pp-app-agenda-culturel/1.0 (+https://github.com/PaulPignal/pp_app)"
-# Depuis le 07/11/2026, tous les sites de lieux sont lus sous le nom du projet (plus de User-Agent de navigateur).
+# User-Agent du projet : son nom, sans lien ni adresse e-mail. Depuis le 07/11/2026, tous les sites de
+# lieux sont lus sous ce nom (plus de User-Agent de navigateur).
+PROJECT_USER_AGENT = "pp-app-agenda-culturel/1.0"
 USER_AGENT = PROJECT_USER_AGENT
+# Domaines jamais lus, quel que soit le chemin (lien de fiche, adaptateur, gabarit). BilletReduc : ses CGU
+# (art. 4.1 et 8.1) interdisent l'extraction répétée et systématique de sa base, décision du 07/11/2026.
+EXCLUDED_DOMAINS = ("billetreduc.com",)
 MIN_INTERVAL_S = 1.0
 MAX_CRAWL_DELAY_S = 10.0
 MAX_BYTES = 3_000_000
@@ -45,7 +48,7 @@ class Page:
     status: int
     text: str
     from_cache: bool = False
-    note: str = ""  # "", "bloqué", "robots", "erreur réseau"
+    note: str = ""  # "", "bloqué", "robots", "erreur réseau", "exclu" (domaine écarté)
 
     @property
     def ok(self) -> bool:
@@ -158,6 +161,9 @@ class PoliteFetcher:
 
     # --- API ---
     def get(self, url: str) -> Page:
+        host = (urlparse(url).hostname or "").lower()
+        if any(host == d or host.endswith("." + d) for d in EXCLUDED_DOMAINS):
+            return Page(url, url, 0, "", note="exclu")
         cached = self._read_cache(url)
         if cached is not None:
             return cached

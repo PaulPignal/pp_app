@@ -29,3 +29,17 @@ def test_dates_a_annee_sur_deux_chiffres():
     from scraper.venues.html_fiche import parse_dates
     assert parse_dates("Du 12/01/27 au 16/05/27", date(2026, 11, 7)) == ["2027-01-12", "2027-05-16"]
     assert parse_dates("Avis du 18/07/2026", date(2026, 11, 7)) == []
+
+
+def test_billetreduc_jamais_lu(tmp_path):
+    from scraper.venues.http import PoliteFetcher
+    fetcher = PoliteFetcher(cache_dir=str(tmp_path))
+    fetcher._raw_get = lambda url: (_ for _ in ()).throw(AssertionError("requête envoyée"))
+    for url in ["https://www.billetreduc.com/123/salle.htm", "https://billetreduc.com/spectacle/x-1"]:
+        page = fetcher.get(url)
+        assert page.note == "exclu" and not page.ok
+
+
+def test_gabarit_billetreduc_retire():
+    from scraper.venues import templates
+    assert "billetreduc_salle" not in templates.EXTRACTORS

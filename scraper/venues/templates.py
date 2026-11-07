@@ -378,7 +378,6 @@ def fiches_wix_plates(fetcher: PoliteFetcher, venue: dict, today: Optional[date]
 
 
 EXTRACTORS: dict[str, Callable] = {
-    "billetreduc_salle": billetreduc_salle,
     "fiches_famille": fiches_famille,
     "fiches_cartes": fiches_cartes,
     "placeminute_boutique": placeminute_boutique,
@@ -406,8 +405,6 @@ def detect(fetcher: PoliteFetcher, venue: dict) -> str:
     pages = billetterie.site_pages(fetcher, venue) or [home]
     fp = fingerprint.merge([fingerprint.fingerprint_html(p.text, p.final_url) for p in pages])
     tags = [t for t in fingerprint.template_label(fp).split("|") if t]
-    if "billetreduc" in fp["widgets"] or any(BR_SALLE_RE.search(p.text) for p in pages):
-        tags.append("extracteur:billetreduc_salle")
     if any("tpa.fr" in p.text for p in pages):
         tags.append("extracteur:tpa_salle")
     if any(PLACEMINUTE_HOST_RE.search(p.text) for p in pages):
