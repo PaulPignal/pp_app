@@ -41,6 +41,7 @@ describe('listDiscoverWorks', () => {
         durationMin: null,
         priceMin: null,
         priceMax: null,
+        cinemaVenues: [],
         sourceUrl: 'https://www.offi.fr/hamlet',
       },
     ])

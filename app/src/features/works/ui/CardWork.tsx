@@ -27,8 +27,7 @@ export default function CardWork({ work, counter, priority = true }: Props) {
   const priceLabel = formatPriceRange(work.priceMin, work.priceMax)
   const availability = formatAvailability(work.availability)
   const ratingLabel = formatRating(work.rating, work.ratingCount)
-  // Description : celle du site du lieu par défaut, sinon celle d'Offi.
-  const description = (work.venueDescription ?? work.description)?.trim()
+  const description = work.description
   const directorLabel = workDirectorLabel(work.section)
   const isCinema = work.section === 'cinema'
   // Sous-titre sur l'affiche : nationalité · année (ciné) sinon lieu · arrondissement.
@@ -44,7 +43,7 @@ export default function CardWork({ work, counter, priority = true }: Props) {
   const venueAccess = work.venueInfo?.access?.trim()
   // Titre → page événement du lieu si on l'a, sinon lien rel=external d'Offi.
   // Nom du lieu → site officiel du lieu.
-  const officialUrl = work.officialUrl ?? work.externalUrl
+  const officialUrl = work.officialUrl
   const venueWebsite = work.venueInfo?.website ?? null
   const titleId = `work-${work.id}-title`
 

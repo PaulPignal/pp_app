@@ -22,7 +22,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, titleId, children
   const priceLabel = work ? formatPriceRange(work.priceMin, work.priceMax) : null
   const durationLabel = work ? formatDuration(work.durationMin) : null
   const ratingLabel = formatRating(work?.rating, work?.ratingCount)
-  const description = (work?.venueDescription ?? work?.description)?.trim()
+  const description = work?.description
   const director = work?.director?.trim()
   const castNames = work?.cast?.slice(0, 5) ?? []
   const directorLabel = workDirectorLabel(work?.section)
@@ -30,7 +30,7 @@ export default function WorkSummaryCard({ work, fallbackTitle, titleId, children
   const venueLine = work ? [work.venue, !isCinema ? work.arrondissement : null].filter(Boolean).join(' · ') : ''
   const cinemaMeta = isCinema ? [work.country, work.year].filter(Boolean).join(' · ') : ''
   // Titre → page événement du lieu, sinon lien rel=external d'Offi.
-  const officialUrl = work?.officialUrl ?? work?.externalUrl ?? null
+  const officialUrl = work?.officialUrl ?? null
   const venueWebsite = work?.venueInfo?.website ?? null
   const cinemaVenuesLine =
     isCinema && work.cinemaVenueCount
