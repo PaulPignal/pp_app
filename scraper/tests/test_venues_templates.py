@@ -142,6 +142,28 @@ class FichesCartesTests(unittest.TestCase):
         self.assertTrue(any(r["source"] == "direct:gabarit_fiches_cartes" for r in records))
 
 
+class WixPlatesTests(unittest.TestCase):
+    def _home(self):
+        menu = '<nav><ul>' + "".join(f'<li><a href="/menu-{c}-xxx">M</a></li>' for c in "abcdefg") + '</ul></nav>'
+        section = '<section><div>' + "".join(f'<div><a href="/spectacle-{c}-titre">Titre {c}</a></div>' for c in "abcdefgh") + '</div></section>'
+        pied = '<footer>' + "".join(f'<a href="/pied-{c}-xxx">P</a>' for c in "abcdefg") + '</footer>'
+        return Page("https://x.fr/", "https://x.fr/", 200, f"<html><body>{menu}{section}<div><a href='/contact'>c</a><a href='/faq'>f</a></div>{pied}</body></html>")
+
+    def test_sections_hors_menu_et_pied(self):
+        links = templates.wix_section_links(self._home())
+        self.assertEqual(len(links), 8)
+        self.assertTrue(all("spectacle-" in u for u in links))
+
+    def test_extracteur_reserve_aux_sites_wix(self):
+        venue = {"slug": "x", "name": "X", "website": "https://x.fr/", "sections": ["theatre"]}
+        groups, info = templates.fiches_wix_plates(FakeFetcher({"https://x.fr/": self._home().text}), venue, TODAY)
+        self.assertEqual((groups, info["status"]), ([], "pas_wix"))  # pas de marqueur Wix dans la page
+
+    def test_sections_trop_petites(self):
+        html = '<section>' + "".join(f'<a href="/spectacle-{c}-titre">T</a>' for c in "abc") + '</section>'
+        self.assertEqual(templates.wix_section_links(Page("https://x.fr/", "https://x.fr/", 200, html)), [])
+
+
 class PlaceminuteTests(unittest.TestCase):
     def test_boutique_du_lieu(self):
         venue = {"slug": "le-colombier-1902", "name": "Le Colombier", "website": "https://lecolombier.fr/", "sections": ["theatre"],

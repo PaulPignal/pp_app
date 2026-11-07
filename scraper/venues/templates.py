@@ -15,6 +15,8 @@ Gabarits actifs :
     (/event/<catégorie>/<titre>,<id>.html), fiches lues en HTML (aucun JSON-LD).
   - `fiches_cartes` : sites dont les spectacles sont des « cartes » de l'accueil (lien /<titre>/ à la racine,
     à côté d'un lien « Réserver » ou « Infos ») : Saint-Georges et Tristan-Bernard, sans chemin commun.
+  - `fiches_wix_plates` : sites Wix (URL à la racine, sans chemin commun) dont l'accueil range les spectacles en
+    sections de 6 liens ou plus hors du menu (La Boussole, Gémeaux Parisiens / Lucas-Paumier).
   - `fiches_famille` : le site publie ses spectacles sous un même chemin (/spectacle/<titre>/,
     /spectacles-tout-public/<titre>/) ; les liens de cette famille sont pris sur l'accueil ET sur chaque
     page de liste (le générique ne classe que les liens des pages agenda, et lit comme « agenda » une
@@ -247,11 +249,71 @@ def fiches_cartes(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = N
     return schemaorg.group_occurrences(occurrences), info
 
 
+WIX_SECTION_MIN = 6   # liens à la racine d'une même section pour y voir une liste de spectacles
+
+
+def wix_section_links(home: Page) -> list[str]:
+    """Liens /<titre> d'un site Wix, pris dans les sections de l'accueil (hors menu, bas de page) qui en portent au moins 6."""
+    soup = BeautifulSoup(home.text, "html.parser")
+    host = urlparse(home.final_url).netloc
+    sections: dict[int, tuple[object, list[str]]] = {}
+    for a in soup.find_all("a", href=True)[:MAX_CARD_ANCHORS * 3]:
+        url = urljoin(home.final_url, triage.clean_href(a["href"])).split("#", 1)[0].split("?", 1)[0]
+        parsed = urlparse(url)
+        segments = [x for x in parsed.path.split("/") if x]
+        if parsed.netloc != host or len(segments) != 1 or len(segments[0]) < 4 or NOT_A_SHOW_RE.search(segments[0]):
+            continue
+        if a.find_parent(["nav", "header", "footer"]) is not None:
+            continue
+        section = a
+        for _ in range(4):
+            if section.parent is None or section.parent.name in ("body", "html"):
+                break
+            section = section.parent
+        bucket = sections.setdefault(id(section), (section, []))[1]
+        if url not in bucket:
+            bucket.append(url)
+    links: list[str] = []
+    for _, urls in sections.values():
+        if len(urls) >= WIX_SECTION_MIN:
+            links += [u for u in urls if u not in links]
+    return links[:MAX_FAMILY_FICHES]
+
+
+def fiches_wix_plates(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = None, known: int = 0) -> tuple[list[dict], dict]:
+    info = {"pages": 0, "status": ""}
+    home = fetcher.get(venue["website"])
+    if not home.ok:
+        info["status"] = home.note or f"http {home.status}"
+        return [], info
+    if triage.detect_cms(home.text) != "wix":
+        info["status"] = "pas_wix"
+        return [], info
+    links = wix_section_links(home)
+    if len(links) <= known:
+        info["status"] = "deja_couvert" if links else "pas_de_sections"
+        return [], info
+    occurrences: list[dict] = []
+    for url in links:
+        page = fetcher.get(url)
+        info["pages"] += 1
+        if not page.ok:
+            continue
+        found, _ = schemaorg.occurrences_from_html(page.text, page.final_url)
+        if not found:
+            occ = html_fiche.parse_fiche(page.text, page.final_url, today, require_date=False)
+            found = [occ] if occ else []
+        occurrences += found
+    info["status"] = "ok" if occurrences else "aucun_event"
+    return schemaorg.group_occurrences(occurrences), info
+
+
 EXTRACTORS: dict[str, Callable] = {
     "billetreduc_salle": billetreduc_salle,
     "fiches_famille": fiches_famille,
     "fiches_cartes": fiches_cartes,
     "placeminute_boutique": placeminute_boutique,
+    "fiches_wix_plates": fiches_wix_plates,
 }
 
 
@@ -282,6 +344,8 @@ def detect(fetcher: PoliteFetcher, venue: dict) -> str:
         tags.append("extracteur:fiches_famille")
     if len(card_links(home)) >= MIN_CARDS:
         tags.append("extracteur:fiches_cartes")
+    if fp["cms"] == "wix" and len(wix_section_links(home)) >= WIX_SECTION_MIN:
+        tags.append("extracteur:fiches_wix_plates")
     return "|".join(tags) or "aucun"
 
 
