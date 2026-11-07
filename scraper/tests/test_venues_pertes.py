@@ -189,5 +189,17 @@ class VosbilletsTests(unittest.TestCase):
         self.assertEqual(triage.detect_ticketing(["leguichetmontparnasse.vosbillets.fr"]), {"vosbillets": 1})
 
 
+class PagesFiltreesTests(unittest.TestCase):
+    def test_jacques_carat_genres(self):
+        import re
+        url = "https://www.theatrejacquescarat.fr/la-saison"
+        pages = specific.filter_pages(fixture("jacques_carat_saison"), url, re.compile(r"genres="))
+        self.assertGreaterEqual(len(pages), 8)
+        self.assertTrue(all(p.startswith(url + "?genres=") for p in pages), pages)
+        links = specific.fiche_links(fixture("jacques_carat_saison"), url, re.compile(r"^/la-saison/[a-z0-9\-]+$"))
+        self.assertGreaterEqual(len(links), 9)
+        self.assertNotIn(url, links)
+
+
 if __name__ == "__main__":
     unittest.main()

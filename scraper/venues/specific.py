@@ -71,16 +71,41 @@ def _finish(occurrences: list[dict], links: list[str], venue: dict, today, info:
     return schemaorg.records_from_groups(groups, venue, "direct:html", today=today), info
 
 
-def make_adapter(listing_urls: list[str], link_re: str, max_fiches: int = MAX_FICHES, keep_query: bool = False) -> Callable:
+MAX_FILTER_PAGES = 12
+
+
+def filter_pages(html: str, base_url: str, filter_re: re.Pattern, limit: int = MAX_FILTER_PAGES) -> list[str]:
+    """Variantes filtrées d'une page de liste (même chemin, requête `?genres=N`…) : certains sites ne
+    rendent que les premières fiches sans filtre (Théâtre Jacques Carat : 9 sur 26) et le reste par genre."""
+    host, path = urlparse(base_url).netloc, urlparse(base_url).path.rstrip("/")
+    out: list[str] = []
+    for a in BeautifulSoup(html, "html.parser").find_all("a", href=True):
+        parsed = urlparse(urljoin(base_url, a["href"]))
+        if parsed.netloc == host and parsed.path.rstrip("/") == path and parsed.query and filter_re.search(parsed.query):
+            url = parsed._replace(fragment="").geturl()
+            if url not in out:
+                out.append(url)
+            if len(out) >= limit:
+                break
+    return out
+
+
+def make_adapter(listing_urls: list[str], link_re: str, max_fiches: int = MAX_FICHES, keep_query: bool = False,
+                 filter_re: Optional[str] = None) -> Callable:
     pattern = re.compile(link_re)
+    filters = re.compile(filter_re) if filter_re else None
 
     def adapter(fetcher: PoliteFetcher, venue: dict, today=None) -> tuple[list[dict], dict]:
         info = {"status": "aucune_fiche", "event_pages": 0}
         links: list[str] = []
-        for url in listing_urls:
+        pages = list(listing_urls)
+        for url in pages:
             page = fetcher.get(url)
-            if page.ok:
-                links += [l for l in fiche_links(page.text, page.final_url, pattern, max_fiches, keep_query) if l not in links]
+            if not page.ok:
+                continue
+            links += [l for l in fiche_links(page.text, page.final_url, pattern, max_fiches, keep_query) if l not in links]
+            if filters and url in listing_urls:
+                pages += [u for u in filter_pages(page.text, page.final_url, filters) if u not in pages]
         occurrences = read_fiches(fetcher, links, today, info, max_fiches)
         return _finish(occurrences, links, venue, today, info)
 
@@ -309,4 +334,5 @@ ADAPTERS: dict = {
     "theatre-du-nord-ouest-2849": nord_ouest_adapter,
     "comedie-saint-michel-3528": csm_adapter,
     "apollo-theatre-3239": make_adapter(["https://www.apollotheatre.fr/nos-spectacles-l.html"], r"-lo\d+\.html$", max_fiches=60),
+    "theatre-3251": make_adapter(["https://www.theatrejacquescarat.fr/la-saison"], r"^/la-saison/[a-z0-9\-]+$", filter_re=r"genres="),
 }
