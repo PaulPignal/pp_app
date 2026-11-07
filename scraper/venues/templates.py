@@ -28,10 +28,10 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 
 try:
-    from scraper.venues import billetterie, generic, html_fiche, schemaorg, triage
+    from scraper.venues import billetterie, fingerprint, generic, html_fiche, schemaorg, triage
     from scraper.venues.http import Page, PoliteFetcher
 except ModuleNotFoundError:  # pragma: no cover
-    from venues import billetterie, generic, html_fiche, schemaorg, triage  # type: ignore[no-redef]
+    from venues import billetterie, fingerprint, generic, html_fiche, schemaorg, triage  # type: ignore[no-redef]
     from venues.http import Page, PoliteFetcher  # type: ignore[no-redef]
 
 MIN_FAMILY_SIZE = 4          # fiches sœurs minimales sous un même chemin pour parler de « famille »
@@ -207,13 +207,86 @@ EXTRACTORS: dict[str, Callable] = {
 }
 
 
+def selected(venue: dict) -> list[str]:
+    """Extracteurs à lancer pour un lieu. La colonne `template` du catalogue (écrite par `annotate`) les nomme
+    (« extracteur:fiches_cartes ») ; « aucun » = lieu analysé, aucun gabarit ; colonne vide ou absente = lieu
+    non analysé, tous les extracteurs sont essayés."""
+    tags = [t for t in (venue.get("template") or "").split("|") if t]
+    if not tags:
+        return list(EXTRACTORS)
+    return [t.split(":", 1)[1] for t in tags if t.startswith("extracteur:") and t.split(":", 1)[1] in EXTRACTORS]
+
+
+def detect(fetcher: PoliteFetcher, venue: dict) -> str:
+    """Valeur de la colonne `template` : empreinte (thème ou CMS, billetteries, extension d'agenda) puis
+    extracteurs applicables, mesurés sur l'accueil et les pages agenda (en cache après le triage)."""
+    home = fetcher.get(venue["website"])
+    if not home.ok:
+        return ""
+    pages = billetterie.site_pages(fetcher, venue) or [home]
+    fp = fingerprint.merge([fingerprint.fingerprint_html(p.text, p.final_url) for p in pages])
+    tags = [t for t in fingerprint.template_label(fp).split("|") if t]
+    if "billetreduc" in fp["widgets"] or any(BR_SALLE_RE.search(p.text) for p in pages):
+        tags.append("extracteur:billetreduc_salle")
+    if len(family_links(pages)) >= MIN_FAMILY_SIZE:
+        tags.append("extracteur:fiches_famille")
+    if len(card_links(home)) >= MIN_CARDS:
+        tags.append("extracteur:fiches_cartes")
+    return "|".join(tags) or "aucun"
+
+
+def annotate(csv_in: str, csv_out: str, fetcher: PoliteFetcher, workers: int = 6, log=print) -> None:
+    """Écrit la colonne `template` du catalogue (les autres colonnes sont conservées telles quelles)."""
+    import csv
+    from concurrent.futures import ThreadPoolExecutor
+
+    with open(csv_in, encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    columns = list(rows[0].keys()) if rows else []
+    if "template" not in columns:
+        columns.append("template")
+
+    def work(row: dict) -> None:
+        row["template"] = ""
+        if row.get("website") and row.get("status") in ("ok", "", None):
+            try:
+                row["template"] = detect(fetcher, dict(row, website=triage.normalize_website(row["website"])))
+            except Exception:  # un site illisible ne doit pas arrêter l'analyse
+                row["template"] = ""
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for i, _ in enumerate(pool.map(work, rows), start=1):
+            if i % 50 == 0:
+                log(f"gabarits: {i}/{len(rows)} lieux")
+    with open(csv_out, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({c: row.get(c, "") for c in columns})
+
+
+def main() -> None:
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Détecte le gabarit de chaque lieu et l'écrit dans la colonne `template` du catalogue")
+    ap.add_argument("--catalogue", default="data/venues/catalogue.csv")
+    ap.add_argument("--out", default="data/venues/catalogue.csv")
+    args = ap.parse_args()
+    annotate(args.catalogue, args.out, PoliteFetcher(), log=lambda m: print(m, flush=True))
+
+
 def complement(fetcher: PoliteFetcher, venue: dict, today: Optional[date] = None, known: int = 0) -> tuple[list[dict], dict]:
     """Enregistrements des extracteurs de gabarit pour un lieu (liste vide si aucun ne s'applique).
     `known` : nombre de spectacles déjà extraits par les autres sources."""
     records: list[dict] = []
     info: dict = {}
-    for name, extractor in EXTRACTORS.items():
+    for name in selected(venue):
+        extractor = EXTRACTORS[name]
         groups, sub = extractor(fetcher, venue, today, known)
         info[name] = sub.get("status", "")
         records += schemaorg.records_from_groups(groups, venue, f"direct:gabarit_{name}", today=today)
     return records, info
+
+
+if __name__ == "__main__":
+    main()

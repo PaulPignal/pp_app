@@ -136,6 +136,27 @@ class FichesCartesTests(unittest.TestCase):
         self.assertTrue(any(r["source"] == "direct:gabarit_fiches_cartes" for r in records))
 
 
+class ColonneTemplateTests(unittest.TestCase):
+    def test_selection_par_colonne(self):
+        self.assertEqual(templates.selected({}), list(templates.EXTRACTORS))                       # lieu non analysé : tout est essayé
+        self.assertEqual(templates.selected({"template": "aucun"}), [])                            # analysé, aucun gabarit
+        self.assertEqual(templates.selected({"template": "theme:salient|extracteur:fiches_cartes"}), ["fiches_cartes"])
+        self.assertEqual(templates.selected({"template": "extracteur:inconnu"}), [])
+
+    def test_detection_sur_une_page_enregistree(self):
+        venue = {"slug": "x", "name": "Passy", "website": "https://theatredepassy.fr/"}
+        label = templates.detect(FakeFetcher({"https://theatredepassy.fr/": fixture("passy_accueil")}), venue)
+        self.assertIn("theme:salient", label)
+        self.assertIn("extracteur:fiches_famille", label)
+        self.assertEqual(templates.detect(FakeFetcher({"https://x.fr/": "<p>rien</p>"}), {"slug": "y", "name": "Y", "website": "https://x.fr/"}), "aucun")
+
+    def test_complement_respecte_la_colonne(self):
+        fetcher = FakeFetcher({})
+        venue = {"slug": "x", "name": "X", "website": "https://x.fr/", "template": "aucun", "sections": ["theatre"]}
+        self.assertEqual(templates.complement(fetcher, venue, TODAY), ([], {}))
+        self.assertEqual(fetcher.requested, [])  # aucun extracteur : aucune requête
+
+
 class BilletreducSalleTests(unittest.TestCase):
     SALLE = (
         '<html><head><script type="application/ld+json">[{"@type":"TheaterEvent","name":"Hamlet","startDate":"2026-12-01T20:00:00",'
